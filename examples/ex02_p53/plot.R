@@ -1,4 +1,7 @@
-read.table('results/p53_result.txt',header=F) -> a
+read.table('results/p53_MJP_result.txt',header=F) -> a
+#read.table('results/p53_SDE_result.txt',header=F) -> a
+#read.table('results/p53_ODE_result.txt',header=F) -> a
+
 cols = length(a[2,])
 
 maxVal = max(a[2,4:cols],a[3,4:cols],a[4,4:cols],

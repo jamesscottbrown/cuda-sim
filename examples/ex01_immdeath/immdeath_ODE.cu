@@ -13,7 +13,7 @@ struct myFex{
 
 
 
-        ydot[0]=((tex2D(param_tex,0,tid)*function_1(tex2D(param_tex,1,tid)))-(tex2D(param_tex,0,tid)*tex2D(param_tex,2,tid)*y[0]))/tex2D(param_tex,0,tid);
+        ydot[0]=(1.0*(tex2D(param_tex,0,tid)*function_1(tex2D(param_tex,1,tid)))-1.0*(tex2D(param_tex,0,tid)*tex2D(param_tex,2,tid)*y[0]))/tex2D(param_tex,0,tid);
 
     }
 };

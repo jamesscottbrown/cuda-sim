@@ -1,0 +1,6 @@
+include cudasim/MersenneTwister.dat
+include cudasim/MersenneTwister.cu
+include cudasim/cuLsoda_all.cu
+include cudasim/WarpStandard.cu
+recursive-include examples *
+include doc/cuda-sim-manual.pdf

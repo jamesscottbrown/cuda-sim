@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level2/version4" level="2" version="4">
+  <model id="ModelIV" name="p53 model IV">
+    <listOfUnitDefinitions>
+      <unitDefinition id="substance">
+        <listOfUnits>
+          <unit kind="item"/>
+        </listOfUnits>
+      </unitDefinition>
+    </listOfUnitDefinitions>
+    <listOfCompartments>
+      <compartment id="cell" size="1"/>
+    </listOfCompartments>
+    <listOfSpecies>
+      <species id="X" name="p53" compartment="cell" initialAmount="0"/>
+      <species id="Y0" name="Mdm2 precursor" compartment="cell" initialAmount="0.1"/>
+      <species id="Y" name="Mdm2" compartment="cell" initialAmount="0.8"/>
+    </listOfSpecies>
+    <listOfParameters>
+      <parameter id="betaY" value="1.2"/>
+      <parameter id="alpha0" value="0.9"/>
+      <parameter id="alphaY" value="0.8"/>
+      <parameter id="betaX" value="0.9"/>
+      <parameter id="alphaX" value="0.3"/>
+      <parameter id="alphaK" value="1.7"/>
+      <parameter id="k" value="0.0001"/>
+      <parameter id="omega" value="200"/>
+    </listOfParameters>
+    <listOfReactions>
+      <reaction id="Xgen" name="p53 generation" reversible="false">
+        <listOfProducts>
+          <speciesReference species="X"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> betaX </ci>
+              <ci> omega </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="XDeg" name="p53 degradation" reversible="false">
+        <listOfReactants>
+          <speciesReference species="X"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> alphaX </ci>
+              <ci> X </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="XMdm2Deg" name="p53 degradation - Mdm2 dependent" reversible="false">
+        <listOfReactants>
+          <speciesReference species="X"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> alphaK </ci>
+                <ci> X </ci>
+                <ci> Y </ci>
+              </apply>
+              <apply>
+                <plus/>
+                <ci> X </ci>
+                <apply>
+                  <times/>
+                  <ci> k </ci>
+                  <ci> omega </ci>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="Y0gen" name="Mdm2 precursor generation" reversible="false">
+        <listOfProducts>
+          <speciesReference species="Y0"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> betaY </ci>
+              <ci> X </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="Y0mat" name="Mdm2 precursor maturation" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Y0"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Y"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> alpha0 </ci>
+              <ci> Y0 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="Ydeg" name="Mdm2 degradation" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Y"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> alphaY </ci>
+              <ci> Y </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+    </listOfReactions>
+  </model>
+</sbml>

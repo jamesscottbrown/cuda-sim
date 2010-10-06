@@ -13,14 +13,6 @@ import cudasim.SBMLParser as Parser
 # Location of the SBML model file
 xmlModel = "immigration-death.xml"
 
-# Name of the model
-name = "immdeath"
-
-# Type of integration
-#integrationType = "ODE" 
-#integrationType = "SDE" 
-integrationType = "MJP"
-
 # Location of the file containing the parameters
 parameterFile = "param.dat"
 
@@ -46,9 +38,6 @@ resultFolder = "./results"
 # temp folder in this file's folder will be created if not specified  
 temp = None
 
-
-
-
 ##### initialization #####
 
 # create temp folder
@@ -64,59 +53,67 @@ try:
 except:
     pass
 
-# create CUDA code from SBML model
-Parser.importSBMLCUDA([xmlModel],[integrationType],ModelName=[name],method=None,outpath=temp)
 
-#determining the timepoints for the output
-timepoints = np.array(range(datapoints+1),dtype=np.float32) * simulationLength/datapoints 
+# Type of integration
+for integrationType in ["ODE", "SDE",  "MJP"]:
 
-# reading in the CUDA code
-cudaCode = os.path.join(temp, name + ".cu")
-# reading in parameters
-parameters = []
-inFile = open(parameterFile,'r').read()
-lines = inFile.split("\n")
-for i in range(len(lines)):
-    if(lines[i].strip() == ""):
-        continue
-    parameters.append([])
-    lineParam = lines[i].strip().split(" ")
-    for j in range(len(lineParam)):
-        parameters[i].append(lineParam[j])
-# reading in species
-species = []
-inFile = open(speciesFile,'r').read()
-lines = inFile.split("\n")
-for i in range(len(lines)):
-    if(lines[i].strip() == ""):
-        continue
-    species.append([])
-    lineSpecies = lines[i].strip().split(" ")
-    for j in range(len(lineSpecies)):
-        species[i].append(lineSpecies[j])
+    # Name of the model
+    name = "immdeath" + "_"+integrationType
+
+    # create CUDA code from SBML model
+    Parser.importSBMLCUDA([xmlModel],[integrationType],ModelName=[name],method=None,outpath=temp)
+
+    #determining the timepoints for the output
+    timepoints = np.array(range(datapoints+1),dtype=np.float32) * simulationLength/datapoints 
+
+    # reading in the CUDA code
+    cudaCode = os.path.join(temp, name + ".cu")
+    # reading in parameters
+    parameters = []
+    inFile = open(parameterFile,'r').read()
+    lines = inFile.split("\n")
+    for i in range(len(lines)):
+        if(lines[i].strip() == ""):
+            continue
+        parameters.append([])
+        lineParam = lines[i].strip().split(" ")
+        for j in range(len(lineParam)):
+            parameters[i].append(lineParam[j])
+
+    # reading in species
+    species = []
+    inFile = open(speciesFile,'r').read()
+    lines = inFile.split("\n")
+    for i in range(len(lines)):
+        if(lines[i].strip() == ""):
+            continue
+        species.append([])
+        lineSpecies = lines[i].strip().split(" ")
+        for j in range(len(lineSpecies)):
+            species[i].append(lineSpecies[j])
 
 
-# create model
-print "Create model..",
-if(integrationType == "SDE"):
-    modeInstance = EulerMaruyama.EulerMaruyama(timepoints, cudaCode, beta=beta, dt=dt)
-elif(integrationType == "MJP"):
-    modeInstance = Gillespie.Gillespie(timepoints, cudaCode, beta=beta)
-else:
-    modeInstance = Lsoda.Lsoda(timepoints, cudaCode)
+    # create model
+    print "Create model..",
+    if(integrationType == "SDE"):
+        modeInstance = EulerMaruyama.EulerMaruyama(timepoints, cudaCode, beta=beta, dt=dt)
+    elif(integrationType == "MJP"):
+        modeInstance = Gillespie.Gillespie(timepoints, cudaCode, beta=beta, dt=dt)
+    else:
+        modeInstance = Lsoda.Lsoda(timepoints, cudaCode, dt=dt)
 
-print "..calculating..",
-result = modeInstance.run(parameters, species, seed=1)
-print "..finished."
+    print "..calculating..",
+    result = modeInstance.run(parameters, species, seed=1)
+    print "..finished."
 
-# write output
-print "Write output."
-out = open(os.path.join(resultFolder,name+"_result.txt"),'w')
-print >>out, "- - -",
-for i in range(len(timepoints)):
-    print >>out, timepoints[i],
-print >>out, ""
-for i in range(len(result)):
+    # write output
+    print "Write output."
+    out = open(os.path.join(resultFolder,name+"_result.txt"),'w')
+    print >>out, "- - -",
+    for i in range(len(timepoints)):
+        print >>out, timepoints[i],
+    print >>out, ""
+    for i in range(len(result)):
         for j in range(len(result[i])):
             for l in range(len(result[i][0][0])):
                 print >>out, 'e:' + str(i), 'b:'+str(j),'s:'+str(l),
@@ -125,6 +122,6 @@ for i in range(len(result)):
                 print >>out, ""
                     
                         
-out.close()
+    out.close()
         
         

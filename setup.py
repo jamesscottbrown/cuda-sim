@@ -2,7 +2,7 @@
 from distutils.core import setup
 
 setup(name='cuda-sim',
-      version='0.03',
+      version='0.04',
       description='Biochemical network simulation using NVIDIA CUDA',
 
       author='Yanxiang Zhou, Chris Barnes',

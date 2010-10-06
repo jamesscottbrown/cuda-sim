@@ -1,4 +1,8 @@
-read.table('results/immdeath_result.txt',header=F) -> a
+
+read.table('results/immdeath_MJP_result.txt',header=F) -> a
+#read.table('results/immdeath_SDE_result.txt',header=F) -> a
+#read.table('results/immdeath_ODE_result.txt',header=F) -> a
+
 cols = length(a[2,])
 maxVal = 0
 

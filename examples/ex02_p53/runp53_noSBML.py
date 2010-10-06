@@ -82,9 +82,9 @@ print "Create model..",
 if(integrationType == "SDE"):
     modeInstance = EulerMaruyama.EulerMaruyama(timepoints, cudaCode, beta=beta, dt=dt)
 elif(integrationType == "MJP"):
-    modeInstance = Gillespie.Gillespie(timepoints, cudaCode, beta=beta)
+    modeInstance = Gillespie.Gillespie(timepoints, cudaCode, beta=beta, dt=dt)
 else:
-    modeInstance = Lsoda.Lsoda(timepoints, cudaCode)
+    modeInstance = Lsoda.Lsoda(timepoints, cudaCode, dt=dt)
 
 print "..calculating..",
 result = modeInstance.run(parameters, species, seed=1)

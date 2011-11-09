@@ -95,10 +95,10 @@ class Lsoda(sim.Simulator):
         
         # compile 
         timer = time.time()
-        print "Init Common..",
+        ## print "Init Common..",
         init_common_Kernel = self._completeCode.get_function("init_common")
         init_common_Kernel( block=(threads,1,1), grid=(blocks,1) )
-        print "finished in", round(time.time()-timer,4), "s"
+        ## print "finished in", round(time.time()-timer,4), "s"
         
         start_time = time.time()
         # output array

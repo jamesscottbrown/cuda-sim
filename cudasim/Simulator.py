@@ -56,7 +56,7 @@ class Simulator:
             self._device = 0
         else:
             self._device = int(device)
-        print "Using device", self._device
+        print "cuda-sim: Using device", self._device
         
         
         self._getKernelParams(stepCode)
@@ -144,25 +144,27 @@ class Simulator:
     ############ public methods ############
     
     # specify GPU specific variables and _runSimulation()
-    def run(self, parameters, initValues, timing=True):
+    def run(self, parameters, initValues, timing=True, info=False):
         
         #check parameters and initValues for compability with pre-defined parameterNumber and spieciesNumber
         if(len(parameters[0]) != self._parameterNumber):
             print "Error: Number of parameters specified (" + str(self._parameterNumber) + ") and given in parameter array (" + str(len(parameters[0])) + ") differ from each other!"
-            return []
+            exit()
         elif(len(initValues[0]) != self._speciesNumber):
             print "Error: Number of species specified (" +  str(self._speciesNumber) + ") and given in species array (" + str(len(initValues[0])) + ") differ from each other!"
-            return []
+            exit()
         elif(len(parameters) != len(initValues)):
             print "Error: Number of sets of parameters (" + str(len(parameters)) + ") and species (" + str(len(initValues)) + ") do not match!"
-            return []
+            exit()
         
         if(self._compiledRunMethod == None and self._runtimeCompile):
             #compile to determine blocks and threads
             self._completeCode, self._compiledRunMethod = self._compileAtRuntime(self._stepCode, parameters)
         
         blocks, threads = self._getOptimalGPUParam(parameters)
-        print threads, blocks
+        if info==True:
+            print "cuda-sim: threads/blocks:", threads, blocks
+
         # real runtime compile
         
         #self._seedValue = seed
@@ -176,10 +178,10 @@ class Simulator:
                     initNew[i*self._beta + j][k] = initValues[i][k]
         initValues = initNew
         
-        
-        print "#### kernel mem local / shared / registers : ", self._compiledRunMethod.local_size_bytes, self._compiledRunMethod.shared_size_bytes, self._compiledRunMethod.num_regs
-        occ = tools.OccupancyRecord( tools.DeviceData(), threads=threads, shared_mem=self._compiledRunMethod.shared_size_bytes, registers=self._compiledRunMethod.num_regs )
-        print "#### threadblocks per mp / limit / occupancy :", occ.tb_per_mp, occ.limited_by, occ.occupancy
+        if info==True:
+            print "cuda-sim: kernel mem local / shared / registers : ", self._compiledRunMethod.local_size_bytes, self._compiledRunMethod.shared_size_bytes, self._compiledRunMethod.num_regs
+            occ = tools.OccupancyRecord( tools.DeviceData(), threads=threads, shared_mem=self._compiledRunMethod.shared_size_bytes, registers=self._compiledRunMethod.num_regs )
+            print "cuda-sim: threadblocks per mp / limit / occupancy :", occ.tb_per_mp, occ.limited_by, occ.occupancy
 
 
         if timing:
@@ -195,8 +197,10 @@ class Simulator:
                     runblocks = self._MAXBLOCKSPERDEVICE
             else:
                 runblocks = int(self._MAXBLOCKSPERDEVICE)
-            
-            print "Run", runblocks, "blocks."
+
+            if info==True:
+                print "cuda-sim: Run", runblocks, "blocks."
+
             minIndex = self._MAXBLOCKSPERDEVICE*i*threads
             maxIndex = minIndex + threads*runblocks
             runParameters = parameters[minIndex/self._beta:maxIndex/self._beta]
@@ -209,7 +213,10 @@ class Simulator:
                 returnValue = np.append(returnValue,self._runSimulation(runParameters, runInitValues, runblocks, threads),axis=0)
         
         if timing:
-            print "Running time:", round((time.time()-start),4), "s"
+            print "cuda-sim: GPU blocks / threads / running time:", threads, blocks, round((time.time()-start),4), "s"
+
+        if info:
+            print ""
         
         return returnValue
     

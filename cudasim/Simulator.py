@@ -26,7 +26,7 @@ class Simulator:
     _hazardNumber = None
     _resultNumber = None
     
-    _seedValue = None
+    #_seedValue = None
     
     # device used
     # ToDo enable more than default device to be used
@@ -76,8 +76,8 @@ class Simulator:
     ############ private methods ############
     
     # method for generating seeds for random number generators
-    def _seed(self):
-        return self._seedValue
+    #def _seed(self):
+    #    return self._seedValue
     
     # method for extracting the number of species, variables and reactions from CUDA kernel
     def _getKernelParams(self, stepCode):
@@ -136,7 +136,7 @@ class Simulator:
     
     # ABSTRACT
     # method for running simulation
-    def _runSimulation(self, parameters, initValues, blocks, threads, seed):
+    def _runSimulation(self, parameters, initValues, blocks, threads):
         return None
     
     
@@ -144,7 +144,7 @@ class Simulator:
     ############ public methods ############
     
     # specify GPU specific variables and _runSimulation()
-    def run(self, parameters, initValues, timing=True, seed=0):
+    def run(self, parameters, initValues, timing=True):
         
         #check parameters and initValues for compability with pre-defined parameterNumber and spieciesNumber
         if(len(parameters[0]) != self._parameterNumber):
@@ -165,8 +165,8 @@ class Simulator:
         print threads, blocks
         # real runtime compile
         
-        self._seedValue = seed
-        np.random.seed(self._seedValue)
+        #self._seedValue = seed
+        #np.random.seed(self._seedValue)
 
         # make multiples of initValues
         initNew = np.zeros((len(initValues)*self._beta,self._speciesNumber))

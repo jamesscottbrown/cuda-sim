@@ -130,7 +130,8 @@ class Lsoda(sim.Simulator):
         
         for i in range(totalThreads):
             neq[i] = neqn
-            t[i] = self._timepoints[0]
+            #t[i] = self._timepoints[0]
+            t[i] = 0
             itol[i] = 1
             itask[i] = 1
             istate[i] = 1
@@ -202,7 +203,8 @@ class Lsoda(sim.Simulator):
     
         if self._dt <= 0:
             start_time = time.time()
-            for i in range(1,self._resultNumber):
+            #for i in range(1,self._resultNumber):
+            for i in range(0,self._resultNumber):    
     
                 for j in range(totalThreads):
                     tout[j] = self._timepoints[i]; 
@@ -225,8 +227,8 @@ class Lsoda(sim.Simulator):
             tt = self._timepoints[0]
             
             start_time = time.time()
-            for i in range(1,self._resultNumber):
-                
+            #for i in range(1,self._resultNumber):
+            for i in range(0,self._resultNumber):  
                 while 1:
                     
                     next_time = min(tt+self._dt, self._timepoints[i])

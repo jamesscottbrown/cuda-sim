@@ -178,9 +178,9 @@ class Gillespie(sim.Simulator):
         
         # initialize Mersenne Twister
         timer = time.time()
-        print "Init MT..",
+        ## print "Init MT..",
         self._initialise_twisters( mt_data, self._completeCode, threads, blocks)
-        print "finished in", round(time.time()-timer,4), "s"
+        ## print "finished in", round(time.time()-timer,4), "s"
         
         param = np.zeros((totalThreads/self._beta + 1,self._parameterNumber),dtype=np.float32)
         try:
@@ -219,9 +219,9 @@ class Gillespie(sim.Simulator):
         
         # run code
         timer = time.time()
-        print "Actual run..",
+        ## print "Actual run..",
         self._compiledRunMethod(d_x, d_result, block=(threads,1,1), grid=(blocks,1) );
-        print "finished in", round(time.time()-timer,4), "s"
+        ## print "finished in", round(time.time()-timer,4), "s"
         
         # fetch from GPU memory
         cuda.memcpy_dtoh(result, d_result)

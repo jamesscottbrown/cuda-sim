@@ -35,7 +35,7 @@ class EulerMaruyama(sim.Simulator):
         if self._parameterNumber <= self._beta * maxParameters:
             self._putIntoShared = True
         
-        print "Go for shared? " + str(self._putIntoShared)
+        ## print "cuda-sim: Euler-Maruyama : Using shared memory code: " + str(self._putIntoShared)
         step_code = self._modifyStepCode(step_code, self._putIntoShared)
         
         general_parameters_source = """

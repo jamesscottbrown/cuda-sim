@@ -56,7 +56,7 @@ class Simulator:
             self._device = 0
         else:
             self._device = int(device)
-        print "cuda-sim: Using device", self._device
+        ## print "cuda-sim: Using device", self._device
         
         
         self._getKernelParams(stepCode)

@@ -10,6 +10,30 @@ import os
 ##    If there is only one source to parse it must still be passed as a tuple ('source.xml',)
 ##    with an integrationType passed as ('Gillespie',)
 
+## replace the species and parameters recursively
+##
+## replace
+## pq = re.compile(speciesId[q])
+## string=pq.sub('y['+repr(q)+']' ,string)
+## with
+## string = rep(string, speciesId[q],'y['+repr(q)+']')
+
+
+def rep(str,find,replace):
+
+    ex = find+"[^0-9]"
+    ss = str;
+    while re.search(ex,ss) != None:
+        res = re.search(ex,ss)
+        ss = ss[0:res.start()] + replace + " " + ss[res.end()-1:]
+
+    ex = find+"$"
+    if re.search(ex,ss) != None:
+        res = re.search(ex,ss)
+        ss = ss[0:res.start()] + replace + " " + ss[res.end():]
+ 
+    return ss;
+
 
 ######################## CUDA SDE #################################
 
@@ -79,8 +103,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
             string = ruleFormula[i]
             for q in range(0,len(speciesId)):
-                pq = re.compile(speciesId[q])
-                string=pq.sub('y['+repr(q)+']' ,string)
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
             for q in range(0,len(parameterId)):
                 if (not(parameterId[q] in ruleVariable)):
                     flag = False
@@ -88,8 +113,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                         if (parameterId[q] in EventVariable[r]):
                             flag = True
                     if flag==False:
-                        pq = re.compile(parameterId[q])
-                        string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)',string)
+                        #pq = re.compile(parameterId[q])
+                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)',string)
+                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
 
             out_file.write(string)
             out_file.write(";\n")
@@ -112,8 +138,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
             
             string = EventFormula[i][j]
             for q in range(0,len(speciesId)):
-                pq = re.compile(speciesId[q])
-                string=pq.sub('y['+repr(q)+']' ,string)
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
             for q in range(0,len(parameterId)):
                 if (not(parameterId[q] in ruleVariable)):
                     flag = False
@@ -121,8 +148,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                         if (parameterId[q] in EventVariable[r]):
                             flag = True
                     if flag==False:
-                        pq = re.compile(parameterId[q])
-                        string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        #pq = re.compile(parameterId[q])
+                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
 
             out_file.write(string)
             out_file.write(";\n")
@@ -143,8 +171,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
  
             string = mathMLConditionParserCuda(ruleFormula[i])
             for q in range(0,len(speciesId)):
-                pq = re.compile(speciesId[q])
-                string=pq.sub("y["+repr(q)+"]" ,string)
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub("y["+repr(q)+"]" ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
             for q in range(0,len(parameterId)):
                 if (not(parameterId[q] in ruleVariable)):
                     flag = False
@@ -152,9 +181,10 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                         if (parameterId[q] in EventVariable[r]):
                             flag = True
                     if flag==False:
-                        pq = re.compile(parameterId[q])
-                        x = "tex2D(param_tex,"+repr(q)+",tid)"
-                        string=pq.sub(x,string)
+                        #pq = re.compile(parameterId[q])
+                        #x = "tex2D(param_tex,"+repr(q)+",tid)"
+                        #string=pq.sub(x,string)
+                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
             out_file.write(string)
             out_file.write(";\n")
     out_file.write("")
@@ -195,8 +225,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                         
                     string = kineticLaw[k]
                     for q in range(0,len(speciesId)):
-                        pq = re.compile(speciesId[q])
-                        string=pq.sub('y['+repr(q)+']' ,string)
+                        #pq = re.compile(speciesId[q])
+                        #string=pq.sub('y['+repr(q)+']' ,string)
+                        string = rep(string, speciesId[q],'y['+repr(q)+']')
                     for q in range(0,len(parameterId)):
                         if (not(parameterId[q] in ruleVariable)):
                             flag = False
@@ -204,9 +235,10 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                                 if (parameterId[q] in EventVariable[r]):
                                     flag = True
                             if flag==False:
-                                pq = re.compile(parameterId[q])
-                                string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
-   
+                                #pq = re.compile(parameterId[q])
+                                #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                                string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                                
                     string=p.sub('',string)
                     
                     out_file.write(string)
@@ -282,8 +314,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
                     string = kineticLaw[k]
                     for q in range(0,len(speciesId)):
-                        pq = re.compile(speciesId[q])
-                        string=pq.sub('y['+repr(q)+']' ,string)
+                        #pq = re.compile(speciesId[q])
+                        #string=pq.sub('y['+repr(q)+']' ,string)
+                        string = rep(string, speciesId[q],'y['+repr(q)+']')
                     for q in range(0,len(parameterId)):
                         if (not(parameterId[q] in ruleVariable)):
                             flag = False
@@ -291,8 +324,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                                 if (parameterId[q] in EventVariable[r]):
                                     flag = True
                             if flag==False:
-                                pq = re.compile(parameterId[q])
-                                string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                                #pq = re.compile(parameterId[q])
+                                #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                                string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
    
                     string=p.sub('',string)
                     out_file.write(string)
@@ -386,8 +420,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
             string = ruleFormula[i]
             for q in range(0,len(speciesId)):
-                pq = re.compile(speciesId[q])
-                string=pq.sub('y['+repr(q)+']' ,string)
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
             for q in range(0,len(parameterId)):
                 if (not(parameterId[q] in ruleVariable)):
                     flag = False
@@ -419,8 +454,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
             
             string = EventFormula[i][j]
             for q in range(0,len(speciesId)):
-                pq = re.compile(speciesId[q])
-                string=pq.sub('y['+repr(q)+']' ,string)
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
             for q in range(0,len(parameterId)):
                 if (not(parameterId[q] in ruleVariable)):
                     flag = False
@@ -450,8 +486,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
  
             string = mathMLConditionParserCuda(ruleFormula[i])
             for q in range(0,len(speciesId)):
-                pq = re.compile(speciesId[q])
-                string=pq.sub("y["+repr(q)+"]" ,string)
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub("y["+repr(q)+"]" ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
             for q in range(0,len(parameterId)):
                 if (not(parameterId[q] in ruleVariable)):
                     flag = False
@@ -501,8 +538,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
                     string = kineticLaw[k]
                     for q in range(0,len(speciesId)):
-                        pq = re.compile(speciesId[q])
-                        string=pq.sub('y['+repr(q)+']' ,string)
+                        #pq = re.compile(speciesId[q])
+                        #string=pq.sub('y['+repr(q)+']' ,string)
+                        string = rep(string, speciesId[q],'y['+repr(q)+']')
                     for q in range(0,len(parameterId)):
                         if (not(parameterId[q] in ruleVariable)):
                             flag = False
@@ -588,8 +626,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
                     string = kineticLaw[k]
                     for q in range(0,len(speciesId)):
-                        pq = re.compile(speciesId[q])
-                        string=pq.sub('y['+repr(q)+']' ,string)
+                        #pq = re.compile(speciesId[q])
+                        #string=pq.sub('y['+repr(q)+']' ,string)
+                        string = rep(string, speciesId[q],'y['+repr(q)+']')
                     for q in range(0,len(parameterId)):
                         if (not(parameterId[q] in ruleVariable)):
                             flag = False
@@ -714,8 +753,9 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
 
             string = ruleFormula[i]
             for q in range(0,len(speciesId)):
-                pq = re.compile(speciesId[q])
-                string=pq.sub('y['+repr(q)+']' ,string)
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
             for q in range(0,len(parameterId)):
                 if (not(parameterId[q] in ruleVariable)):
                     flag = False
@@ -723,8 +763,9 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
                         if (parameterId[q] in EventVariable[r]):
                             flag = True
                     if flag==False:
-                        pq = re.compile(parameterId[q])
-                        string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        #pq = re.compile(parameterId[q])
+                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
 
             out_file.write(string)
             out_file.write(";\n")
@@ -746,8 +787,9 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
             
             string = EventFormula[i][j]
             for q in range(0,len(speciesId)):
-                pq = re.compile(speciesId[q])
-                string=pq.sub('y['+repr(q)+']' ,string)
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
             for q in range(0,len(parameterId)):
                 if (not(parameterId[q] in ruleVariable)):
                     flag = False
@@ -755,8 +797,9 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
                         if (parameterId[q] in EventVariable[r]):
                             flag = True
                     if flag==False:
-                        pq = re.compile(parameterId[q])
-                        string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        #pq = re.compile(parameterId[q])
+                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
 
             out_file.write(string)
             out_file.write(";\n")
@@ -777,8 +820,9 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
  
             string = mathMLConditionParserCuda(ruleFormula[i])
             for q in range(0,len(speciesId)):
-                pq = re.compile(speciesId[q])
-                string=pq.sub("y["+repr(q)+"]" ,string)
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub("y["+repr(q)+"]" ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
             for q in range(0,len(parameterId)):
                 if (not(parameterId[q] in ruleVariable)):
                     flag = False
@@ -786,9 +830,10 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
                         if (parameterId[q] in EventVariable[r]):
                             flag = True
                     if flag==False:
-                        pq = re.compile(parameterId[q])
-                        x = "tex2D(param_tex,"+repr(q)+",tid)"
-                        string=pq.sub(x,string)
+                        #pq = re.compile(parameterId[q])
+                        #x = "tex2D(param_tex,"+repr(q)+",tid)"
+                        #string=pq.sub(x,string)
+                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
             out_file.write(string)
             out_file.write(";\n")
     out_file.write("\n")
@@ -800,8 +845,9 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
 
         string = kineticLaw[i]
         for q in range(0,len(speciesId)):
-            pq = re.compile(speciesId[q])
-            string=pq.sub('y['+repr(q)+']' ,string)
+            #pq = re.compile(speciesId[q])
+            #string=pq.sub('y['+repr(q)+']' ,string)
+            string = rep(string, speciesId[q],'y['+repr(q)+']')
         for q in range(0,len(parameterId)):
             if (not(parameterId[q] in ruleVariable)):
                 flag = False
@@ -809,8 +855,9 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
                     if (parameterId[q] in EventVariable[r]):
                         flag = True
                 if flag==False:
-                    pq = re.compile(parameterId[q])
-                    string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                    #pq = re.compile(parameterId[q])
+                    #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                    string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
    
         string=p.sub('',string)
         out_file.write(string+";\n")
@@ -917,8 +964,9 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
             
             string = EventFormula[i][j]
             for q in range(0,len(speciesId)):
-                pq = re.compile(speciesId[q])
-                string=pq.sub('y['+repr(q)+']' ,string)
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
             for q in range(0,len(parameterId)):
                 if (not(parameterId[q] in ruleVariable)):
                     flag = False
@@ -926,8 +974,9 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                         if (parameterId[q] in EventVariable[r]):
                             flag = True
                     if flag==False:
-                        pq = re.compile(parameterId[q])
-                        string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        #pq = re.compile(parameterId[q])
+                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
 
             out_file.write(string)
             out_file.write(";\n")
@@ -948,8 +997,9 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
  
             string = mathMLConditionParserCuda(ruleFormula[i])
             for q in range(0,len(speciesId)):
-                pq = re.compile(speciesId[q])
-                string=pq.sub("y["+repr(q)+"]" ,string)
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub("y["+repr(q)+"]" ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
             for q in range(0,len(parameterId)):
                 if (not(parameterId[q] in ruleVariable)):
                     flag = False
@@ -957,9 +1007,10 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                         if (parameterId[q] in EventVariable[r]):
                             flag = True
                     if flag==False:
-                        pq = re.compile(parameterId[q])
-                        x = "tex2D(param_tex,"+repr(q)+",tid)"
-                        string=pq.sub(x,string)
+                        #pq = re.compile(parameterId[q])
+                        #x = "tex2D(param_tex,"+repr(q)+",tid)"
+                        #string=pq.sub(x,string)
+                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
             out_file.write(string)
             out_file.write(";\n")
     out_file.write("\n\n")
@@ -998,8 +1049,17 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
                     string = kineticLaw[k]
                     for q in range(0,len(speciesId)):
-                        pq = re.compile(speciesId[q])
-                        string=pq.sub('y['+repr(q)+']' ,string)
+                        #pq = re.compile(speciesId[q]+'[^0-9]')
+                        #pq = re.compile(speciesId[q]+'[^0-9]')
+                        #pq = re.compile(speciesId[q])
+                        #ret=pq.sub('y['+repr(q)+']' ,string)
+
+                        string = rep(string, speciesId[q],'y['+repr(q)+']')
+                        
+                        ##if ret != string:
+                        #if q == 5: 
+                        #    print speciesId[q], "|", 'y['+repr(q)+']', "\n\t", string, "\n\t", ret
+                        #string = ret;
                     for q in range(0,len(parameterId)):
                         if (not(parameterId[q] in ruleVariable)):
                             flag = False
@@ -1007,11 +1067,13 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                                 if (parameterId[q] in EventVariable[r]):
                                     flag = True
                             if flag==False:
-                                pq = re.compile(parameterId[q])
-                                string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                                #pq = re.compile(parameterId[q])
+                                #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                                string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
    
                     string=p.sub('',string)
-                    
+
+                    ##print string
                     out_file.write(string)
                     out_file.write(")")
                     

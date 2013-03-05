@@ -86,7 +86,7 @@ class Lsoda(sim.Simulator):
         return (compiled, lsoda_Kernel)
         
             
-    def _runSimulation(self, parameters, initValues, blocks, threads, in_atol=1e-12,in_rtol=1e-6 ):
+    def _runSimulation(self, parameters, initValues, blocks, threads,in_atol=1e-6,in_rtol=1e-6 ):
         
         totalThreads = threads * blocks
         experiments = len(parameters)
@@ -103,6 +103,7 @@ class Lsoda(sim.Simulator):
         start_time = time.time()
         # output array
         ret_xt = np.zeros( [totalThreads, 1, self._resultNumber, self._speciesNumber] )
+        ret_istate = np.ones( [totalThreads], dtype=np.int32 )
     
         # calculate sizes of work spaces
         isize = 20 + self._speciesNumber
@@ -250,12 +251,21 @@ class Lsoda(sim.Simulator):
     
                     tt = next_time
                     
-    
+            
                 for j in range(totalThreads):
                     for k in range(self._speciesNumber):
                         ret_xt[j, 0, i, k] = y[j*self._speciesNumber + k]
-    
-            # end of loop over time points
-        
-        return ret_xt[0:experiments]
 
+                    if istate[j] < 0:
+                            ret_istate[j] = 0;
+    
+            # end of loop over time point i
+
+            for j in range(totalThreads):
+                if ret_istate[j] == 0:
+                    for i in range(0,self._resultNumber):  
+                        for k in range(self._speciesNumber):
+                            ret_xt[j, 0, i, k] = None
+        
+        #return [ ret_xt[0:experiments], ret_istate[0:experiments] ]
+        return ret_xt[0:experiments]

@@ -36,7 +36,7 @@ class Simulator:
 
     _dump = False
     
-    def __init__(self, timepoints, stepCode, beta=1, dt=0.01):
+    def __init__(self, timepoints, stepCode, beta=1, dt=0.01, dump=False):
         # only beta which are factors of _MAXBLOCKSPERDEVICE are accepted, 
         # else _MAXBLOCKSPERDEVICE is reduced to the next smallest acceptable value
         if(self._MAXBLOCKSPERDEVICE%int(beta) != 0):
@@ -50,6 +50,7 @@ class Simulator:
         self._beta = int(beta)
         self._timepoints = np.array(timepoints,dtype=np.float32)
         self._dt = float(dt)
+        self._dump = dump
         
         device = os.getenv("CUDA_DEVICE")
         if(device==None):

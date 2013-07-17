@@ -21,6 +21,8 @@ class Lsoda(sim.Simulator):
     _lsoda_source_ = """
     
     extern "C"{
+
+    #include <stdio.h>
     
     __device__ myFex myfex;
     __device__ myJex myjex;
@@ -35,9 +37,17 @@ class Lsoda(sim.Simulator):
                             double *rwork, int *lrw, int *iwork, int *liw, int *jt)
     {
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    
+
+    //if(tid==0){
+    //printf("I am thread time %d %f\\n", tid, t[0] );
+    //}
+
     dlsoda_(myfex, neq+tid, y+tid*NSPECIES, t+tid, tout+tid, itol+tid, rtol+tid, atol+tid, itask+tid, 
         istate+tid, iopt+tid, rwork+tid*RSIZE, lrw+tid, iwork+tid*ISIZE, liw+tid, myjex, jt+tid, &(common[tid]) );
+
+    //if(tid==0){
+    //printf("I am done %d %f\\n", tid, t[0] );
+    //}
     }
     }
     
@@ -66,19 +76,32 @@ class Lsoda(sim.Simulator):
         _textures_ = "texture<float, 2, cudaReadModeElementType> param_tex;\n"
         _common_block_ = "__device__ struct cuLsodaCommonBlock common[" + repr(1*1) + "];\n"
         _code_ =  _isize_ + _rsize_ + _textures_ + step_code + _sourceFromFile_ + _common_block_ + self._lsoda_source_
+
+        if self._dump == True:
+            of = open("full_ode_code.cu","w")
+            print >>of, _code_
         
-        
+        ## options = ['-O0','-use_fast_math','-gencode=arch=compute_13,code=\"sm_13\"']
+        ## arch="sm_13"
+      
         # dummy compile to determine optimal blockSize and gridSize
-        compiled = pycuda.compiler.SourceModule( _code_, nvcc="nvcc", options=options, no_extern_c=True )
+        compiled = pycuda.compiler.SourceModule( _code_, nvcc="nvcc", options=options, no_extern_c=True, keep=False )
         
         blocks, threads = self._getOptimalGPUParam(parameters, compiled.get_function("cuLsoda"))
         blocks = self._MAXBLOCKSPERDEVICE
+
+        # print "Got here:", blocks, threads
         
         # real compile
         _common_block_ = "__device__ struct cuLsodaCommonBlock common[" + repr(blocks*threads) + "];\n"
         _code_ =  _isize_ + _rsize_ + _textures_ + step_code + _sourceFromFile_ + _common_block_ + self._lsoda_source_
-        
-        compiled = pycuda.compiler.SourceModule( _code_, nvcc="nvcc", options=options, no_extern_c=True)
+
+        if self._dump == True:
+        #if True:
+            of = open("full_ode_code.cu","w")
+            print >>of, _code_
+
+        compiled = pycuda.compiler.SourceModule( _code_, nvcc="nvcc", options=options, no_extern_c=True, keep=False )
         
         self._param_tex = compiled.get_texref("param_tex")
         
@@ -204,7 +227,6 @@ class Lsoda(sim.Simulator):
     
         if self._dt <= 0:
             start_time = time.time()
-            #for i in range(1,self._resultNumber):
             for i in range(0,self._resultNumber):    
     
                 for j in range(totalThreads):
@@ -221,6 +243,9 @@ class Lsoda(sim.Simulator):
                 for j in range(totalThreads):
                     for k in range(self._speciesNumber):
                         ret_xt[j, 0, i, k] = y[j*self._speciesNumber + k]
+
+                    if istate[j] < 0:
+                        ret_istate[j] = 0;
     
             # end of loop over time points
     
@@ -228,7 +253,6 @@ class Lsoda(sim.Simulator):
             tt = self._timepoints[0]
             
             start_time = time.time()
-            #for i in range(1,self._resultNumber):
             for i in range(0,self._resultNumber):  
                 while 1:
                     
@@ -261,11 +285,14 @@ class Lsoda(sim.Simulator):
     
             # end of loop over time point i
 
-            for j in range(totalThreads):
-                if ret_istate[j] == 0:
-                    for i in range(0,self._resultNumber):  
-                        for k in range(self._speciesNumber):
-                            ret_xt[j, 0, i, k] = None
+        # return the values
+
+        # loop over and check ret_istate
+        # it will will be zero if there was problems
+        for j in range(totalThreads):
+            if ret_istate[j] == 0:
+                for i in range(0,self._resultNumber):  
+                    for k in range(self._speciesNumber):
+                        ret_xt[j, 0, i, k] = float('NaN')
         
-        #return [ ret_xt[0:experiments], ret_istate[0:experiments] ]
         return ret_xt[0:experiments]

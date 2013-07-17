@@ -1,12 +1,14 @@
+import os, string
+
 import Simulator as sim
 
-import pycuda.autoinit
+import pycuda
 import pycuda.driver as driver
 import pycuda.tools as tools
 from pycuda.compiler import SourceModule
 
 import numpy as np
-import os, string
+
 
 class EulerMaruyama(sim.Simulator):
     

@@ -1,12 +1,9 @@
-# cuda utilities
-
-import Simulator as sim
-
 import os, time
 
+import Simulator as sim
+import pycuda
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
-import pycuda.autoinit
 import numpy as np
 from struct import unpack
 

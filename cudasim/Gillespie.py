@@ -6,6 +6,7 @@ import pycuda
 import pycuda.tools as tools
 import pycuda.driver as cuda
 from pycuda.compiler import SourceModule
+
 import numpy as np
 from struct import unpack
 

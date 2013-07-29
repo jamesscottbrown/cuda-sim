@@ -291,5 +291,6 @@ class Lsoda(sim.Simulator):
                 for i in range(0,self._resultNumber):  
                     for k in range(self._speciesNumber):
                         ret_xt[j, 0, i, k] = float('NaN')
+
         
         return ret_xt[0:experiments]

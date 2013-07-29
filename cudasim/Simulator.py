@@ -60,8 +60,8 @@ class Simulator:
         self._context = tools.make_default_context()
         self._device = 0
 
-        print "\n\ncuda-sim: default context"
-        print "cuda-sim: running on device ", self._context.get_device().name(), self._context.get_device().pci_bus_id()
+        #print "\n\ncuda-sim: default context"
+        #print "cuda-sim: running on device ", self._context.get_device().name(), self._context.get_device().pci_bus_id()
             
         #compability = self._context.get_device().compute_capability()
         #self._maxThreadsPerMP =  getMaxThreadsPerMP(compability)

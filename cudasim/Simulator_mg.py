@@ -205,8 +205,8 @@ class Simulator_mg(multiprocessing.Process):
         self.output_cpu.put( [self._card, self._returnValue] )
         self.output_cpu.close()
         
-        if self._timing:
-            print "cuda-sim: GPU blocks / threads / running time:", threads, blocks, round((time.time()-start),4), "s"
+        #if self._timing:
+        #    print "cuda-sim: GPU blocks / threads / running time:", threads, blocks, round((time.time()-start),4), "s"
 
         if self._info:
             print ""

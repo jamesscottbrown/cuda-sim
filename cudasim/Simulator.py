@@ -25,15 +25,16 @@ class Simulator:
     _speciesNumber = None
     _hazardNumber = None
     _resultNumber = None
-      
-    _context = None
+    
+    #_seedValue = None
+    
+    # device used
+    # ToDo enable more than default device to be used
     _device = None
     _maxThreadsPerMP = None
     _maxBlocksPerMP = None
 
     _dump = False
-
-    
     
     def __init__(self, timepoints, stepCode, beta=1, dt=0.01, dump=False):
         # only beta which are factors of _MAXBLOCKSPERDEVICE are accepted, 
@@ -50,22 +51,22 @@ class Simulator:
         self._timepoints = np.array(timepoints,dtype=np.float32)
         self._dt = float(dt)
         self._dump = dump
-         
+        
+        device = os.getenv("CUDA_DEVICE")
+        if(device==None):
+            self._device = 0
+        else:
+            self._device = int(device)
+        ## print "cuda-sim: Using device", self._device
+        
+        
         self._getKernelParams(stepCode)
         
         self._resultNumber = len(timepoints)
-
-        # get a default cuda instance
-        driver.init()
-        self._context = tools.make_default_context()
-        self._device = 0
-
-        #print "\n\ncuda-sim: default context"
-        #print "cuda-sim: running on device ", self._context.get_device().name(), self._context.get_device().pci_bus_id()
             
-        #compability = self._context.get_device().compute_capability()
-        #self._maxThreadsPerMP =  getMaxThreadsPerMP(compability)
-        #self._maxBlocksPerMP = getMaxBlocksPerMP(compability)
+        compability = driver.Device(self._device).compute_capability()
+        self._maxThreadsPerMP =  getMaxThreadsPerMP(compability)
+        self._maxBlocksPerMP = getMaxBlocksPerMP(compability)
         
         if(not self._runtimeCompile):
             self._completeCode, self._compiledRunMethod = self._compile(stepCode)
@@ -74,7 +75,11 @@ class Simulator:
             
     
     ############ private methods ############
-     
+    
+    # method for generating seeds for random number generators
+    #def _seed(self):
+    #    return self._seedValue
+    
     # method for extracting the number of species, variables and reactions from CUDA kernel
     def _getKernelParams(self, stepCode):
         lines = str(stepCode).split("\n")
@@ -93,14 +98,14 @@ class Simulator:
             compiledRunMethod = self._compiledRunMethod
         
         # general parameters
-        maxThreadsPerBlock = self._context.get_device().max_threads_per_block
+        maxThreadsPerBlock = driver.Device(self._device).max_threads_per_block
         warp_size = 32
         
         # calculate number of threads per block; assuming that registers are the limiting factor
         #maxThreads = min(driver.Device(self._device).max_registers_per_block/compiledRunMethod.num_regs,maxThreadsPerBlock)
         
         # assume smaller blocksize creates less overhead; ignore occupancy..
-        maxThreads = min( self._context.get_device().max_registers_per_block/compiledRunMethod.num_regs, self._MAXTHREADSPERBLOCK)
+        maxThreads = min(driver.Device(self._device).max_registers_per_block/compiledRunMethod.num_regs, self._MAXTHREADSPERBLOCK)
         
         maxWarps = maxThreads / warp_size
         # warp granularity up to compability 2.0 is 2. Therefore if maxWarps is uneven only maxWarps-1 warps
@@ -162,6 +167,9 @@ class Simulator:
             print "cuda-sim: threads/blocks:", threads, blocks
 
         # real runtime compile
+        
+        #self._seedValue = seed
+        #np.random.seed(self._seedValue)
 
         # make multiples of initValues
         initNew = np.zeros((len(initValues)*self._beta,self._speciesNumber))
@@ -210,9 +218,6 @@ class Simulator:
 
         if info:
             print ""
-
-        # return the context
-        self._context.pop()
         
         return returnValue
     

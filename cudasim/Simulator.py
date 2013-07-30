@@ -3,6 +3,7 @@ import time, math,os
 
 import pycuda.tools as tools
 import pycuda.driver as driver
+import pycuda.autoinit
 
 class Simulator:
 

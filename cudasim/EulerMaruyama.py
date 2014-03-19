@@ -185,7 +185,8 @@ class EulerMaruyama(sim.Simulator):
         if self._dump == True:
             of = open("full_sde_code.cu","w")
             print >>of, completeCode
-        
+
+        print "DEFAULT_NVCC_FLAGS:", pycuda.compiler.DEFAULT_NVCC_FLAGS
         module = SourceModule(completeCode)
         
         if(not self._putIntoShared):

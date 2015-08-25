@@ -899,9 +899,9 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
         out_file.write("#define or_(a,b) a||b\n")
 
     for i in range(0,len(listOfFunctions)):
-        out_file.write("__device__ float "+listOfFunctions[i].getId()+"(")
+        out_file.write("__device__ double "+listOfFunctions[i].getId()+"(")
         for j in range(0, listOfFunctions[i].getNumArguments()):
-            out_file.write("float "+FunctionArgument[i][j])
+            out_file.write("double "+FunctionArgument[i][j])
             if(j<( listOfFunctions[i].getNumArguments()-1)):
                 out_file.write(",")
         out_file.write("){\n    return ")
@@ -954,7 +954,7 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
         listOfAssignmentRules = listOfEvents[i].getListOfEventAssignments()
         for j in range(0, len(listOfAssignmentRules)):
             out_file.write("        ")
-            #out_file.write("float ")
+            #out_file.write("double ")
             if not(EventVariable[i][j] in speciesId):
                 out_file.write(EventVariable[i][j])
             else:
@@ -988,7 +988,7 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
         if listOfRules[i].isAssignment():
             out_file.write("    ")
             if not(ruleVariable[i] in speciesId):
-                out_file.write("float ")
+                out_file.write("double ")
                 out_file.write(ruleVariable[i])
             else:
                 string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"

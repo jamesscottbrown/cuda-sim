@@ -86,7 +86,7 @@ else:
     modeInstance = Lsoda.Lsoda(timepoints, cudaCode, dt=dt)
 
 print "..calculating..",
-result = modeInstance.run(parameters, species, seed=1)
+result = modeInstance.run(parameters, species)
 print "..finished."
 
 # write output

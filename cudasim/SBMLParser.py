@@ -1505,10 +1505,10 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
             mathPython.append('tan')
 
 
-            mathCuda.append('__log10f')
-            mathCuda.append('acosf')
-            mathCuda.append('asinf')
-            mathCuda.append('atanf')
+            mathCuda.append('log10')
+            mathCuda.append('acos')
+            mathCuda.append('asin')
+            mathCuda.append('atan')
 
             if o.match(integrationType[models]):
                 mathCuda.append('t[0]')
@@ -1518,15 +1518,15 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
             if s.match(integrationType[models]):
                 mathCuda.append('t')
 
-            mathCuda.append('__expf')
-            mathCuda.append('sqrtf')
-            mathCuda.append('__powf')
-            mathCuda.append('__logf')
-            mathCuda.append('__sinf')
-            mathCuda.append('__cosf')
-            mathCuda.append('ceilf')
-            mathCuda.append('floorf')
-            mathCuda.append('__tanf')
+            mathCuda.append('exp')
+            mathCuda.append('sqrt')
+            mathCuda.append('pow')
+            mathCuda.append('log')
+            mathCuda.append('sin')
+            mathCuda.append('cos')
+            mathCuda.append('ceil')
+            mathCuda.append('floor')
+            mathCuda.append('tan')
 
 
         

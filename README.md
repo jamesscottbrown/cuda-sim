@@ -4,17 +4,7 @@ cuda-sim enables biochemical network simulation on NVIDIA
 CUDA GPUSs.
 
 
-#################################
-# CONTENTS 
-#################################
-1) Prerequisites
-2) Linux installation
-3) Mac OSX installation
-
-#################################
-# 1) Prerequisites
-#################################
-
+## Prerequisites
 
 Before trying to install and use cuda-sim you must
 first install
@@ -27,35 +17,30 @@ and the following python packages
        pycuda 
        libSBML (SBML interface)
 	
-While CUDA, numpy and pycuda are essential, the libsbml need only
+While CUDA, numpy and pycuda are essential, [libsbml](http://sbml.org/Software/libSBML) need only
 be installed if model import from SBML is required.
 
 
-#################################
-# 2) LINUX installation
-#################################
+## LINUX installation
 
 1) CUDA toolkit
-Instructions are available here
-http://developer.download.nvidia.com/compute/cuda/3_1/docs/GettingStartedLinux.pdf
-and the required files are here
-http://developer.nvidia.com/object/cuda_3_1_downloads.html#Linux
+Instructions are available [here](http://developer.download.nvidia.com/compute/cuda/3_1/docs/GettingStartedLinux.pdf)
+and the required files are [here](http://developer.nvidia.com/object/cuda_3_1_downloads.html#Linux)
 
-2) Python (if not already installed)
-http://www.python.org/ftp/python/2.6.5/Python-2.6.5.tgz
-	
+2) [Python](http://www.python.org/ftp/python/2.6.5/Python-2.6.5.tgz) (if not already installed)
+
 	tar xzf Python-2.6.5.tgz
 	cd Python-2.6.5
 	./configure --prefix=<dir> --enable-shared
 	make
 	sudo make install
 
-If custom installation is required then replace <dir> 
+If custom installation is required then replace ``<dir>``
 with the full path to a location. This will be the 
 location containing lib and bin directories (usually 
 /usr/local by default).
 
-The --prefix=<dir> option is recommended since it will 
+The ``--prefix=<dir>`` option is recommended since it will
 guarantee that each package picks up the correct dependency.
 
 Make sure this new version of python is picked up by default
@@ -64,14 +49,12 @@ and this can be added to your .bash_profile or .bashrc etc
 	export PATH=<dir>/bin:$PATH  (for BASH)
 	setenv PATH <dir>/bin:$PATH
 
-3) Follow the instructions for numpy and pycuda installation
-http://wiki.tiker.net/PyCuda/Installation/Linux
-This may require installation of boost, distribute and pytools
+3) Follow [the instructions](http://wiki.tiker.net/PyCuda/Installation/Linux) for numpy and pycuda installation.
+This may require installation of boost, distribute and pytools.
 
 4) libSBML
-Download and install swig 
-Note that this is required by libsbml and it must be at least version 1.3.39 
-http://downloads.sourceforge.net/project/swig/swig/swig-1.3.40/swig-1.3.40.tar.gz
+[Download](http://downloads.sourceforge.net/project/swig/swig/swig-1.3.40/swig-1.3.40.tar.gz) and install swig .
+Note that this is required by libsbml and it must be at least version 1.3.39
 
 	tar -xzf swig-1.3.40.tar.gz
 	cd swig-1.3.40
@@ -79,8 +62,7 @@ http://downloads.sourceforge.net/project/swig/swig/swig-1.3.40/swig-1.3.40.tar.g
 	make
 	sudo make install
 
-Download and install libSBML
-http://downloads.sourceforge.net/project/sbml/libsbml/4.0.1/libsbml-4.0.1-src.zip
+[Download](http://downloads.sourceforge.net/project/sbml/libsbml/4.0.1/libsbml-4.0.1-src.zip) and install libSBML
 
 	unzip libsbml-4.0.1-src.zip
 	cd libsbml-4.0.1	
@@ -88,8 +70,8 @@ http://downloads.sourceforge.net/project/sbml/libsbml/4.0.1/libsbml-4.0.1-src.zi
 	make 
 	sudo make install
 
-5) Download and install cuda-sim
-https://sourceforge.net/projects/cuda-sim/files/latest
+5) [Download](https://sourceforge.net/projects/cuda-sim/files/latest) and install cuda-sim
+
 In the unzipped cuda-sim package directory do
            
 	tar xzf cuda-sim-VERSION.tar.gz
@@ -105,21 +87,18 @@ You should be able to do
 
 
 
-#################################
-# 3) Mac OSX installation
-#################################
+## Mac OSX installation
 
 Notes:
+
 * Installing the dependencies on Mac is more problematic
 * 10.5 should work ok with the following instructions 
 * 10.6 is more difficult. More details are provided in the 
   pycuda instructions
 
 1) CUDA toolkit 3.1 is recommended
-Instructions are available here
-http://developer.download.nvidia.com/compute/cuda/3_1/docs/GettingStartedMacOS.pdf
-and the required files are here
-http://developer.nvidia.com/object/cuda_3_1_downloads.html#MacOS
+Instructions are available [here](http://developer.download.nvidia.com/compute/cuda/3_1/docs/GettingStartedMacOS.pdf)
+and the required files are [here](http://developer.nvidia.com/object/cuda_3_1_downloads.html#MacOS)
 
 Notes:
 When running the device query do you get 'NO CUDA DEVICE FOUND Device Emulation (CPU)'
@@ -127,12 +106,10 @@ Try this fix and restarting:
 	 sudo chmod 755 /System/Library/StartupItems/CUDA/*
 	 sudo chmod 755 /System/Library/StartupItems/CUDA
 
-2) Follow the instructions for numpy and pycuda installation
-http://wiki.tiker.net/PyCuda/Installation/Mac
+2) Follow the [instructions](http://wiki.tiker.net/PyCuda/Installation/Mac) for numpy and pycuda installation.
 This may require installation of boost, distribute and pytools
 
-Download and install BOOST
-http://sourceforge.net/projects/boost/files/boost/1.39.0/boost_1_39_0.tar.gz/download
+[Download](http://sourceforge.net/projects/boost/files/boost/1.39.0/boost_1_39_0.tar.gz/download) and install BOOST.
 On 10.5 it suffices to do:
 
 	tar -xzf boost_1_39_0.tar.gz
@@ -142,11 +119,10 @@ On 10.5 it suffices to do:
 	./bjam variant=release link=shared install		
 	export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH   #(ADD THIS TO .bash_profile)
 
-Download and install numpy
-http://downloads.sourceforge.net/project/numpy/NumPy/1.4.1rc2/numpy-1.4.1rc2-py2.6-python.org.dmg 
+[Download](http://downloads.sourceforge.net/project/numpy/NumPy/1.4.1rc2/numpy-1.4.1rc2-py2.6-python.org.dmg) and install numpy
 
-Download and install pycuda
-http://pypi.python.org/packages/source/p/pycuda/pycuda-0.94rc.tar.gz
+Download and install [pycuda](http://pypi.python.org/packages/source/p/pycuda/pycuda-0.94rc.tar.gz)
+
 Note you will need to look at which version of gcc is used. On my system it was 4.0.
 Look at the boost libraries (ie /usr/local/lib/libboost*) to see what extensions they have	
 	
@@ -164,26 +140,25 @@ Perform the tests
 If you have trouble, edit the siteconf.py file and retry the 'sudo make install'. 
 For example on my 10.5 system it looked like this
 
-BOOST_INC_DIR = ['/usr/local/include/boost-1_39']
-BOOST_LIB_DIR = ['/usr/local/lib']
-BOOST_COMPILER = 'gcc40'
-BOOST_PYTHON_LIBNAME = ['boost_python-xgcc40-mt']
-BOOST_THREAD_LIBNAME = ['boost_thread-xgcc40-mt']
-CUDA_TRACE = False
-CUDA_ROOT = '/usr/local/cuda'
-CUDA_ENABLE_GL = False
-CUDADRV_LIB_DIR = []
-CUDADRV_LIBNAME = ['cuda']
-CXXFLAGS = []
-LDFLAGS = []
+    BOOST_INC_DIR = ['/usr/local/include/boost-1_39']
+    BOOST_LIB_DIR = ['/usr/local/lib']
+    BOOST_COMPILER = 'gcc40'
+    BOOST_PYTHON_LIBNAME = ['boost_python-xgcc40-mt']
+    BOOST_THREAD_LIBNAME = ['boost_thread-xgcc40-mt']
+    CUDA_TRACE = False
+    CUDA_ROOT = '/usr/local/cuda'
+    CUDA_ENABLE_GL = False
+    CUDADRV_LIB_DIR = []
+    CUDADRV_LIBNAME = ['cuda']
+    CXXFLAGS = []
+    LDFLAGS = []
 
-CXXFLAGS.extend(['-isysroot', '/Developer/SDKs/MacOSX10.5.sdk'])
-LDFLAGS.extend(['-isysroot', '/Developer/SDKs/MacOSX10.5.sdk'])
+    CXXFLAGS.extend(['-isysroot', '/Developer/SDKs/MacOSX10.5.sdk'])
+    LDFLAGS.extend(['-isysroot', '/Developer/SDKs/MacOSX10.5.sdk'])
 
 
-4) libSBML
-Download and install libSBML
-http://downloads.sourceforge.net/project/sbml/libsbml/4.0.1/libsbml-4.0.1-src.zip
+4) [Download](http://downloads.sourceforge.net/project/sbml/libsbml/4.0.1/libsbml-4.0.1-src.zip) and install libSBML
+
 
 	unzip libsbml-4.0.1-src.zip
 	cd libsbml-4.0.1	
@@ -191,11 +166,11 @@ http://downloads.sourceforge.net/project/sbml/libsbml/4.0.1/libsbml-4.0.1-src.zi
 	make 
 	sudo make install
 	
-This installs into the wrong directory, so we need to move it to the correct place
-cp -r /usr/local/lib/python2.6/site-packages/libsbml* /Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/
+This installs into the wrong directory, so we need to move it to the correct place"
 
-5) Download and install cuda-sim	
-https://sourceforge.net/projects/cuda-sim/files/latest
+    cp -r /usr/local/lib/python2.6/site-packages/libsbml* /Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/
+
+5) [Download](https://sourceforge.net/projects/cuda-sim/files/latest) and install cuda-sim
 
 	tar xzf cuda-sim-VERSION.tar.gz
 	cd cuda-sim-VERSION

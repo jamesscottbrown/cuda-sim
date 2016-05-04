@@ -38,9 +38,8 @@ def rep(string, find, replace):
 ######################## CUDA SDE #################################
 
 def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters, numReactions, speciesId,
-                  listOfParameter, parameterId, parameter, InitValues, name, listOfFunctions, FunctionArgument,
-                  FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable,
-                  EventFormula, outpath=""):
+                  listOfParameter, parameterId, name, listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
+                  ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, outpath=""):
     """
     Write the cuda file with ODE functions using the information taken by the parser
     """
@@ -575,10 +574,9 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
 ######################## CUDA Gillespie #################################
 
-def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalParameters, numReactions, species,
-                        parameterId, InitValues, speciesId, name, listOfFunctions, FunctionArgument, FunctionBody,
-                        listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable,
-                        EventFormula, outpath=""):
+def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalParameters, numReactions, parameterId,
+                        speciesId, name, listOfFunctions, FunctionArgument, FunctionBody, listOfRules, ruleFormula,
+                        ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, outpath=""):
     p = re.compile('\s')
     # Open the outfile
     out_file = open(os.path.join(outpath, name + ".cu"), "w")
@@ -733,9 +731,8 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
 ######################## CUDA ODE #################################
 
 def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters, numReactions, speciesId,
-                  listOfParameter, parameterId, parameter, InitValues, name, listOfFunctions, FunctionArgument,
-                  FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable,
-                  EventFormula, outpath=""):
+                  listOfParameter, parameterId, name, listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
+                  ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, outpath=""):
     """
     Write the cuda file with ODE functions using the information taken by the parser
     """
@@ -929,11 +926,10 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
 ######################## CUDA DDE #################################
 
-# JSB
 def write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters, numReactions, speciesId,
-                  listOfParameter, parameterId, parameter, InitValues, name, listOfFunctions, FunctionArgument,
-                  FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable,
-                  EventFormula, delays, outpath=""):
+                  listOfParameter, parameterId, name, listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
+                  ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, delays,
+                  outpath=""):
     """
     Write the cuda file with DDE functions using the information taken by the parser
     """
@@ -1645,20 +1641,24 @@ def importSBMLCUDA(source, integrationType, ModelName=None, method=None, outpath
             s = re.compile('SDE')
             if o.match(integrationType[models]):
                 write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters + 1,
-                              numReactions, speciesId2, listOfParameter, parameterId2, parameter, InitValues,
-                              ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
-                              ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula,
-                              outpath)
+                              numReactions, speciesId2, listOfParameter, parameterId2, ModelName[models],
+                              listOfFunctions, FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable,
+                              listOfEvents, EventCondition, EventVariable, EventFormula, outpath)
             if s.match(integrationType[models]):
                 write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters + 1,
-                              numReactions, speciesId2, listOfParameter, parameterId2, parameter, InitValues,
-                              ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
-                              ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula,
-                              outpath)
+                              numReactions, speciesId2, listOfParameter, parameterId2, ModelName[models],
+                              listOfFunctions, FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable,
+                              listOfEvents, EventCondition, EventVariable, EventFormula, outpath)
             if g.match(integrationType[models]):
                 write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalParameters + 1, numReactions,
-                                    species, parameterId2, InitValues, speciesId2, ModelName[models], listOfFunctions,
-                                    FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable,
-                                    listOfEvents, EventCondition, EventVariable, EventFormula, outpath)
+                                    parameterId2, speciesId2, ModelName[models], listOfFunctions, FunctionArgument,
+                                    FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition,
+                                    EventVariable, EventFormula, outpath)
+            if d.match(integrationType[models]):
+                write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, len(listOfParameter), numReactions,
+                              speciesId2, listOfParameter, parameterId2, ModelName[models], listOfFunctions,
+                              FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents,
+                              EventCondition, EventVariable, EventFormula, delays, outpath)
+
 
     return delays

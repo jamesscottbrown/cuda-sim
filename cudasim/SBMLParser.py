@@ -1427,9 +1427,6 @@ def importSBMLCUDA(source, integrationType, ModelName=None, method=None, outpath
     s = re.compile('SDE')
     d = re.compile('DDE')
 
-    # output general properties
-    # output = []
-
     # check that you have appropriate lengths of integration types and sources
     # (need equal lengths)
     if not (len(source) == len(integrationType)):
@@ -1493,8 +1490,6 @@ def importSBMLCUDA(source, integrationType, ModelName=None, method=None, outpath
             numFunctions = model.getNumFunctionDefinitions()
 
             stoichiometricMatrix = empty([numSpecies, numReactions])
-
-            # output.append((numReactions,numGlobalParameters+1,numSpecies))
 
             #################################################################################################
             # get compartment volume/size - if it is set, pass as parameter with corresponding Id and value #
@@ -1856,7 +1851,4 @@ def importSBMLCUDA(source, integrationType, ModelName=None, method=None, outpath
                                     FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable,
                                     listOfEvents, EventCondition, EventVariable, EventFormula, outpath)
 
-    # output is:
-    # (numReactions,numGlobalParameters,numSpecies)
-    # return output
     return delays

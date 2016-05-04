@@ -58,8 +58,8 @@ class Gillespie(sim.Simulator_mg):
                 _gillespieSource += ','
         _gillespieSource += '};'
 
-        # update species
         _gillespieSource += """
+        // Update species
         __device__ void stoichiometry(int *y, int r, int tid){
             for(int i=0; i<NSPECIES; i++){
                 y[i]+=smatrix[r*NSPECIES+ i];
@@ -68,7 +68,8 @@ class Gillespie(sim.Simulator_mg):
 
         _gillespieSource += """
         __constant__ int vxp;
-        
+
+        // Select reaction
         __device__ int sample(int nh, float* h, float u){
             int i = 0;
             for(; i < nh - 1 && u > h[i] ; i++){
@@ -177,10 +178,7 @@ class Gillespie(sim.Simulator_mg):
         mt_data = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'MersenneTwister.dat')
 
         # initialize Mersenne Twister
-        timer = time.time()
-        # print "Init MT..",
         self._initialise_twisters(mt_data, self._completeCode, threads, blocks)
-        # print "finished in", round(time.time()-timer,4), "s"
 
         param = np.zeros((totalThreads / self._beta + 1, self._parameterNumber), dtype=np.float32)
         try:
@@ -196,9 +194,7 @@ class Gillespie(sim.Simulator_mg):
         self._param_tex.set_array(ary)
 
         # 2D species arrays
-        x = np.zeros([totalThreads, self._speciesNumber], dtype=np.int32)
         d_x, p_x = cuda.mem_alloc_pitch(width=self._speciesNumber * 4, height=totalThreads, access_size=4)
-        # print '#### 2D arrays:', time.time() - start_time
 
         cuda.memcpy_htod(self._pvxp, np.array([p_x], dtype=np.int32))
 
@@ -218,10 +214,7 @@ class Gillespie(sim.Simulator_mg):
         d_result = cuda.mem_alloc(result.nbytes)
 
         # run code
-        timer = time.time()
-        # print "Actual run..",
         self._compiledRunMethod(d_x, d_result, block=(threads, 1, 1), grid=(blocks, 1))
-        # print "finished in", round(time.time()-timer,4), "s"
 
         # fetch from GPU memory
         cuda.memcpy_dtoh(result, d_result)
@@ -234,11 +227,7 @@ class Gillespie(sim.Simulator_mg):
 
         f = open(mt_cu, 'r')
         _code_ = f.read() + code
-
-        opts = pycuda.driver.jit_option()
-        compiled = pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=options)
-
-        return compiled
+        return pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=options)
 
     def _initialise_twisters(self, mt_data, mod, blockSize, gridSize):
 
@@ -252,26 +241,9 @@ class Gillespie(sim.Simulator_mg):
 
         for i in range(MT_RNG_COUNT):
             tup[i * 4 + 3] = np.uint32(4294967296 * np.random.uniform(0, 1))
-            # tup[i*4 + 3] = np.uint32( np.random.random_integers(0,4294967295) )
 
         # Copy the offline MT parameters over to GPU
         cuda.memcpy_htod(pMT, tup)
 
         InitialiseAllMersenneTwisters = mod.get_function("InitialiseAllMersenneTwisters")
         InitialiseAllMersenneTwisters(block=(512, 1, 1), grid=(64, 1))
-
-        # def run_mt_test( mods, blockSize, gridSize, nrandom ):
-        # nr = np.array([nrandom for i in range(blockSize*gridSize)], dtype=np.int32)
-        # d_nr = cuda.mem_alloc(nr.size*nr.dtype.itemsize)
-        # cuda.memcpy_htod(d_nr, nr)
-
-        # r = np.zeros( blockSize*gridSize*nrandom, np.float32)
-        # d_r = cuda.mem_alloc(r.size*r.dtype.itemsize)
-        # cuda.memcpy_htod(d_r, r)
-
-        # TestMersenneTwisters = mods[0].get_function("TestMersenneTwisters")
-        # TestMersenneTwisters( d_r, d_nr, block=(blockSize,1,1), grid=(gridSize,1) )
-
-        # cuda.memcpy_dtoh(r, d_r)
-
-        # return r

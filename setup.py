@@ -1,4 +1,3 @@
-
 from distutils.core import setup
 
 setup(name='cuda-sim',
@@ -15,9 +14,9 @@ setup(name='cuda-sim',
 
       scripts=[],
 
-      package_data={ 'cudasim': ['MersenneTwister.dat','MersenneTwister.cu','cuLsoda_all.cu','WarpStandard.cu'] },
-      
-      requires=['libSBML', 
+      package_data={'cudasim': ['MersenneTwister.dat', 'MersenneTwister.cu', 'cuLsoda_all.cu', 'WarpStandard.cu']},
+
+      requires=['libSBML',
                 'Numpy',
                 'pycuda']
-)
+      )

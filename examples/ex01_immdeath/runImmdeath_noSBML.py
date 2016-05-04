@@ -1,18 +1,16 @@
-import numpy as np
-import time, os
+import os
 
-import cudasim
+import numpy as np
+
 import cudasim.EulerMaruyama as EulerMaruyama
 import cudasim.Gillespie as Gillespie
 import cudasim.Lsoda as Lsoda
-import cudasim.SBMLParser as Parser
-
 
 ##### parameters #####
 
 # Type of integration
-#integrationType = "ODE" 
-#integrationType = "SDE" 
+# integrationType = "ODE"
+# integrationType = "SDE"
 integrationType = "MJP"
 
 # Location of the file containing the parameters
@@ -36,9 +34,6 @@ beta = 1
 # Location of the folder for saving the results
 resultFolder = "./results"
 
-
-
-
 ##### initialization #####
 
 # create result folder
@@ -47,17 +42,17 @@ try:
 except:
     pass
 
-#determining the timepoints for the output
-timepoints = np.array(range(datapoints+1),dtype=np.float32) * simulationLength/datapoints 
+# determining the timepoints for the output
+timepoints = np.array(range(datapoints + 1), dtype=np.float32) * simulationLength / datapoints
 
 # reading in the CUDA code
 cudaCode = "immdeath_" + integrationType + ".cu"
 # reading in parameters
 parameters = []
-inFile = open(parameterFile,'r').read()
+inFile = open(parameterFile, 'r').read()
 lines = inFile.split("\n")
 for i in range(len(lines)):
-    if(lines[i].strip() == ""):
+    if lines[i].strip() == "":
         continue
     parameters.append([])
     lineParam = lines[i].strip().split(" ")
@@ -65,22 +60,21 @@ for i in range(len(lines)):
         parameters[i].append(lineParam[j])
 # reading in species
 species = []
-inFile = open(speciesFile,'r').read()
+inFile = open(speciesFile, 'r').read()
 lines = inFile.split("\n")
 for i in range(len(lines)):
-    if(lines[i].strip() == ""):
+    if lines[i].strip() == "":
         continue
     species.append([])
     lineSpecies = lines[i].strip().split(" ")
     for j in range(len(lineSpecies)):
         species[i].append(lineSpecies[j])
 
-
 # create model
 print "Create model..",
-if(integrationType == "SDE"):
+if integrationType == "SDE":
     modeInstance = EulerMaruyama.EulerMaruyama(timepoints, cudaCode, beta=beta, dt=dt)
-elif(integrationType == "MJP"):
+elif integrationType == "MJP":
     modeInstance = Gillespie.Gillespie(timepoints, cudaCode, beta=beta, dt=dt)
 else:
     modeInstance = Lsoda.Lsoda(timepoints, cudaCode, dt=dt)
@@ -91,20 +85,17 @@ print "..finished."
 
 # write output
 print "Write output."
-out = open(os.path.join(resultFolder,"immdeath_result.txt"),'w')
-print >>out, "- - -",
+out = open(os.path.join(resultFolder, "immdeath_result.txt"), 'w')
+print >> out, "- - -",
 for i in range(len(timepoints)):
-    print >>out, timepoints[i],
-print >>out, ""
+    print >> out, timepoints[i],
+print >> out, ""
 for i in range(len(result)):
-        for j in range(len(result[i])):
-            for l in range(len(result[i][0][0])):
-                print >>out, 'e:' + str(i), 'b:'+str(j),'s:'+str(l),
-                for k in range(len(timepoints)):
-                    print >>out, result[i][j][k][l],
-                print >>out, ""
-                    
-                        
+    for j in range(len(result[i])):
+        for l in range(len(result[i][0][0])):
+            print >> out, 'e:' + str(i), 'b:' + str(j), 's:' + str(l),
+            for k in range(len(timepoints)):
+                print >> out, result[i][j][k][l],
+            print >> out, ""
+
 out.close()
-        
-        

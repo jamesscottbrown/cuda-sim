@@ -80,7 +80,7 @@ class Gillespie(sim.Simulator):
         
         
         
-        __global__ void Gillespie_one_step(int* vx, int* result){
+        __global__ void GillespieMain(int* vx, int* result){
         
         int tid = blockDim.x * blockIdx.x + threadIdx.x;
         int texMemIndex = tid/BETA;
@@ -168,7 +168,7 @@ class Gillespie(sim.Simulator):
         self._pvxp = int(m.get_global("vxp")[0])
         self._param_tex = m.get_texref("param_tex")
 
-        return m, m.get_function("Gillespie_one_step")
+        return m, m.get_function("GillespieMain")
 
     def _runSimulation(self, parameters, initValues, blocks, threads):
         totalThreads = blocks * threads

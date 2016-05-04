@@ -85,7 +85,7 @@ class Simulator_mg(multiprocessing.Process):
     
     # method for calculating optimal number of blocks and threads per block
     def _getOptimalGPUParam(self, compiledRunMethod = None):
-        if compiledRunMethod == None:
+        if compiledRunMethod is None:
             compiledRunMethod = self._compiledRunMethod
         
         # general parameters

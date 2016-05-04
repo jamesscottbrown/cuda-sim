@@ -54,7 +54,7 @@ class Simulator:
         self._dump = dump
         
         device = os.getenv("CUDA_DEVICE")
-        if(device==None):
+        if(device is None):
             self._device = 0
         else:
             self._device = int(device)
@@ -95,7 +95,7 @@ class Simulator:
     
     # method for calculating optimal number of blocks and threads per block
     def _getOptimalGPUParam(self, parameters, compiledRunMethod = None):
-        if compiledRunMethod == None:
+        if compiledRunMethod is None:
             compiledRunMethod = self._compiledRunMethod
         
         # general parameters
@@ -159,7 +159,7 @@ class Simulator:
             print "Error: Number of sets of parameters (" + str(len(parameters)) + ") and species (" + str(len(initValues)) + ") do not match!"
             exit()
         
-        if(self._compiledRunMethod == None and self._runtimeCompile):
+        if(self._compiledRunMethod is None and self._runtimeCompile):
             #compile to determine blocks and threads
             self._completeCode, self._compiledRunMethod = self._compileAtRuntime(self._stepCode, parameters)
         

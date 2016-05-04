@@ -23,12 +23,12 @@ def rep(str,find,replace):
 
     ex = find+"[^0-9]"
     ss = str
-    while re.search(ex,ss) != None:
+    while re.search(ex, ss) is not None:
         res = re.search(ex,ss)
         ss = ss[0:res.start()] + replace + " " + ss[res.end()-1:]
 
     ex = find+"$"
-    if re.search(ex,ss) != None:
+    if re.search(ex, ss) is not None:
         res = re.search(ex,ss)
         ss = ss[0:res.start()] + replace + " " + ss[res.end():]
  
@@ -1468,7 +1468,7 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
     #check that you have model names,
     #if not the models will be named model1, model2, etc
     else:        
-        if(ModelName==None):
+        if(ModelName is None):
             ModelName=[]
             for x in range(0,len(source)):
                 ModelName.append("model"+repr(x+1))
@@ -1477,7 +1477,7 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
         #the method type defaults to 1
         for models in range(0,len(source)):
             intType = integrationType[models]
-            if method==None:
+            if method is None:
                 if s.match(integrationType[models]):
                     method=[]
                     for x in range(0, len(source)):

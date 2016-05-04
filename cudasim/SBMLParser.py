@@ -1103,6 +1103,255 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
     out_file.write("\n    }")
     out_file.write("\n};\n\n\n struct myJex{\n    __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, double *pd, int nrowpd/*, void *otherData*/){\n        return; \n    }\n};") 
 
+######################## CUDA DDE #################################
+
+# JSB
+def write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters, numReactions, speciesId, listOfParameter, parameterId,parameter,InitValues,name, listOfFunctions, FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, delays, outpath=""):
+    """
+    Write the cuda file with DDE functions using the information taken by the parser
+    """
+    p=re.compile('\s')
+    #Open the outfile
+    out_file=open(os.path.join(outpath,name+".cu"),"w")
+
+    #Write number of parameters and species
+    out_file.write("\n")
+    out_file.write("#define NSPECIES " + str(numSpecies) + "\n")
+    out_file.write("#define NPARAM " + str(numGlobalParameters) + "\n")
+    out_file.write("#define NREACT " + str(numReactions) + "\n")
+    out_file.write("\n")
+
+    #The user-defined functions used in the model must be written in the file
+    numEvents = len(listOfEvents)
+    numRules = len(listOfRules)
+    num = numEvents+numRules
+    if num>0:
+        out_file.write("#define leq(a,b) a<=b\n")
+        out_file.write("#define neq(a,b) a!=b\n")
+        out_file.write("#define geq(a,b) a>=b\n")
+        out_file.write("#define lt(a,b) a<b\n")
+        out_file.write("#define gt(a,b) a>b\n")
+        out_file.write("#define eq(a,b) a==b\n")
+        out_file.write("#define and_(a,b) a&&b\n")
+        out_file.write("#define or_(a,b) a||b\n")
+
+    for i in range(0,len(listOfFunctions)):
+        out_file.write("__device__ float "+listOfFunctions[i].getId()+"(")
+        for j in range(0, listOfFunctions[i].getNumArguments()):
+            out_file.write("float "+FunctionArgument[i][j])
+            if(j<( listOfFunctions[i].getNumArguments()-1)):
+                out_file.write(",")
+        out_file.write("){\n    return ")
+        out_file.write(FunctionBody[i])
+        out_file.write(";\n}\n")
+        out_file.write("\n")
+
+
+
+
+
+
+    out_file.write("__device__  float f(float t, float *y, float yOld[NSPECIES][numDelays], int dimension){\n")
+    out_file.write("\tint tid = blockDim.x * blockIdx.x + threadIdx.x;\n")
+    out_file.write("\tconst float tau[numDelays] = {" + ", ".join(delays) + "};\n")
+    out_file.write("\tfloat ydot[NSPECIES];\n")
+
+    numSpecies = len(species)
+
+    #write rules and events
+    for i in range(0,len(listOfRules)):
+        if listOfRules[i].isRate() == True:
+            out_file.write("        ")
+            if not(ruleVariable[i] in speciesId):
+                out_file.write(ruleVariable[i])
+            else:
+                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                out_file.write(string)
+            out_file.write("=")
+
+            string = ruleFormula[i]
+            for q in range(0,len(speciesId)):
+                pq = re.compile(speciesId[q])
+                string=pq.sub('y['+repr(q)+']' ,string)
+            for q in range(0,len(parameterId)):
+                if (not(parameterId[q] in ruleVariable)):
+                    flag = False
+                    for r in range(0,len(EventVariable)):
+                        if (parameterId[q] in EventVariable[r]):
+                            flag = True
+                    if flag==False:
+                        pq = re.compile(parameterId[q])
+                        string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+
+            out_file.write(string)
+            out_file.write(";\n")
+
+    for i in range(0,len(listOfEvents)):
+        out_file.write("    if( ")
+        #print EventCondition[i]
+        out_file.write(mathMLConditionParserCuda(EventCondition[i]))
+        out_file.write("){\n")
+        listOfAssignmentRules = listOfEvents[i].getListOfEventAssignments()
+        for j in range(0, len(listOfAssignmentRules)):
+            out_file.write("        ")
+            #out_file.write("float ")
+            if not(EventVariable[i][j] in speciesId):
+                out_file.write(EventVariable[i][j])
+            else:
+                string = "y["+repr(speciesId.index(EventVariable[i][j]))+"]"
+                out_file.write(string)
+            out_file.write("=")
+
+            string = EventFormula[i][j]
+            for q in range(0,len(speciesId)):
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
+            for q in range(0,len(parameterId)):
+                if (not(parameterId[q] in ruleVariable)):
+                    flag = False
+                    for r in range(0,len(EventVariable)):
+                        if (parameterId[q] in EventVariable[r]):
+                            flag = True
+                    if flag==False:
+                        #pq = re.compile(parameterId[q])
+                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+
+            out_file.write(string)
+            out_file.write(";\n")
+        out_file.write("}\n")
+
+    out_file.write("\n")
+
+    for i in range(0, len(listOfRules)):
+        if listOfRules[i].isAssignment():
+            out_file.write("    ")
+            if not(ruleVariable[i] in speciesId):
+                out_file.write("float ")
+                out_file.write(ruleVariable[i])
+            else:
+                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                out_file.write(string)
+            out_file.write("=")
+
+            string = mathMLConditionParserCuda(ruleFormula[i])
+            for q in range(0,len(speciesId)):
+                #pq = re.compile(speciesId[q])
+                #string=pq.sub("y["+repr(q)+"]" ,string)
+                string = rep(string, speciesId[q],'y['+repr(q)+']')
+            for q in range(0,len(parameterId)):
+                if (not(parameterId[q] in ruleVariable)):
+                    flag = False
+                    for r in range(0,len(EventVariable)):
+                        if (parameterId[q] in EventVariable[r]):
+                            flag = True
+                    if flag==False:
+                        #pq = re.compile(parameterId[q])
+                        #x = "tex2D(param_tex,"+repr(q)+",tid)"
+                        #string=pq.sub(x,string)
+                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+            out_file.write(string)
+            out_file.write(";\n")
+    out_file.write("\n\n")
+
+    #Write the derivatives
+    for i in range(0,numSpecies):
+        if (species[i].getConstant() == False and species[i].getBoundaryCondition() == False):
+            out_file.write("        ydot["+repr(i)+"]=")
+            if (species[i].isSetCompartment() == True):
+                out_file.write("(")
+
+            reactionWritten = False
+            for k in range(0,numReactions):
+                if(not stoichiometricMatrix[i][k]==0.0):
+
+                    if(reactionWritten and stoichiometricMatrix[i][k]>0.0):
+                        out_file.write("+")
+                    reactionWritten = True
+                    out_file.write(repr(stoichiometricMatrix[i][k]))
+                    out_file.write("*(")
+
+                    #test if reaction has a positive sign
+                    #if(reactionWritten):
+                    #    if(stoichiometricMatrix[i][k]>0.0):
+                    #        out_file.write("+")
+                    #    else:
+                    #        out_file.write("-")
+                    #reactionWritten = True
+
+                    #test if reaction is 1.0; then omit multiplication term
+                    #if(abs(stoichiometricMatrix[i][k]) == 1.0):
+                    #    out_file.write("(")
+                    #else:
+                    #    out_file.write(repr(abs(stoichiometricMatrix[i][k])))
+                    #    out_file.write("*(")
+
+                    string = kineticLaw[k]
+                    for q in range(0,len(speciesId)):
+                        #pq = re.compile(speciesId[q]+'[^0-9]')
+                        #pq = re.compile(speciesId[q]+'[^0-9]')
+                        #pq = re.compile(speciesId[q])
+                        #ret=pq.sub('y['+repr(q)+']' ,string)
+
+                        string = rep(string, speciesId[q],'y['+repr(q)+']')
+
+                        ##if ret != string:
+                        #if q == 5:
+                        #    print speciesId[q], "|", 'y['+repr(q)+']', "\n\t", string, "\n\t", ret
+                        #string = ret;
+                    for q in range(0,len(parameterId)):
+                        if (not(parameterId[q] in ruleVariable)):
+                            flag = False
+                            for r in range(0,len(EventVariable)):
+                                if (parameterId[q] in EventVariable[r]):
+                                    flag = True
+                            if flag==False:
+                                #pq = re.compile(parameterId[q])
+                                #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                                string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+
+                    string=p.sub('',string)
+
+                    # substitute to fix delays [replace delay(y[1],...) with delay(1,...)
+                    getDimension = re.compile("delay\(y\[(\d+?)\]")
+                    string = getDimension.sub(r'delay(\g<1>', string)
+
+                    # subsitute to convert from param value to delay number
+                    getParamNum = re.compile("delay\((\w+?),tex2D\(param_tex,(\d+?),tid\)\)")
+                    string = getParamNum.sub(r'delay(\g<1>,\g<2>)', string)
+
+
+                    ##print string
+                    out_file.write(string)
+                    out_file.write(")")
+
+
+            if (species[i].isSetCompartment() == True):
+                out_file.write(")/")
+                mySpeciesCompartment = species[i].getCompartment()
+                for j in range(0, len(listOfParameter)):
+                    if (listOfParameter[j].getId() == mySpeciesCompartment):
+                        if (not(parameterId[j] in ruleVariable)):
+                            flag = False
+                            for r in range(0,len(EventVariable)):
+                                if (parameterId[j] in EventVariable[r]):
+                                    flag = True
+                            if flag==False:
+                                out_file.write("tex2D(param_tex,"+repr(j)+",tid)"+";")
+                                break
+                            else:
+                                out_file.write(parameterId[j]+";")
+                                break
+
+            else:
+                out_file.write(";")
+            out_file.write("\n")
+
+    out_file.write("return ydot[dimension];")
+    out_file.write("\n    }")
+
+
 
 
 ################################################################################
@@ -1184,6 +1433,7 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
                   ODE         ---   for deterministic systems; solved with odeint (scipy)
                   SDE         ---   for stochastic systems; solved with sdeint (abc)
                   MJP   ---   for staochastic systems; solved with GillespieAlgorithm (abc)
+                  DDE         ---  for deterministic systems with delays; solved with DelaySimulator
 
     ***** kwargs *****
     ModelName:
@@ -1206,6 +1456,7 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
     g=re.compile('MJP')
     o=re.compile('ODE')
     s=re.compile('SDE')
+    d=re.compile('DDE')
     
     #output general properties
     #output = []
@@ -1512,10 +1763,7 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
 
             if o.match(integrationType[models]):
                 mathCuda.append('t[0]')
-            if g.match(integrationType[models]):
-                mathCuda.append('t')
-            s=re.compile('SDE')
-            if s.match(integrationType[models]):
+            else:
                 mathCuda.append('t')
 
             mathCuda.append('exp')
@@ -1612,6 +1860,28 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
                             s = re.sub(mathPython[nam],mathCuda[nam],s)
                             FunctionArgument[fun][k]=s
 
+            # Get list of delays
+            delays = set()
+
+            print "Looking for delay"
+            for n in range(0, model.getNumReactions()):
+                r = model.getReaction(n)
+                if (r.isSetKineticLaw()):
+                    kl = r.getKineticLaw()
+
+                    if (kl.isSetMath()):
+                        formula = formulaToString(kl.getMath())
+
+                        if "delay" in formula:
+                            r = re.search("delay\((\w+?), (\w+?)\)", formula).groups()
+                            paramName = r[1]
+                            j = int(paramName.replace("parameter", ''))
+
+                            memoryLocation = "tex2D(param_tex,"+repr(j)+",tid)"
+                            delays.add(memoryLocation)
+
+            delays = list(delays)
+
           
 ##########################
 # call writing functions #
@@ -1628,3 +1898,4 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
     # output is:
     # (numReactions,numGlobalParameters,numSpecies)
     # return output
+    return delays

@@ -85,11 +85,11 @@ class Simulator:
     def _getKernelParams(self, stepCode):
         lines = str(stepCode).split("\n")
         for i in lines:
-            if(i.find("NSPECIES") != -1):
+            if(i.find("NSPECIES") != -1) and not self._speciesNumber:
                 self._speciesNumber = int(i.split("NSPECIES")[1])
-            elif(i.find("NPARAM") != -1):
+            elif(i.find("NPARAM") != -1) and not self._speciesNumber:
                 self._parameterNumber = int(i.split("NPARAM")[1])
-            elif(i.find("NREACT") != -1):
+            elif(i.find("NREACT") != -1) and not self._speciesNumber:
                 self._hazardNumber = int(i.split("NREACT")[1])
     
     

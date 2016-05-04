@@ -182,7 +182,7 @@ class EulerMaruyama(sim.Simulator):
         # actual compiling step compile
         completeCode = general_parameters_source + rng_ext + rng_source + neg_eq_zero_source + step_code + sde_source_rest
 
-        if self._dump == True:
+        if self._dump:
             of = open("full_sde_code.cu","w")
             print >>of, completeCode
 

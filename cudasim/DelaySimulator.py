@@ -176,7 +176,7 @@ class DelaySimulator(sim.Simulator):
         # actual compiling step compile
         completeCode = general_parameters_source + delay_macro + step_code + solver_source
 
-        if self._dump == True:
+        if self._dump:
             of = open("full_delay_code.cu", "w")
             print >> of, completeCode
 

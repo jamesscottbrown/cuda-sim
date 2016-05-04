@@ -146,7 +146,7 @@ class Simulator_mg(multiprocessing.Process):
         else:
             self._context = driver.Device(self._card).make_context()
         
-        if self._info == True:
+        if self._info:
             print "cuda-sim: running on device ", self._card, self._context.get_device().name(), self._context.get_device().pci_bus_id()
 
         # hack for SDE code
@@ -156,7 +156,7 @@ class Simulator_mg(multiprocessing.Process):
         self._completeCode, self._compiledRunMethod = self._compile(self._stepCode)
         
         blocks, threads = self._getOptimalGPUParam()
-        if self._info==True:
+        if self._info:
             print "cuda-sim: threads/blocks:", threads, blocks
 
 
@@ -168,7 +168,7 @@ class Simulator_mg(multiprocessing.Process):
                     initNew[i*self._beta + j][k] = self._initValues[i][k]
         self._initValues = copy.deepcopy(initNew)
         
-        if self._info==True:
+        if self._info:
             print "cuda-sim: kernel mem local / shared / registers : ", self._compiledRunMethod.local_size_bytes, self._compiledRunMethod.shared_size_bytes, self._compiledRunMethod.num_regs
             occ = tools.OccupancyRecord( tools.DeviceData(), threads=threads, shared_mem=self._compiledRunMethod.shared_size_bytes, registers=self._compiledRunMethod.num_regs )
             print "cuda-sim: threadblocks per mp / limit / occupancy :", occ.tb_per_mp, occ.limited_by, occ.occupancy
@@ -188,7 +188,7 @@ class Simulator_mg(multiprocessing.Process):
             else:
                 runblocks = int(self._MAXBLOCKSPERDEVICE)
 
-            if self._info==True:
+            if self._info:
                 print "cuda-sim: Run", runblocks, "blocks."
 
             minIndex = self._MAXBLOCKSPERDEVICE*i*threads

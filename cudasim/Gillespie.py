@@ -161,7 +161,7 @@ class Gillespie(sim.Simulator):
 
         _source_ = _gillespieHeader + application_code + _gillespieSource
 
-        if self._dump == True:
+        if self._dump:
             of = open("full_mjp_code.cu","w")
             print >>of, _source_
         

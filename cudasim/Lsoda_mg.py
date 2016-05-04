@@ -74,7 +74,7 @@ class Lsoda(sim.Simulator_mg):
         _common_block_ = "__device__ struct cuLsodaCommonBlock common[" + repr(1*1) + "];\n"
         _code_ =  _isize_ + _rsize_ + _textures_ + step_code + _sourceFromFile_ + _common_block_ + self._lsoda_source_
 
-        if self._dump == True:
+        if self._dump:
             of = open("full_ode_code.cu","w")
             print >>of, _code_
         
@@ -93,7 +93,7 @@ class Lsoda(sim.Simulator_mg):
         _common_block_ = "__device__ struct cuLsodaCommonBlock common[" + repr(blocks*threads) + "];\n"
         _code_ =  _isize_ + _rsize_ + _textures_ + step_code + _sourceFromFile_ + _common_block_ + self._lsoda_source_
 
-        if self._dump == True:
+        if self._dump:
         #if True:
             of = open("full_ode_code.cu","w")
             print >>of, _code_

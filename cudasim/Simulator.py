@@ -164,7 +164,7 @@ class Simulator:
             self._completeCode, self._compiledRunMethod = self._compileAtRuntime(self._stepCode, parameters)
         
         blocks, threads = self._getOptimalGPUParam(parameters)
-        if info==True:
+        if info:
             print "cuda-sim: threads/blocks:", threads, blocks
 
         # real runtime compile
@@ -180,7 +180,7 @@ class Simulator:
                     initNew[i*self._beta + j][k] = initValues[i][k]
         initValues = initNew
         
-        if info==True:
+        if info:
             print "cuda-sim: kernel mem local / shared / registers : ", self._compiledRunMethod.local_size_bytes, self._compiledRunMethod.shared_size_bytes, self._compiledRunMethod.num_regs
             occ = tools.OccupancyRecord( tools.DeviceData(), threads=threads, shared_mem=self._compiledRunMethod.shared_size_bytes, registers=self._compiledRunMethod.num_regs )
             print "cuda-sim: threadblocks per mp / limit / occupancy :", occ.tb_per_mp, occ.limited_by, occ.occupancy
@@ -200,7 +200,7 @@ class Simulator:
             else:
                 runblocks = int(self._MAXBLOCKSPERDEVICE)
 
-            if info==True:
+            if info:
                 print "cuda-sim: Run", runblocks, "blocks."
 
             minIndex = self._MAXBLOCKSPERDEVICE*i*threads

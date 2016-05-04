@@ -1289,11 +1289,9 @@ def importSBMLCUDA(source, integrationType, ModelName=None, method=None, outpath
             model = document.getModel()
 
             # get basic model properties
-            numSpeciesTypes = model.getNumSpeciesTypes()
             numSpecies = model.getNumSpecies()
             numReactions = model.getNumReactions()
             numGlobalParameters = model.getNumParameters()
-            numFunctions = model.getNumFunctionDefinitions()
 
             stoichiometricMatrix = empty([numSpecies, numReactions])
 
@@ -1367,7 +1365,6 @@ def importSBMLCUDA(source, integrationType, ModelName=None, method=None, outpath
             # analyse the model structure #
             ###############################
 
-            reaction = []
             numReactants = []
             numProducts = []
             kineticLaw = []

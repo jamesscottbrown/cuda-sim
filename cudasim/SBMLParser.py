@@ -20,9 +20,9 @@ from numpy import *
 # string = rep(string, speciesId[q],'y['+repr(q)+']')
 
 
-def rep(str, find, replace):
+def rep(string, find, replace):
     ex = find + "[^0-9]"
-    ss = str
+    ss = string
     while re.search(ex, ss) is not None:
         res = re.search(ex, ss)
         ss = ss[0:res.start()] + replace + " " + ss[res.end() - 1:]

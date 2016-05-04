@@ -28,8 +28,6 @@ class Simulator:
     _hazardNumber = None
     _resultNumber = None
 
-    # _seedValue = None
-
     # device used
     # ToDo enable more than default device to be used
     _device = None
@@ -75,10 +73,6 @@ class Simulator:
             self._stepCode = stepCode
 
     ############ private methods ############
-
-    # method for generating seeds for random number generators
-    # def _seed(self):
-    #    return self._seedValue
 
     # method for extracting the number of species, variables and reactions from CUDA kernel
     def _getKernelParams(self, stepCode):
@@ -169,9 +163,6 @@ class Simulator:
             print "cuda-sim: threads/blocks:", threads, blocks
 
         # real runtime compile
-
-        # self._seedValue = seed
-        # np.random.seed(self._seedValue)
 
         # make multiples of initValues
         initNew = np.zeros((len(initValues) * self._beta, self._speciesNumber))
@@ -274,18 +265,6 @@ def copy2D_host_to_array(arr, host, width, height):
     copy.height = height
     copy(aligned=True)
 
-
-# Determine thread granularity
-# def getRegisterGranularity(compabilityTuple):
-# if(compabilityTuple[0] == 1):
-# if(compabilityTuple[1] == 0 or compabilityTuple[1] == 1):
-# return 256
-# elif(compabilityTuple[1] == 2 or compabilityTuple[1] == 3):
-# return 512
-# elif(compabilityTuple[0] == 2)
-# if(compabilityTuple[1] == 0):
-# return
-# return 512
 
 # Determine maximum number of threads per MP
 def getMaxThreadsPerMP(compabilityTuple):

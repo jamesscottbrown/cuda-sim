@@ -276,18 +276,6 @@ def copy2D_host_to_array(arr, host, width, height):
     copy(aligned=True)
 
 
-# Determine thread granularity
-# def getRegisterGranularity(compabilityTuple):
-# if(compabilityTuple[0] == 1):
-# if(compabilityTuple[1] == 0 or compabilityTuple[1] == 1):
-# return 256
-# elif(compabilityTuple[1] == 2 or compabilityTuple[1] == 3):
-# return 512
-# elif(compabilityTuple[0] == 2)
-# if(compabilityTuple[1] == 0):
-# return
-# return 512
-
 # Determine maximum number of threads per MP
 def getMaxThreadsPerMP(compabilityTuple):
     if compabilityTuple[0] == 1:

@@ -1,5 +1,4 @@
 import os
-import time
 
 import numpy as np
 import pycuda
@@ -50,20 +49,11 @@ class Lsoda(sim.Simulator_mg):
     """
 
     def _compile(self, step_code):
-        # set beta to 1 - deterministic!!
+        # set beta to 1: repeats are pointless as simulation is deterministic
         self._beta = 1
 
         fc = open(os.path.join(os.path.split(os.path.realpath(__file__))[0], 'cuLsoda_all.cu'), 'r')
         _sourceFromFile_ = fc.read()
-
-        # Options?
-        options = []
-
-        # Write Code?
-        write = False
-
-        isize = 20 + self._speciesNumber
-        rsize = 22 + self._speciesNumber * max(16, self._speciesNumber + 9)
 
         _isize_ = "#define ISIZE " + repr(20 + self._speciesNumber) + "\n"
         _rsize_ = "#define RSIZE " + repr(22 + self._speciesNumber * max(16, self._speciesNumber + 9)) + "\n"
@@ -76,27 +66,21 @@ class Lsoda(sim.Simulator_mg):
             of = open("full_ode_code.cu", "w")
             print >> of, _code_
 
-        # options = ['-O0','-use_fast_math','-gencode=arch=compute_13,code=\"sm_13\"']
-        # arch="sm_13"
-
         # dummy compile to determine optimal blockSize and gridSize
-        compiled = pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=options, no_extern_c=True, keep=False)
+        compiled = pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
 
         blocks, threads = self._getOptimalGPUParam(compiled.get_function("cuLsoda"))
         blocks = self._MAXBLOCKSPERDEVICE
-
-        # print "Got here:", blocks, threads
 
         # real compile
         _common_block_ = "__device__ struct cuLsodaCommonBlock common[" + repr(blocks * threads) + "];\n"
         _code_ = _isize_ + _rsize_ + _textures_ + step_code + _sourceFromFile_ + _common_block_ + self._lsoda_source_
 
         if self._dump:
-            # if True:
             of = open("full_ode_code.cu", "w")
             print >> of, _code_
 
-        compiled = pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=options, no_extern_c=True, keep=False)
+        compiled = pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
 
         self._param_tex = compiled.get_texref("param_tex")
 
@@ -110,14 +94,10 @@ class Lsoda(sim.Simulator_mg):
 
         neqn = self._speciesNumber
 
-        # compile 
-        timer = time.time()
-        # print "Init Common..",
+        # compile
         init_common_Kernel = self._completeCode.get_function("init_common")
         init_common_Kernel(block=(threads, 1, 1), grid=(blocks, 1))
-        # print "finished in", round(time.time()-timer,4), "s"
 
-        start_time = time.time()
         # output array
         ret_xt = np.zeros([totalThreads, 1, self._resultNumber, self._speciesNumber])
         ret_istate = np.ones([totalThreads], dtype=np.int32)
@@ -147,7 +127,6 @@ class Lsoda(sim.Simulator_mg):
 
         for i in range(totalThreads):
             neq[i] = neqn
-            # t[i] = self._timepoints[0]
             t[i] = 0
             itol[i] = 1
             itask[i] = 1
@@ -219,7 +198,6 @@ class Lsoda(sim.Simulator_mg):
         self._param_tex.set_array(ary)
 
         if self._dt <= 0:
-            start_time = time.time()
             for i in range(0, self._resultNumber):
 
                 for j in range(totalThreads):
@@ -246,7 +224,6 @@ class Lsoda(sim.Simulator_mg):
         else:
             tt = self._timepoints[0]
 
-            start_time = time.time()
             for i in range(0, self._resultNumber):
                 while 1:
 
@@ -276,10 +253,6 @@ class Lsoda(sim.Simulator_mg):
 
                     if istate[j] < 0:
                         ret_istate[j] = 0
-
-                        # end of loop over time point i
-
-        # return the values
 
         # loop over and check ret_istate
         # it will will be zero if there was problems

@@ -1,64 +1,67 @@
-from numpy import *
-from libsbml import *
-import re
 import os
+import re
+
+from libsbml import *
+from numpy import *
 
 
-##To call the parser:
-##    SBMLparse.importSBML(source, integrationType, ModelName=None,method=None)
-##    All arguments to function must be passed as tuples.
-##    If there is only one source to parse it must still be passed as a tuple ('source.xml',)
-##    with an integrationType passed as ('Gillespie',)
+# To call the parser:
+#    SBMLparse.importSBML(source, integrationType, ModelName=None,method=None)
+#    All arguments to function must be passed as tuples.
+#    If there is only one source to parse it must still be passed as a tuple ('source.xml',)
+#    with an integrationType passed as ('Gillespie',)
 
-## replace the species and parameters recursively
-##
-## replace
-## pq = re.compile(speciesId[q])
-## string=pq.sub('y['+repr(q)+']' ,string)
-## with
-## string = rep(string, speciesId[q],'y['+repr(q)+']')
+# replace the species and parameters recursively
+#
+# replace
+# pq = re.compile(speciesId[q])
+# string=pq.sub('y['+repr(q)+']' ,string)
+# with
+# string = rep(string, speciesId[q],'y['+repr(q)+']')
 
 
-def rep(str,find,replace):
-
-    ex = find+"[^0-9]"
+def rep(str, find, replace):
+    ex = find + "[^0-9]"
     ss = str
     while re.search(ex, ss) is not None:
-        res = re.search(ex,ss)
-        ss = ss[0:res.start()] + replace + " " + ss[res.end()-1:]
+        res = re.search(ex, ss)
+        ss = ss[0:res.start()] + replace + " " + ss[res.end() - 1:]
 
-    ex = find+"$"
+    ex = find + "$"
     if re.search(ex, ss) is not None:
-        res = re.search(ex,ss)
+        res = re.search(ex, ss)
         ss = ss[0:res.start()] + replace + " " + ss[res.end():]
- 
+
     return ss
 
 
 ######################## CUDA SDE #################################
 
-def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters, numReactions, speciesId, listOfParameter, parameterId, parameter, InitValues, name, listOfFunctions, FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, outpath=""):
+def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters, numReactions, speciesId,
+                  listOfParameter, parameterId, parameter, InitValues, name, listOfFunctions, FunctionArgument,
+                  FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable,
+                  EventFormula, outpath=""):
     """
     Write the cuda file with ODE functions using the information taken by the parser
-    """ 
+    """
 
-    p=re.compile('\s')
-    #Open the outfile
-    out_file=open(os.path.join(outpath,name+".cu"),"w")
+    p = re.compile('\s')
+    # Open the outfile
+    out_file = open(os.path.join(outpath, name + ".cu"), "w")
 
-    #Write number of parameters and species
+    # Write number of parameters and species
     out_file.write("#define NSPECIES " + str(numSpecies) + "\n")
     out_file.write("#define NPARAM " + str(numGlobalParameters) + "\n")
     out_file.write("#define NREACT " + str(numReactions) + "\n")
     out_file.write("\n")
 
-    #The user-defined functions used in the model must be written in the file
+    # The user-defined functions used in the model must be written in the file
     out_file.write("//Code for texture memory\n")
 
     numEvents = len(listOfEvents)
     numRules = len(listOfRules)
-    num = numEvents+numRules
-    if num>0:
+    num = numEvents + numRules
+    if num > 0:
         out_file.write("#define leq(a,b) a<=b\n")
         out_file.write("#define neq(a,b) a!=b\n")
         out_file.write("#define geq(a,b) a>=b\n")
@@ -68,21 +71,16 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
         out_file.write("#define and_(a,b) a&&b\n")
         out_file.write("#define or_(a,b) a||b\n")
 
-    for i in range(0,len(listOfFunctions)):
-        out_file.write("__device__ float "+listOfFunctions[i].getId()+"(")
+    for i in range(0, len(listOfFunctions)):
+        out_file.write("__device__ float " + listOfFunctions[i].getId() + "(")
         for j in range(0, listOfFunctions[i].getNumArguments()):
-            out_file.write("float "+FunctionArgument[i][j])
-            if j<(listOfFunctions[i].getNumArguments()-1):
+            out_file.write("float " + FunctionArgument[i][j])
+            if j < (listOfFunctions[i].getNumArguments() - 1):
                 out_file.write(",")
         out_file.write("){\n    return ")
         out_file.write(FunctionBody[i])
         out_file.write(";\n}\n")
         out_file.write("\n")
-
-
-
-
-
 
     out_file.write("\n")
 
@@ -90,67 +88,67 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
     numSpecies = len(species)
 
-    #write rules and events
-    for i in range(0,len(listOfRules)):
+    # write rules and events
+    for i in range(0, len(listOfRules)):
         if listOfRules[i].isRate():
             out_file.write("    ")
-            if not(ruleVariable[i] in speciesId):
+            if not (ruleVariable[i] in speciesId):
                 out_file.write(ruleVariable[i])
             else:
-                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                string = "y[" + repr(speciesId.index(ruleVariable[i])) + "]"
                 out_file.write(string)
             out_file.write("=")
 
             string = ruleFormula[i]
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub('y['+repr(q)+']' ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
-                        #pq = re.compile(parameterId[q])
-                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)',string)
-                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                        # pq = re.compile(parameterId[q])
+                        # string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)',string)
+                        string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
 
             out_file.write(string)
             out_file.write(";\n")
-            
-    for i in range(0,len(listOfEvents)):
+
+    for i in range(0, len(listOfEvents)):
         out_file.write("    if( ")
-        #print EventCondition[i]
+        # print EventCondition[i]
         out_file.write(mathMLConditionParserCuda(EventCondition[i]))
         out_file.write("){\n")
         listOfAssignmentRules = listOfEvents[i].getListOfEventAssignments()
         for j in range(0, len(listOfAssignmentRules)):
             out_file.write("        ")
-            #out_file.write("float ")
-            if not(EventVariable[i][j] in speciesId):
+            # out_file.write("float ")
+            if not (EventVariable[i][j] in speciesId):
                 out_file.write(EventVariable[i][j])
             else:
-                string = "y["+repr(speciesId.index(EventVariable[i][j]))+"]"
-                out_file.write(string) 
+                string = "y[" + repr(speciesId.index(EventVariable[i][j])) + "]"
+                out_file.write(string)
             out_file.write("=")
-            
+
             string = EventFormula[i][j]
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub('y['+repr(q)+']' ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
-                        #pq = re.compile(parameterId[q])
-                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
-                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                        # pq = re.compile(parameterId[q])
+                        # string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
 
             out_file.write(string)
             out_file.write(";\n")
@@ -161,222 +159,219 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
     for i in range(0, len(listOfRules)):
         if listOfRules[i].isAssignment():
             out_file.write("    ")
-            if not(ruleVariable[i] in speciesId):
+            if not (ruleVariable[i] in speciesId):
                 out_file.write("float ")
                 out_file.write(ruleVariable[i])
             else:
-                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                string = "y[" + repr(speciesId.index(ruleVariable[i])) + "]"
                 out_file.write(string)
             out_file.write("=")
- 
+
             string = mathMLConditionParserCuda(ruleFormula[i])
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub("y["+repr(q)+"]" ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub("y["+repr(q)+"]" ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
-                        #pq = re.compile(parameterId[q])
-                        #x = "tex2D(param_tex,"+repr(q)+",tid)"
-                        #string=pq.sub(x,string)
-                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                        # pq = re.compile(parameterId[q])
+                        # x = "tex2D(param_tex,"+repr(q)+",tid)"
+                        # string=pq.sub(x,string)
+                        string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
             out_file.write(string)
             out_file.write(";\n")
     out_file.write("")
 
+    # Write the derivatives
+    for i in range(0, numSpecies):
 
-    #Write the derivatives
-    for i in range(0,numSpecies):
-        
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
-            out_file.write("    float d_y"+repr(i)+"= DT * (")
+            out_file.write("    float d_y" + repr(i) + "= DT * (")
             if species[i].isSetCompartment():
                 out_file.write("(")
-            
-            reactionWritten = False
-            for k in range(0,numReactions):
-                if not stoichiometricMatrix[i][k]==0.0:
 
-                    if reactionWritten and stoichiometricMatrix[i][k]>0.0:
+            reactionWritten = False
+            for k in range(0, numReactions):
+                if not stoichiometricMatrix[i][k] == 0.0:
+
+                    if reactionWritten and stoichiometricMatrix[i][k] > 0.0:
                         out_file.write("+")
                     reactionWritten = True
                     out_file.write(repr(stoichiometricMatrix[i][k]))
                     out_file.write("*(")
-                    
-                    #test if reaction has a positive sign
-                    #if(reactionWritten):
+
+                    # test if reaction has a positive sign
+                    # if(reactionWritten):
                     #    if(stoichiometricMatrix[i][k]>0.0):
                     #        out_file.write("+")
                     #    else:
                     #        out_file.write("-")
-                    #reactionWritten = True
-                    
-                    #test if reaction is 1.0; then omit multiplication term
-                    #if(abs(stoichiometricMatrix[i][k]) == 1.0):
+                    # reactionWritten = True
+
+                    # test if reaction is 1.0; then omit multiplication term
+                    # if(abs(stoichiometricMatrix[i][k]) == 1.0):
                     #    out_file.write("(")
-                    #else:
+                    # else:
                     #    out_file.write(repr(abs(stoichiometricMatrix[i][k])))
                     #    out_file.write("*(")
-                        
+
                     string = kineticLaw[k]
-                    for q in range(0,len(speciesId)):
-                        #pq = re.compile(speciesId[q])
-                        #string=pq.sub('y['+repr(q)+']' ,string)
-                        string = rep(string, speciesId[q],'y['+repr(q)+']')
-                    for q in range(0,len(parameterId)):
-                        if not(parameterId[q] in ruleVariable):
+                    for q in range(0, len(speciesId)):
+                        # pq = re.compile(speciesId[q])
+                        # string=pq.sub('y['+repr(q)+']' ,string)
+                        string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+                    for q in range(0, len(parameterId)):
+                        if not (parameterId[q] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[q] in EventVariable[r]:
                                     flag = True
                             if not flag:
-                                #pq = re.compile(parameterId[q])
-                                #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
-                                string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
-                                
-                    string=p.sub('',string)
-                    
+                                # pq = re.compile(parameterId[q])
+                                # string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                                string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+
+                    string = p.sub('', string)
+
                     out_file.write(string)
                     out_file.write(")")
-                    
+
             if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):
                     if listOfParameter[j].getId() == mySpeciesCompartment:
-                        if not(parameterId[j] in ruleVariable):
+                        if not (parameterId[j] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[j] in EventVariable[r]:
                                     flag = True
                             if not flag:
-                                out_file.write("tex2D(param_tex,"+repr(j)+",tid)"+");")
+                                out_file.write("tex2D(param_tex," + repr(j) + ",tid)" + ");")
                                 break
                             else:
-                                out_file.write(parameterId[j]+");")
+                                out_file.write(parameterId[j] + ");")
                                 break
             else:
                 out_file.write(");")
             out_file.write("\n")
-    
+
     out_file.write("\n")
 
     # check for columns of the stochiometry matrix with more than one entry
     randomVariables = ["*randNormal(rngRegs,sqrt(DT))"] * numReactions
-    for k in range(0,numReactions):
+    for k in range(0, numReactions):
         countEntries = 0
-        for i in range(0,numSpecies):
-            if stoichiometricMatrix[i][k] != 0.0: countEntries += 1
-        
+        for i in range(0, numSpecies):
+            if stoichiometricMatrix[i][k] != 0.0:
+                countEntries += 1
+
         # define specific randomVariable
         if countEntries > 1:
-            out_file.write("    float rand"+repr(k)+" = randNormal(rngRegs,sqrt(DT));\n")
+            out_file.write("    float rand" + repr(k) + " = randNormal(rngRegs,sqrt(DT));\n")
             randomVariables[k] = "*rand" + repr(k)
-    
+
     out_file.write("\n")
-            
-    #write noise terms
-    for i in range(0,numSpecies):
+
+    # write noise terms
+    for i in range(0, numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
-            out_file.write("    d_y"+repr(i)+" += (")
+            out_file.write("    d_y" + repr(i) + " += (")
             if species[i].isSetCompartment():
                 out_file.write("(")
-            
-            reactionWritten = False
-            for k in range(0,numReactions):
-                if not stoichiometricMatrix[i][k]==0.0:
 
-                    if reactionWritten and stoichiometricMatrix[i][k]>0.0:
+            reactionWritten = False
+            for k in range(0, numReactions):
+                if not stoichiometricMatrix[i][k] == 0.0:
+
+                    if reactionWritten and stoichiometricMatrix[i][k] > 0.0:
                         out_file.write("+")
                     reactionWritten = True
                     out_file.write(repr(stoichiometricMatrix[i][k]))
                     out_file.write("*sqrt(")
-                    
-                    #test if reaction has a positive sign
-                    #if(reactionWritten):
+
+                    # test if reaction has a positive sign
+                    # if(reactionWritten):
                     #    if(stoichiometricMatrix[i][k]>0.0):
                     #        out_file.write("+")
                     #    else:
                     #        out_file.write("-")
-                    #reactionWritten = True
-                         
-                    #test if reaction is 1.0; then omit multiplication term
-                    #if(abs(stoichiometricMatrix[i][k]) == 1.0):
+                    # reactionWritten = True
+
+                    # test if reaction is 1.0; then omit multiplication term
+                    # if(abs(stoichiometricMatrix[i][k]) == 1.0):
                     #    out_file.write("sqrtf(")
-                    #else:
+                    # else:
                     #    out_file.write(repr(abs(stoichiometricMatrix[i][k])))
                     #    out_file.write("*sqrtf(")
 
                     string = kineticLaw[k]
-                    for q in range(0,len(speciesId)):
-                        #pq = re.compile(speciesId[q])
-                        #string=pq.sub('y['+repr(q)+']' ,string)
-                        string = rep(string, speciesId[q],'y['+repr(q)+']')
-                    for q in range(0,len(parameterId)):
-                        if not(parameterId[q] in ruleVariable):
+                    for q in range(0, len(speciesId)):
+                        # pq = re.compile(speciesId[q])
+                        # string=pq.sub('y['+repr(q)+']' ,string)
+                        string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+                    for q in range(0, len(parameterId)):
+                        if not (parameterId[q] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[q] in EventVariable[r]:
                                     flag = True
                             if not flag:
-                                #pq = re.compile(parameterId[q])
-                                #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
-                                string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
-   
-                    string=p.sub('',string)
+                                # pq = re.compile(parameterId[q])
+                                # string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                                string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+
+                    string = p.sub('', string)
                     out_file.write(string)
-                    
-                    #multiply random variable
+
+                    # multiply random variable
                     out_file.write(")")
                     out_file.write(randomVariables[k])
-                    #out_file.write("*randNormal(rngRegs,sqrt(DT))")
-                    
-                    
+                    # out_file.write("*randNormal(rngRegs,sqrt(DT))")
+
             if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):
                     if listOfParameter[j].getId() == mySpeciesCompartment:
-                        if not(parameterId[j] in ruleVariable):
+                        if not (parameterId[j] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[j] in EventVariable[r]:
                                     flag = True
                             if not flag:
-                                out_file.write("tex2D(param_tex,"+repr(j)+",tid)"+")")
+                                out_file.write("tex2D(param_tex," + repr(j) + ",tid)" + ")")
                                 break
                             else:
-                                out_file.write(parameterId[j]+")")
+                                out_file.write(parameterId[j] + ")")
                                 break
             else:
                 out_file.write(")")
             out_file.write(";\n")
-    
+
     out_file.write("\n")
-    #add terms
-    for i in range(0,numSpecies):
+    # add terms
+    for i in range(0, numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
-            out_file.write("    y["+repr(i)+"] += d_y"+repr(i)+";\n")
-        
+            out_file.write("    y[" + repr(i) + "] += d_y" + repr(i) + ";\n")
+
     out_file.write("}\n")
 
-    
-################# same file
+    ################# same file
 
-
-    p=re.compile('\s')
-    #The user-defined functions used in the model must be written in the file
+    p = re.compile('\s')
+    # The user-defined functions used in the model must be written in the file
     out_file.write("//Code for shared memory\n")
 
     numEvents = len(listOfEvents)
     numRules = len(listOfRules)
-    num = numEvents+numRules
-    if num>0:
+    num = numEvents + numRules
+    if num > 0:
         out_file.write("#define leq(a,b) a<=b\n")
         out_file.write("#define neq(a,b) a!=b\n")
         out_file.write("#define geq(a,b) a>=b\n")
@@ -386,86 +381,81 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
         out_file.write("#define and_(a,b) a&&b\n")
         out_file.write("#define or_(a,b) a||b\n")
 
-    for i in range(0,len(listOfFunctions)):
-        out_file.write("__device__ float "+listOfFunctions[i].getId()+"(")
+    for i in range(0, len(listOfFunctions)):
+        out_file.write("__device__ float " + listOfFunctions[i].getId() + "(")
         for j in range(0, listOfFunctions[i].getNumArguments()):
-            out_file.write("float "+FunctionArgument[i][j])
-            if j<(listOfFunctions[i].getNumArguments()-1):
+            out_file.write("float " + FunctionArgument[i][j])
+            if j < (listOfFunctions[i].getNumArguments() - 1):
                 out_file.write(",")
         out_file.write("){\n    return ")
         out_file.write(FunctionBody[i])
         out_file.write(";\n}\n")
         out_file.write("\n")
 
-
-
-
-
-
     out_file.write("\n")
     out_file.write("__device__ void step(float *parameter, float *y, float t, unsigned *rngRegs){\n")
 
     numSpecies = len(species)
 
-    #write rules and events
-    for i in range(0,len(listOfRules)):
+    # write rules and events
+    for i in range(0, len(listOfRules)):
         if listOfRules[i].isRate():
             out_file.write("    ")
-            if not(ruleVariable[i] in speciesId):
+            if not (ruleVariable[i] in speciesId):
                 out_file.write(ruleVariable[i])
             else:
-                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                string = "y[" + repr(speciesId.index(ruleVariable[i])) + "]"
                 out_file.write(string)
             out_file.write("=")
 
             string = ruleFormula[i]
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub('y['+repr(q)+']' ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
                         pq = re.compile(parameterId[q])
-                        string=pq.sub('parameter['+repr(q)+']' ,string)
+                        string = pq.sub('parameter[' + repr(q) + ']', string)
 
             out_file.write(string)
             out_file.write(";\n")
-            
-    for i in range(0,len(listOfEvents)):
+
+    for i in range(0, len(listOfEvents)):
         out_file.write("    if( ")
-        #print EventCondition[i]
+        # print EventCondition[i]
         out_file.write(mathMLConditionParserCuda(EventCondition[i]))
         out_file.write("){\n")
         listOfAssignmentRules = listOfEvents[i].getListOfEventAssignments()
         for j in range(0, len(listOfAssignmentRules)):
             out_file.write("        ")
-            #out_file.write("float ")
-            if not(EventVariable[i][j] in speciesId):
+            # out_file.write("float ")
+            if not (EventVariable[i][j] in speciesId):
                 out_file.write(EventVariable[i][j])
             else:
-                string = "y["+repr(speciesId.index(EventVariable[i][j]))+"]"
-                out_file.write(string) 
+                string = "y[" + repr(speciesId.index(EventVariable[i][j])) + "]"
+                out_file.write(string)
             out_file.write("=")
-            
+
             string = EventFormula[i][j]
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub('y['+repr(q)+']' ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
                         pq = re.compile(parameterId[q])
-                        string=pq.sub('parameter['+repr(q)+']' ,string)
+                        string = pq.sub('parameter[' + repr(q) + ']', string)
 
             out_file.write(string)
             out_file.write(";\n")
@@ -476,101 +466,100 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
     for i in range(0, len(listOfRules)):
         if listOfRules[i].isAssignment():
             out_file.write("    ")
-            if not(ruleVariable[i] in speciesId):
+            if not (ruleVariable[i] in speciesId):
                 out_file.write("float ")
                 out_file.write(ruleVariable[i])
             else:
-                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                string = "y[" + repr(speciesId.index(ruleVariable[i])) + "]"
                 out_file.write(string)
             out_file.write("=")
- 
+
             string = mathMLConditionParserCuda(ruleFormula[i])
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub("y["+repr(q)+"]" ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub("y["+repr(q)+"]" ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
                         pq = re.compile(parameterId[q])
-                        x = "parameter["+repr(q)+"]"
-                        string=pq.sub(x,string)
+                        x = "parameter[" + repr(q) + "]"
+                        string = pq.sub(x, string)
             out_file.write(string)
             out_file.write(";\n")
-    #out_file.write("\n\n")
+    # out_file.write("\n\n")
 
-
-    #Write the derivatives
-    for i in range(0,numSpecies):
+    # Write the derivatives
+    for i in range(0, numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
-            out_file.write("    float d_y"+repr(i)+"= DT * (")
+            out_file.write("    float d_y" + repr(i) + "= DT * (")
             if species[i].isSetCompartment():
                 out_file.write("(")
-            
-            reactionWritten = False
-            for k in range(0,numReactions):
-                if not stoichiometricMatrix[i][k]==0.0:
 
-                    if reactionWritten and stoichiometricMatrix[i][k]>0.0:
+            reactionWritten = False
+            for k in range(0, numReactions):
+                if not stoichiometricMatrix[i][k] == 0.0:
+
+                    if reactionWritten and stoichiometricMatrix[i][k] > 0.0:
                         out_file.write("+")
                     reactionWritten = True
                     out_file.write(repr(stoichiometricMatrix[i][k]))
                     out_file.write("*(")
-                    
-                    #test if reaction has a positive sign
-                    #if(reactionWritten):
+
+                    # test if reaction has a positive sign
+                    # if(reactionWritten):
                     #    if(stoichiometricMatrix[i][k]>0.0):
                     #        out_file.write("+")
                     #    else:
                     #        out_file.write("-")
-                    #reactionWritten = True
-                    
-                    #test if reaction is 1.0; then omit multiplication term
-                    #if(abs(stoichiometricMatrix[i][k]) == 1.0):
+                    # reactionWritten = True
+
+                    # test if reaction is 1.0; then omit multiplication term
+                    # if(abs(stoichiometricMatrix[i][k]) == 1.0):
                     #    out_file.write("(")
-                    #else:
+                    # else:
                     #    out_file.write(repr(abs(stoichiometricMatrix[i][k])))
                     #    out_file.write("*(")
 
                     string = kineticLaw[k]
-                    for q in range(0,len(speciesId)):
-                        #pq = re.compile(speciesId[q])
-                        #string=pq.sub('y['+repr(q)+']' ,string)
-                        string = rep(string, speciesId[q],'y['+repr(q)+']')
-                    for q in range(0,len(parameterId)):
-                        if not(parameterId[q] in ruleVariable):
+                    for q in range(0, len(speciesId)):
+                        # pq = re.compile(speciesId[q])
+                        # string=pq.sub('y['+repr(q)+']' ,string)
+                        string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+                    for q in range(0, len(parameterId)):
+                        if not (parameterId[q] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[q] in EventVariable[r]:
                                     flag = True
                             if not flag:
                                 pq = re.compile(parameterId[q])
-                                string=pq.sub('parameter['+repr(q)+']' ,string)
-   
-                    string=p.sub('',string)
-                    
+                                string = pq.sub('parameter[' + repr(q) + ']', string)
+
+                    string = p.sub('', string)
+
                     out_file.write(string)
                     out_file.write(")")
-                    
+
             if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):
                     if listOfParameter[j].getId() == mySpeciesCompartment:
-                        if not(parameterId[j] in ruleVariable):
+                        if not (parameterId[j] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[j] in EventVariable[r]:
                                     flag = True
                             if not flag:
-                                out_file.write("parameter["+repr(j)+"]"+");")
+                                out_file.write("parameter[" + repr(j) + "]" + ");")
                                 break
                             else:
-                                out_file.write(parameterId[j]+");")                                
+                                out_file.write(parameterId[j] + ");")
                                 break
             else:
                 out_file.write(");")
@@ -580,88 +569,89 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
     # check for columns of the stochiometry matrix with more than one entry
     randomVariables = ["*randNormal(rngRegs,sqrt(DT))"] * numReactions
-    for k in range(0,numReactions):
+    for k in range(0, numReactions):
         countEntries = 0
-        for i in range(0,numSpecies):
-            if stoichiometricMatrix[i][k] != 0.0: countEntries += 1
-        
+        for i in range(0, numSpecies):
+            if stoichiometricMatrix[i][k] != 0.0:
+                countEntries += 1
+
         # define specific randomVariable
         if countEntries > 1:
-            out_file.write("    float rand"+repr(k)+" = randNormal(rngRegs,sqrt(DT));\n")
+            out_file.write("    float rand" + repr(k) + " = randNormal(rngRegs,sqrt(DT));\n")
             randomVariables[k] = "*rand" + repr(k)
-    
+
     out_file.write("\n")
 
-    #write noise terms
-    for i in range(0,numSpecies):
+    # write noise terms
+    for i in range(0, numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
-            out_file.write("    d_y"+repr(i)+"+= (")
+            out_file.write("    d_y" + repr(i) + "+= (")
             if species[i].isSetCompartment():
                 out_file.write("(")
-                
-            reactionWritten = False
-            for k in range(0,numReactions):
-                if not stoichiometricMatrix[i][k]==0.0:
 
-                    if reactionWritten and stoichiometricMatrix[i][k]>0.0:
+            reactionWritten = False
+            for k in range(0, numReactions):
+                if not stoichiometricMatrix[i][k] == 0.0:
+
+                    if reactionWritten and stoichiometricMatrix[i][k] > 0.0:
                         out_file.write("+")
                     reactionWritten = True
                     out_file.write(repr(stoichiometricMatrix[i][k]))
                     out_file.write("*sqrt(")
-                    
-                    #test if reaction has a positive sign
-                    #if(reactionWritten):
+
+                    # test if reaction has a positive sign
+                    # if(reactionWritten):
                     #    if(stoichiometricMatrix[i][k]>0.0):
                     #        out_file.write("+")
                     #    else:
                     #        out_file.write("-")
-                    #reactionWritten = True
-                         
-                    #test if reaction is 1.0; then omit multiplication term
-                    #if(abs(stoichiometricMatrix[i][k]) == 1.0):
+                    # reactionWritten = True
+
+                    # test if reaction is 1.0; then omit multiplication term
+                    # if(abs(stoichiometricMatrix[i][k]) == 1.0):
                     #    out_file.write("sqrtf(")
-                    #else:
+                    # else:
                     #    out_file.write(repr(abs(stoichiometricMatrix[i][k])))
                     #    out_file.write("*sqrtf(")
 
                     string = kineticLaw[k]
-                    for q in range(0,len(speciesId)):
-                        #pq = re.compile(speciesId[q])
-                        #string=pq.sub('y['+repr(q)+']' ,string)
-                        string = rep(string, speciesId[q],'y['+repr(q)+']')
-                    for q in range(0,len(parameterId)):
-                        if not(parameterId[q] in ruleVariable):
+                    for q in range(0, len(speciesId)):
+                        # pq = re.compile(speciesId[q])
+                        # string=pq.sub('y['+repr(q)+']' ,string)
+                        string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+                    for q in range(0, len(parameterId)):
+                        if not (parameterId[q] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[q] in EventVariable[r]:
                                     flag = True
                             if not flag:
                                 pq = re.compile(parameterId[q])
-                                string=pq.sub('parameter['+repr(q)+']' ,string)
-   
-                    string=p.sub('',string)
+                                string = pq.sub('parameter[' + repr(q) + ']', string)
+
+                    string = p.sub('', string)
                     out_file.write(string)
-                    
-                    #multiply random variable
+
+                    # multiply random variable
                     out_file.write(")")
                     out_file.write(randomVariables[k])
-                    #out_file.write("*randNormal(rngRegs,sqrt(DT))")
-                    
+                    # out_file.write("*randNormal(rngRegs,sqrt(DT))")
+
             if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):
                     if listOfParameter[j].getId() == mySpeciesCompartment:
-                        if not(parameterId[j] in ruleVariable):
+                        if not (parameterId[j] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[j] in EventVariable[r]:
                                     flag = True
                             if not flag:
-                                out_file.write("parameter["+repr(j)+"]"+")")
+                                out_file.write("parameter[" + repr(j) + "]" + ")")
                                 break
                             else:
-                                out_file.write(parameterId[j]+")")                                
+                                out_file.write(parameterId[j] + ")")
                                 break
             else:
                 out_file.write(")")
@@ -669,30 +659,25 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
             out_file.write(";\n")
 
     out_file.write("\n")
-    #add terms
-    for i in range(0,numSpecies):
+    # add terms
+    for i in range(0, numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
-            out_file.write("    y["+repr(i)+"] += d_y"+repr(i)+";\n")
-        
+            out_file.write("    y[" + repr(i) + "] += d_y" + repr(i) + ";\n")
+
     out_file.write("}\n")
-
-    
-
-
-
-
-
-
 
 
 ######################## CUDA Gillespie #################################
 
-def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalParameters, numReactions, species, parameterId, InitValues, speciesId,name, listOfFunctions,FunctionArgument,FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, outpath=""):
-    p=re.compile('\s')
-    #Open the outfile
-    out_file=open(os.path.join(outpath,name+".cu"),"w")
+def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalParameters, numReactions, species,
+                        parameterId, InitValues, speciesId, name, listOfFunctions, FunctionArgument, FunctionBody,
+                        listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable,
+                        EventFormula, outpath=""):
+    p = re.compile('\s')
+    # Open the outfile
+    out_file = open(os.path.join(outpath, name + ".cu"), "w")
 
-    #Write number of parameters and species
+    # Write number of parameters and species
     out_file.write("#define NSPECIES " + str(numSpecies) + "\n")
     out_file.write("#define NPARAM " + str(numGlobalParameters) + "\n")
     out_file.write("#define NREACT " + str(numReactions) + "\n")
@@ -700,8 +685,8 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
 
     numEvents = len(listOfEvents)
     numRules = len(listOfRules)
-    num = numEvents+numRules
-    if num>0:
+    num = numEvents + numRules
+    if num > 0:
         out_file.write("#define leq(a,b) a<=b\n")
         out_file.write("#define neq(a,b) a!=b\n")
         out_file.write("#define geq(a,b) a>=b\n")
@@ -710,13 +695,12 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
         out_file.write("#define eq(a,b) a==b\n")
         out_file.write("#define and_(a,b) a&&b\n")
         out_file.write("#define or_(a,b) a||b\n")
-    
 
-    for i in range(0,len(listOfFunctions)):
-        out_file.write("__device__ float "+listOfFunctions[i].getId()+"(")
+    for i in range(0, len(listOfFunctions)):
+        out_file.write("__device__ float " + listOfFunctions[i].getId() + "(")
         for j in range(0, listOfFunctions[i].getNumArguments()):
-            out_file.write("float "+FunctionArgument[i][j])
-            if j<(listOfFunctions[i].getNumArguments()-1):
+            out_file.write("float " + FunctionArgument[i][j])
+            if j < (listOfFunctions[i].getNumArguments() - 1):
                 out_file.write(",")
         out_file.write("){\n    return ")
         out_file.write(FunctionBody[i])
@@ -724,82 +708,80 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
         out_file.write("")
 
     out_file.write("\n\n__constant__ int smatrix[]={\n")
-    for i in range(0,len(stoichiometricMatrix[0])):
-        for j in range(0,len(stoichiometricMatrix)):
-            out_file.write("    "+repr(stoichiometricMatrix[j][i]))
-            if not(i==(len(stoichiometricMatrix)-1) and (j==(len(stoichiometricMatrix[0])-1))):
+    for i in range(0, len(stoichiometricMatrix[0])):
+        for j in range(0, len(stoichiometricMatrix)):
+            out_file.write("    " + repr(stoichiometricMatrix[j][i]))
+            if not (i == (len(stoichiometricMatrix) - 1) and (j == (len(stoichiometricMatrix[0]) - 1))):
                 out_file.write(",")
         out_file.write("\n")
 
-
     out_file.write("};\n\n\n")
 
-    
-    #stoichiometry function moved to Gillespie.py
-    #out_file.write("__device__ void stoichiometry(int *y, int r, int tid){\n")
-    #out_file.write("    for(int i=0; i<"+repr(len(species))+"; i++){\n        y[i]+=smatrix[r*"+repr(len(species))+"+ i];\n    }\n}\n\n\n")
-    
+    # stoichiometry function moved to Gillespie.py
+    # out_file.write("__device__ void stoichiometry(int *y, int r, int tid){\n")
+    # out_file.write("    for(int i=0; i<"+repr(len(species))+"; i++){\n        y[i]+=smatrix[r*"+repr(len(species))+"+ i];\n    }\n}\n\n\n")
+
     out_file.write("__device__ void hazards(int *y, float *h, float t, int tid){")
     # wirte rules and events 
-    for i in range(0,len(listOfRules)):
+    for i in range(0, len(listOfRules)):
         if listOfRules[i].isRate():
             out_file.write("    ")
-            if not(ruleVariable[i] in speciesId):
+            if not (ruleVariable[i] in speciesId):
                 out_file.write(ruleVariable[i])
             else:
-                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                string = "y[" + repr(speciesId.index(ruleVariable[i])) + "]"
                 out_file.write(string)
             out_file.write("=")
 
             string = ruleFormula[i]
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub('y['+repr(q)+']' ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
-                        #pq = re.compile(parameterId[q])
-                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
-                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                        # pq = re.compile(parameterId[q])
+                        # string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
 
             out_file.write(string)
             out_file.write(";\n")
-            
-    for i in range(0,len(listOfEvents)):
+
+    for i in range(0, len(listOfEvents)):
         out_file.write("    if( ")
         out_file.write(mathMLConditionParserCuda(EventCondition[i]))
         out_file.write("){\n")
         listOfAssignmentRules = listOfEvents[i].getListOfEventAssignments()
         for j in range(0, len(listOfAssignmentRules)):
             out_file.write("        ")
-            #out_file.write("float ")
-            if not(EventVariable[i][j] in speciesId):
+            # out_file.write("float ")
+            if not (EventVariable[i][j] in speciesId):
                 out_file.write(EventVariable[i][j])
             else:
-                string = "y["+repr(speciesId.index(EventVariable[i][j]))+"]"
-                out_file.write(string)           
+                string = "y[" + repr(speciesId.index(EventVariable[i][j])) + "]"
+                out_file.write(string)
             out_file.write("=")
-            
+
             string = EventFormula[i][j]
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub('y['+repr(q)+']' ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
-                        #pq = re.compile(parameterId[q])
-                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
-                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                        # pq = re.compile(parameterId[q])
+                        # string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
 
             out_file.write(string)
             out_file.write(";\n")
@@ -810,85 +792,84 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalP
     for i in range(0, len(listOfRules)):
         if listOfRules[i].isAssignment():
             out_file.write("    ")
-            if not(ruleVariable[i] in speciesId):
+            if not (ruleVariable[i] in speciesId):
                 out_file.write("float ")
                 out_file.write(ruleVariable[i])
             else:
-                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                string = "y[" + repr(speciesId.index(ruleVariable[i])) + "]"
                 out_file.write(string)
             out_file.write("=")
- 
+
             string = mathMLConditionParserCuda(ruleFormula[i])
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub("y["+repr(q)+"]" ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub("y["+repr(q)+"]" ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
-                        #pq = re.compile(parameterId[q])
-                        #x = "tex2D(param_tex,"+repr(q)+",tid)"
-                        #string=pq.sub(x,string)
-                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                        # pq = re.compile(parameterId[q])
+                        # x = "tex2D(param_tex,"+repr(q)+",tid)"
+                        # string=pq.sub(x,string)
+                        string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
             out_file.write(string)
             out_file.write(";\n")
     out_file.write("\n")
 
-
-
-    for i in range(0,numReactions):
-        out_file.write("    h["+repr(i)+"] = ")
+    for i in range(0, numReactions):
+        out_file.write("    h[" + repr(i) + "] = ")
 
         string = kineticLaw[i]
-        for q in range(0,len(speciesId)):
-            #pq = re.compile(speciesId[q])
-            #string=pq.sub('y['+repr(q)+']' ,string)
-            string = rep(string, speciesId[q],'y['+repr(q)+']')
-        for q in range(0,len(parameterId)):
-            if not(parameterId[q] in ruleVariable):
+        for q in range(0, len(speciesId)):
+            # pq = re.compile(speciesId[q])
+            # string=pq.sub('y['+repr(q)+']' ,string)
+            string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+        for q in range(0, len(parameterId)):
+            if not (parameterId[q] in ruleVariable):
                 flag = False
-                for r in range(0,len(EventVariable)):
+                for r in range(0, len(EventVariable)):
                     if parameterId[q] in EventVariable[r]:
                         flag = True
                 if not flag:
-                    #pq = re.compile(parameterId[q])
-                    #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
-                    string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
-   
-        string=p.sub('',string)
-        out_file.write(string+";\n")
-        
+                    # pq = re.compile(parameterId[q])
+                    # string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                    string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+
+        string = p.sub('', string)
+        out_file.write(string + ";\n")
+
     out_file.write("\n")
     out_file.write("}\n\n")
-    
-
 
 
 ######################## CUDA ODE #################################
 
-def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters, numReactions, speciesId, listOfParameter, parameterId,parameter,InitValues,name, listOfFunctions, FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, outpath=""):
+def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters, numReactions, speciesId,
+                  listOfParameter, parameterId, parameter, InitValues, name, listOfFunctions, FunctionArgument,
+                  FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable,
+                  EventFormula, outpath=""):
     """
     Write the cuda file with ODE functions using the information taken by the parser
-    """ 
-    p=re.compile('\s')
-    #Open the outfile
-    out_file=open(os.path.join(outpath,name+".cu"),"w")
+    """
+    p = re.compile('\s')
+    # Open the outfile
+    out_file = open(os.path.join(outpath, name + ".cu"), "w")
 
-    #Write number of parameters and species
+    # Write number of parameters and species
     out_file.write("#define NSPECIES " + str(numSpecies) + "\n")
     out_file.write("#define NPARAM " + str(numGlobalParameters) + "\n")
     out_file.write("#define NREACT " + str(numReactions) + "\n")
     out_file.write("\n")
 
-    #The user-defined functions used in the model must be written in the file
+    # The user-defined functions used in the model must be written in the file
     numEvents = len(listOfEvents)
     numRules = len(listOfRules)
-    num = numEvents+numRules
-    if num>0:
+    num = numEvents + numRules
+    if num > 0:
         out_file.write("#define leq(a,b) a<=b\n")
         out_file.write("#define neq(a,b) a!=b\n")
         out_file.write("#define geq(a,b) a>=b\n")
@@ -898,85 +879,81 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
         out_file.write("#define and_(a,b) a&&b\n")
         out_file.write("#define or_(a,b) a||b\n")
 
-    for i in range(0,len(listOfFunctions)):
-        out_file.write("__device__ double "+listOfFunctions[i].getId()+"(")
+    for i in range(0, len(listOfFunctions)):
+        out_file.write("__device__ double " + listOfFunctions[i].getId() + "(")
         for j in range(0, listOfFunctions[i].getNumArguments()):
-            out_file.write("double "+FunctionArgument[i][j])
-            if j<(listOfFunctions[i].getNumArguments()-1):
+            out_file.write("double " + FunctionArgument[i][j])
+            if j < (listOfFunctions[i].getNumArguments() - 1):
                 out_file.write(",")
         out_file.write("){\n    return ")
         out_file.write(FunctionBody[i])
         out_file.write(";\n}\n")
         out_file.write("\n")
 
-
-
-
-
-
-    out_file.write("struct myFex{\n    __device__ void operator()(int *neq, double *t, double *y, double *ydot/*, void *otherData*/)\n    {\n        int tid = blockDim.x * blockIdx.x + threadIdx.x;\n")
+    out_file.write(
+        "struct myFex{\n    __device__ void operator()(int *neq, double *t, double *y, double *ydot/*, void *otherData*/)\n    {\n        int tid = blockDim.x * blockIdx.x + threadIdx.x;\n")
 
     numSpecies = len(species)
 
-    #write rules and events
-    for i in range(0,len(listOfRules)):
+    # write rules and events
+    for i in range(0, len(listOfRules)):
         if listOfRules[i].isRate():
             out_file.write("        ")
-            if not(ruleVariable[i] in speciesId):
+            if not (ruleVariable[i] in speciesId):
                 out_file.write(ruleVariable[i])
             else:
-                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                string = "y[" + repr(speciesId.index(ruleVariable[i])) + "]"
                 out_file.write(string)
             out_file.write("=")
 
             string = ruleFormula[i]
-            for q in range(0,len(speciesId)):
+            for q in range(0, len(speciesId)):
                 pq = re.compile(speciesId[q])
-                string=pq.sub('y['+repr(q)+']' ,string)
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+                string = pq.sub('y[' + repr(q) + ']', string)
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
                         pq = re.compile(parameterId[q])
-                        string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = pq.sub('tex2D(param_tex,' + repr(q) + ',tid)', string)
 
             out_file.write(string)
             out_file.write(";\n")
-            
-    for i in range(0,len(listOfEvents)):
+
+    for i in range(0, len(listOfEvents)):
         out_file.write("    if( ")
-        #print EventCondition[i]
+        # print EventCondition[i]
         out_file.write(mathMLConditionParserCuda(EventCondition[i]))
         out_file.write("){\n")
         listOfAssignmentRules = listOfEvents[i].getListOfEventAssignments()
         for j in range(0, len(listOfAssignmentRules)):
             out_file.write("        ")
-            #out_file.write("double ")
-            if not(EventVariable[i][j] in speciesId):
+            # out_file.write("double ")
+            if not (EventVariable[i][j] in speciesId):
                 out_file.write(EventVariable[i][j])
             else:
-                string = "y["+repr(speciesId.index(EventVariable[i][j]))+"]"
-                out_file.write(string) 
+                string = "y[" + repr(speciesId.index(EventVariable[i][j])) + "]"
+                out_file.write(string)
             out_file.write("=")
-            
+
             string = EventFormula[i][j]
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub('y['+repr(q)+']' ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
-                        #pq = re.compile(parameterId[q])
-                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
-                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                        # pq = re.compile(parameterId[q])
+                        # string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
 
             out_file.write(string)
             out_file.write(";\n")
@@ -987,145 +964,148 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
     for i in range(0, len(listOfRules)):
         if listOfRules[i].isAssignment():
             out_file.write("    ")
-            if not(ruleVariable[i] in speciesId):
+            if not (ruleVariable[i] in speciesId):
                 out_file.write("double ")
                 out_file.write(ruleVariable[i])
             else:
-                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                string = "y[" + repr(speciesId.index(ruleVariable[i])) + "]"
                 out_file.write(string)
             out_file.write("=")
- 
+
             string = mathMLConditionParserCuda(ruleFormula[i])
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub("y["+repr(q)+"]" ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub("y["+repr(q)+"]" ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
-                        #pq = re.compile(parameterId[q])
-                        #x = "tex2D(param_tex,"+repr(q)+",tid)"
-                        #string=pq.sub(x,string)
-                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                        # pq = re.compile(parameterId[q])
+                        # x = "tex2D(param_tex,"+repr(q)+",tid)"
+                        # string=pq.sub(x,string)
+                        string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
             out_file.write(string)
             out_file.write(";\n")
     out_file.write("\n\n")
 
-    #Write the derivatives
-    for i in range(0,numSpecies):
+    # Write the derivatives
+    for i in range(0, numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
-            out_file.write("        ydot["+repr(i)+"]=")
+            out_file.write("        ydot[" + repr(i) + "]=")
             if species[i].isSetCompartment():
                 out_file.write("(")
-                
-            reactionWritten = False
-            for k in range(0,numReactions):
-                if not stoichiometricMatrix[i][k]==0.0:
 
-                    if reactionWritten and stoichiometricMatrix[i][k]>0.0:
+            reactionWritten = False
+            for k in range(0, numReactions):
+                if not stoichiometricMatrix[i][k] == 0.0:
+
+                    if reactionWritten and stoichiometricMatrix[i][k] > 0.0:
                         out_file.write("+")
                     reactionWritten = True
                     out_file.write(repr(stoichiometricMatrix[i][k]))
                     out_file.write("*(")
-                    
-                    #test if reaction has a positive sign
-                    #if(reactionWritten):
+
+                    # test if reaction has a positive sign
+                    # if(reactionWritten):
                     #    if(stoichiometricMatrix[i][k]>0.0):
                     #        out_file.write("+")
                     #    else:
                     #        out_file.write("-")
-                    #reactionWritten = True
-                    
-                    #test if reaction is 1.0; then omit multiplication term
-                    #if(abs(stoichiometricMatrix[i][k]) == 1.0):
+                    # reactionWritten = True
+
+                    # test if reaction is 1.0; then omit multiplication term
+                    # if(abs(stoichiometricMatrix[i][k]) == 1.0):
                     #    out_file.write("(")
-                    #else:
+                    # else:
                     #    out_file.write(repr(abs(stoichiometricMatrix[i][k])))
                     #    out_file.write("*(")
 
                     string = kineticLaw[k]
-                    for q in range(0,len(speciesId)):
-                        #pq = re.compile(speciesId[q]+'[^0-9]')
-                        #pq = re.compile(speciesId[q]+'[^0-9]')
-                        #pq = re.compile(speciesId[q])
-                        #ret=pq.sub('y['+repr(q)+']' ,string)
+                    for q in range(0, len(speciesId)):
+                        # pq = re.compile(speciesId[q]+'[^0-9]')
+                        # pq = re.compile(speciesId[q]+'[^0-9]')
+                        # pq = re.compile(speciesId[q])
+                        # ret=pq.sub('y['+repr(q)+']' ,string)
 
-                        string = rep(string, speciesId[q],'y['+repr(q)+']')
-                        
-                        ##if ret != string:
-                        #if q == 5: 
+                        string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+
+                        # if ret != string:
+                        # if q == 5:
                         #    print speciesId[q], "|", 'y['+repr(q)+']', "\n\t", string, "\n\t", ret
-                        #string = ret;
-                    for q in range(0,len(parameterId)):
-                        if not(parameterId[q] in ruleVariable):
+                        # string = ret;
+                    for q in range(0, len(parameterId)):
+                        if not (parameterId[q] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[q] in EventVariable[r]:
                                     flag = True
                             if not flag:
-                                #pq = re.compile(parameterId[q])
-                                #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
-                                string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
-   
-                    string=p.sub('',string)
+                                # pq = re.compile(parameterId[q])
+                                # string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                                string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
 
-                    ##print string
+                    string = p.sub('', string)
+
+                    # print string
                     out_file.write(string)
                     out_file.write(")")
-                    
-                    
+
             if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):
                     if listOfParameter[j].getId() == mySpeciesCompartment:
-                        if not(parameterId[j] in ruleVariable):
+                        if not (parameterId[j] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[j] in EventVariable[r]:
                                     flag = True
                             if not flag:
-                                out_file.write("tex2D(param_tex,"+repr(j)+",tid)"+";")
+                                out_file.write("tex2D(param_tex," + repr(j) + ",tid)" + ";")
                                 break
                             else:
-                                out_file.write(parameterId[j]+";")                                
+                                out_file.write(parameterId[j] + ";")
                                 break
 
             else:
                 out_file.write(";")
             out_file.write("\n")
 
-
     out_file.write("\n    }")
-    out_file.write("\n};\n\n\n struct myJex{\n    __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, double *pd, int nrowpd/*, void *otherData*/){\n        return; \n    }\n};") 
+    out_file.write(
+        "\n};\n\n\n struct myJex{\n    __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, double *pd, int nrowpd/*, void *otherData*/){\n        return; \n    }\n};")
+
 
 ######################## CUDA DDE #################################
 
 # JSB
-def write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters, numReactions, speciesId, listOfParameter, parameterId,parameter,InitValues,name, listOfFunctions, FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, delays, outpath=""):
+def write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters, numReactions, speciesId,
+                  listOfParameter, parameterId, parameter, InitValues, name, listOfFunctions, FunctionArgument,
+                  FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable,
+                  EventFormula, delays, outpath=""):
     """
     Write the cuda file with DDE functions using the information taken by the parser
     """
-    p=re.compile('\s')
-    #Open the outfile
-    out_file=open(os.path.join(outpath,name+".cu"),"w")
+    p = re.compile('\s')
+    # Open the outfile
+    out_file = open(os.path.join(outpath, name + ".cu"), "w")
 
-    #Write number of parameters and species
+    # Write number of parameters and species
     out_file.write("\n")
     out_file.write("#define NSPECIES " + str(numSpecies) + "\n")
     out_file.write("#define NPARAM " + str(numGlobalParameters) + "\n")
     out_file.write("#define NREACT " + str(numReactions) + "\n")
     out_file.write("\n")
 
-    #The user-defined functions used in the model must be written in the file
+    # The user-defined functions used in the model must be written in the file
     numEvents = len(listOfEvents)
     numRules = len(listOfRules)
-    num = numEvents+numRules
-    if num>0:
+    num = numEvents + numRules
+    if num > 0:
         out_file.write("#define leq(a,b) a<=b\n")
         out_file.write("#define neq(a,b) a!=b\n")
         out_file.write("#define geq(a,b) a>=b\n")
@@ -1135,21 +1115,16 @@ def write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
         out_file.write("#define and_(a,b) a&&b\n")
         out_file.write("#define or_(a,b) a||b\n")
 
-    for i in range(0,len(listOfFunctions)):
-        out_file.write("__device__ float "+listOfFunctions[i].getId()+"(")
+    for i in range(0, len(listOfFunctions)):
+        out_file.write("__device__ float " + listOfFunctions[i].getId() + "(")
         for j in range(0, listOfFunctions[i].getNumArguments()):
-            out_file.write("float "+FunctionArgument[i][j])
-            if j<(listOfFunctions[i].getNumArguments()-1):
+            out_file.write("float " + FunctionArgument[i][j])
+            if j < (listOfFunctions[i].getNumArguments() - 1):
                 out_file.write(",")
         out_file.write("){\n    return ")
         out_file.write(FunctionBody[i])
         out_file.write(";\n}\n")
         out_file.write("\n")
-
-
-
-
-
 
     out_file.write("__device__  float f(float t, float *y, float yOld[NSPECIES][numDelays], int dimension){\n")
     out_file.write("\tint tid = blockDim.x * blockIdx.x + threadIdx.x;\n")
@@ -1158,65 +1133,65 @@ def write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
     numSpecies = len(species)
 
-    #write rules and events
-    for i in range(0,len(listOfRules)):
+    # write rules and events
+    for i in range(0, len(listOfRules)):
         if listOfRules[i].isRate():
             out_file.write("        ")
-            if not(ruleVariable[i] in speciesId):
+            if not (ruleVariable[i] in speciesId):
                 out_file.write(ruleVariable[i])
             else:
-                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                string = "y[" + repr(speciesId.index(ruleVariable[i])) + "]"
                 out_file.write(string)
             out_file.write("=")
 
             string = ruleFormula[i]
-            for q in range(0,len(speciesId)):
+            for q in range(0, len(speciesId)):
                 pq = re.compile(speciesId[q])
-                string=pq.sub('y['+repr(q)+']' ,string)
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+                string = pq.sub('y[' + repr(q) + ']', string)
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
                         pq = re.compile(parameterId[q])
-                        string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = pq.sub('tex2D(param_tex,' + repr(q) + ',tid)', string)
 
             out_file.write(string)
             out_file.write(";\n")
 
-    for i in range(0,len(listOfEvents)):
+    for i in range(0, len(listOfEvents)):
         out_file.write("    if( ")
-        #print EventCondition[i]
+        # print EventCondition[i]
         out_file.write(mathMLConditionParserCuda(EventCondition[i]))
         out_file.write("){\n")
         listOfAssignmentRules = listOfEvents[i].getListOfEventAssignments()
         for j in range(0, len(listOfAssignmentRules)):
             out_file.write("        ")
-            #out_file.write("float ")
-            if not(EventVariable[i][j] in speciesId):
+            # out_file.write("float ")
+            if not (EventVariable[i][j] in speciesId):
                 out_file.write(EventVariable[i][j])
             else:
-                string = "y["+repr(speciesId.index(EventVariable[i][j]))+"]"
+                string = "y[" + repr(speciesId.index(EventVariable[i][j])) + "]"
                 out_file.write(string)
             out_file.write("=")
 
             string = EventFormula[i][j]
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub('y['+repr(q)+']' ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub('y['+repr(q)+']' ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
-                        #pq = re.compile(parameterId[q])
-                        #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
-                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                        # pq = re.compile(parameterId[q])
+                        # string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                        string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
 
             out_file.write(string)
             out_file.write(";\n")
@@ -1227,91 +1202,91 @@ def write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
     for i in range(0, len(listOfRules)):
         if listOfRules[i].isAssignment():
             out_file.write("    ")
-            if not(ruleVariable[i] in speciesId):
+            if not (ruleVariable[i] in speciesId):
                 out_file.write("float ")
                 out_file.write(ruleVariable[i])
             else:
-                string = "y["+repr(speciesId.index(ruleVariable[i]))+"]"
+                string = "y[" + repr(speciesId.index(ruleVariable[i])) + "]"
                 out_file.write(string)
             out_file.write("=")
 
             string = mathMLConditionParserCuda(ruleFormula[i])
-            for q in range(0,len(speciesId)):
-                #pq = re.compile(speciesId[q])
-                #string=pq.sub("y["+repr(q)+"]" ,string)
-                string = rep(string, speciesId[q],'y['+repr(q)+']')
-            for q in range(0,len(parameterId)):
-                if not(parameterId[q] in ruleVariable):
+            for q in range(0, len(speciesId)):
+                # pq = re.compile(speciesId[q])
+                # string=pq.sub("y["+repr(q)+"]" ,string)
+                string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
+            for q in range(0, len(parameterId)):
+                if not (parameterId[q] in ruleVariable):
                     flag = False
-                    for r in range(0,len(EventVariable)):
+                    for r in range(0, len(EventVariable)):
                         if parameterId[q] in EventVariable[r]:
                             flag = True
                     if not flag:
-                        #pq = re.compile(parameterId[q])
-                        #x = "tex2D(param_tex,"+repr(q)+",tid)"
-                        #string=pq.sub(x,string)
-                        string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                        # pq = re.compile(parameterId[q])
+                        # x = "tex2D(param_tex,"+repr(q)+",tid)"
+                        # string=pq.sub(x,string)
+                        string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
             out_file.write(string)
             out_file.write(";\n")
     out_file.write("\n\n")
 
-    #Write the derivatives
-    for i in range(0,numSpecies):
+    # Write the derivatives
+    for i in range(0, numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
-            out_file.write("        ydot["+repr(i)+"]=")
+            out_file.write("        ydot[" + repr(i) + "]=")
             if species[i].isSetCompartment():
                 out_file.write("(")
 
             reactionWritten = False
-            for k in range(0,numReactions):
-                if not stoichiometricMatrix[i][k]==0.0:
+            for k in range(0, numReactions):
+                if not stoichiometricMatrix[i][k] == 0.0:
 
-                    if reactionWritten and stoichiometricMatrix[i][k]>0.0:
+                    if reactionWritten and stoichiometricMatrix[i][k] > 0.0:
                         out_file.write("+")
                     reactionWritten = True
                     out_file.write(repr(stoichiometricMatrix[i][k]))
                     out_file.write("*(")
 
-                    #test if reaction has a positive sign
-                    #if(reactionWritten):
+                    # test if reaction has a positive sign
+                    # if(reactionWritten):
                     #    if(stoichiometricMatrix[i][k]>0.0):
                     #        out_file.write("+")
                     #    else:
                     #        out_file.write("-")
-                    #reactionWritten = True
+                    # reactionWritten = True
 
-                    #test if reaction is 1.0; then omit multiplication term
-                    #if(abs(stoichiometricMatrix[i][k]) == 1.0):
+                    # test if reaction is 1.0; then omit multiplication term
+                    # if(abs(stoichiometricMatrix[i][k]) == 1.0):
                     #    out_file.write("(")
-                    #else:
+                    # else:
                     #    out_file.write(repr(abs(stoichiometricMatrix[i][k])))
                     #    out_file.write("*(")
 
                     string = kineticLaw[k]
-                    for q in range(0,len(speciesId)):
-                        #pq = re.compile(speciesId[q]+'[^0-9]')
-                        #pq = re.compile(speciesId[q]+'[^0-9]')
-                        #pq = re.compile(speciesId[q])
-                        #ret=pq.sub('y['+repr(q)+']' ,string)
+                    for q in range(0, len(speciesId)):
+                        # pq = re.compile(speciesId[q]+'[^0-9]')
+                        # pq = re.compile(speciesId[q]+'[^0-9]')
+                        # pq = re.compile(speciesId[q])
+                        # ret=pq.sub('y['+repr(q)+']' ,string)
 
-                        string = rep(string, speciesId[q],'y['+repr(q)+']')
+                        string = rep(string, speciesId[q], 'y[' + repr(q) + ']')
 
-                        ##if ret != string:
-                        #if q == 5:
+                        # if ret != string:
+                        # if q == 5:
                         #    print speciesId[q], "|", 'y['+repr(q)+']', "\n\t", string, "\n\t", ret
-                        #string = ret;
-                    for q in range(0,len(parameterId)):
-                        if not(parameterId[q] in ruleVariable):
+                        # string = ret;
+                    for q in range(0, len(parameterId)):
+                        if not (parameterId[q] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[q] in EventVariable[r]:
                                     flag = True
                             if not flag:
-                                #pq = re.compile(parameterId[q])
-                                #string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
-                                string = rep(string, parameterId[q],'tex2D(param_tex,'+repr(q)+',tid)')
+                                # pq = re.compile(parameterId[q])
+                                # string=pq.sub('tex2D(param_tex,'+repr(q)+',tid)' ,string)
+                                string = rep(string, parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
 
-                    string=p.sub('',string)
+                    string = p.sub('', string)
 
                     # substitute to fix delays [replace delay(y[1],...) with delay(1,...)
                     getDimension = re.compile("delay\(y\[(\d+?)\]")
@@ -1321,27 +1296,25 @@ def write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                     getParamNum = re.compile("delay\((\w+?),tex2D\(param_tex,(\d+?),tid\)\)")
                     string = getParamNum.sub(r'delay(\g<1>,\g<2>)', string)
 
-
-                    ##print string
+                    # print string
                     out_file.write(string)
                     out_file.write(")")
-
 
             if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):
                     if listOfParameter[j].getId() == mySpeciesCompartment:
-                        if not(parameterId[j] in ruleVariable):
+                        if not (parameterId[j] in ruleVariable):
                             flag = False
-                            for r in range(0,len(EventVariable)):
+                            for r in range(0, len(EventVariable)):
                                 if parameterId[j] in EventVariable[r]:
                                     flag = True
                             if not flag:
-                                out_file.write("tex2D(param_tex,"+repr(j)+",tid)"+";")
+                                out_file.write("tex2D(param_tex," + repr(j) + ",tid)" + ";")
                                 break
                             else:
-                                out_file.write(parameterId[j]+";")
+                                out_file.write(parameterId[j] + ";")
                                 break
 
             else:
@@ -1350,8 +1323,6 @@ def write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
 
     out_file.write("return ydot[dimension];")
     out_file.write("\n    }")
-
-
 
 
 ################################################################################
@@ -1370,14 +1341,13 @@ def mathMLConditionParserCuda(mathMLstring):
             A mathMLstring
 
     """
-    
+
     andString = re.compile("and")
     orString = re.compile("or")
     mathMLstring = andString.sub("and_", mathMLstring)
     mathMLstring = orString.sub("or_", mathMLstring)
 
     return mathMLstring
-
 
 
 ################################################################################
@@ -1387,9 +1357,9 @@ def mathMLConditionParserCuda(mathMLstring):
 
 def getSpeciesValue(species, intType):
     if species.isSetInitialAmount() and species.isSetInitialConcentration():
-        if intType==ODE or intType==SDE:
+        if intType == ODE or intType == SDE:
             return species.getInitialConcentration()
-        else: #implies intType = Gillespie
+        else:  # implies intType = Gillespie
             return species.getInitialAmount()
 
     if species.isSetInitialAmount():
@@ -1397,19 +1367,20 @@ def getSpeciesValue(species, intType):
     else:
         return species.getInitialConcentration()
 
+
 ##########################################
-#Rename all parameters and species       #
+# Rename all parameters and species       #
 ##########################################
-def rename(node,name,new_name):
+def rename(node, name, new_name):
     typ = node.getType()
-    
-    if typ==AST_NAME or typ==AST_NAME_TIME:
+
+    if typ == AST_NAME or typ == AST_NAME_TIME:
         nme = node.getName()
         if nme == name:
             node.setName(new_name)
 
-    for n in range(0,node.getNumChildren()):
-        rename(node.getChild(n),name,new_name)
+    for n in range(0, node.getNumChildren()):
+        rename(node.getChild(n), name, new_name)
     return node
 
 
@@ -1417,8 +1388,7 @@ def rename(node,name,new_name):
 # The PARSER #
 ##############
 
-def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath=""):
-
+def importSBMLCUDA(source, integrationType, ModelName=None, method=None, outpath=""):
     """
     ***** args *****
     source:
@@ -1451,237 +1421,228 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
 
     """
 
- 
-    #regular expressions for detecting integration types
-    g=re.compile('MJP')
-    o=re.compile('ODE')
-    s=re.compile('SDE')
-    d=re.compile('DDE')
-    
-    #output general properties
-    #output = []
+    # regular expressions for detecting integration types
+    g = re.compile('MJP')
+    o = re.compile('ODE')
+    s = re.compile('SDE')
+    d = re.compile('DDE')
 
-    #check that you have appropriate lengths of integration types and sources
-    #(need equal lengths)
-    if not(len(source)==len(integrationType)):
+    # output general properties
+    # output = []
+
+    # check that you have appropriate lengths of integration types and sources
+    # (need equal lengths)
+    if not (len(source) == len(integrationType)):
         print "\nError: Number of sources is not the same as number of integrationTypes!\n"
-    #check that you have model names,
-    #if not the models will be named model1, model2, etc
-    else:        
+    # check that you have model names,
+    # if not the models will be named model1, model2, etc
+    else:
         if ModelName is None:
-            ModelName=[]
-            for x in range(0,len(source)):
-                ModelName.append("model"+repr(x+1))
+            ModelName = []
+            for x in range(0, len(source)):
+                ModelName.append("model" + repr(x + 1))
 
-        #if no method is specified and the integrationType is "SDE"
-        #the method type defaults to 1
-        for models in range(0,len(source)):
+        # if no method is specified and the integrationType is "SDE"
+        # the method type defaults to 1
+        for models in range(0, len(source)):
             intType = integrationType[models]
             if method is None:
                 if s.match(integrationType[models]):
-                    method=[]
+                    method = []
                     for x in range(0, len(source)):
                         method.append(1)
 
-        #All the below should happen for each model
-        #Arguments to pass to the writing functions:
-            #species IDs
-            #species concentrations (initial values from model)
-            #reactions in the form of kinetic law list
-            #stoichiometric matrix
-            #parameters
-            #values of parameters
-            #name of output file
-            #list of functions if they need to be defined at the top of the written .py file
+                        # All the below should happen for each model
+                        # Arguments to pass to the writing functions:
+            # species IDs
+            # species concentrations (initial values from model)
+            # reactions in the form of kinetic law list
+            # stoichiometric matrix
+            # parameters
+            # values of parameters
+            # name of output file
+            # list of functions if they need to be defined at the top of the written .py file
 
-                        
-            #I think that we can pass parameters directly to the writing functions, non?
-            parameterId=[]
-            parameterId2=[]
-            parameter=[]
-            listOfParameter=[]
-            #Likewise species?
-            speciesId=[]
-            speciesId2=[]
-            species=[]
+            # I think that we can pass parameters directly to the writing functions, non?
+            parameterId = []
+            parameterId2 = []
+            parameter = []
+            listOfParameter = []
+            # Likewise species?
+            speciesId = []
+            speciesId2 = []
+            species = []
 
-##    r=re.compile('.mod')
-##    if(r.search(source)):
-##        old_source=source
-##        source=r.sub(".xml",old_source)
-##        call='python mod2sbml.py '+old_source+' > '+ source
-##        os.system(call)
+            #    r=re.compile('.mod')
+            #    if(r.search(source)):
+            #        old_source=source
+            #        source=r.sub(".xml",old_source)
+            #        call='python mod2sbml.py '+old_source+' > '+ source
+            #        os.system(call)
 
-            #Get the model
-            reader=SBMLReader()
-            document=reader.readSBML(source[models])
-            model=document.getModel()
-            
-            #get basic model properties
-            numSpeciesTypes=model.getNumSpeciesTypes()
-            numSpecies=model.getNumSpecies()
-            numReactions=model.getNumReactions()
-            numGlobalParameters=model.getNumParameters()
-            numFunctions=model.getNumFunctionDefinitions()
-            
-            stoichiometricMatrix=empty([numSpecies, numReactions])
-            
-            #output.append((numReactions,numGlobalParameters+1,numSpecies))
+            # Get the model
+            reader = SBMLReader()
+            document = reader.readSBML(source[models])
+            model = document.getModel()
 
+            # get basic model properties
+            numSpeciesTypes = model.getNumSpeciesTypes()
+            numSpecies = model.getNumSpecies()
+            numReactions = model.getNumReactions()
+            numGlobalParameters = model.getNumParameters()
+            numFunctions = model.getNumFunctionDefinitions()
 
- 
-#################################################################################################
-# get compartment volume/size - if it is set, pass as parameter with corresponding Id and value #
-#################################################################################################
+            stoichiometricMatrix = empty([numSpecies, numReactions])
 
-            listOfCompartments = model.getListOfCompartments()  
-            comp=0
+            # output.append((numReactions,numGlobalParameters+1,numSpecies))
+
+            #################################################################################################
+            # get compartment volume/size - if it is set, pass as parameter with corresponding Id and value #
+            #################################################################################################
+
+            listOfCompartments = model.getListOfCompartments()
+            comp = 0
             for i in range(0, len(listOfCompartments)):
-            #    listOfCompartments[i].setId('compartment'+repr(i+1))
+                #    listOfCompartments[i].setId('compartment'+repr(i+1))
                 if listOfCompartments[i].isSetVolume():
-                    comp=comp+1
+                    comp += 1
                     parameterId.append(listOfCompartments[i].getId())
-                    parameterId2.append('compartment'+repr(i+1))
+                    parameterId2.append('compartment' + repr(i + 1))
                     parameter.append(listOfCompartments[i].getVolume())
                     listOfParameter.append(model.getCompartment(i))
 
+                #########################
+                # get global parameters #
+                #########################
 
-#########################
-# get global parameters #
-#########################
-
-            for i in range(0,numGlobalParameters):
+            for i in range(0, numGlobalParameters):
                 parameterId.append(model.getParameter(i).getId())
-                if (len(parameterId2)-comp)<9:
-                    parameterId2.append('parameter0'+repr(i+1))
+                if (len(parameterId2) - comp) < 9:
+                    parameterId2.append('parameter0' + repr(i + 1))
                 else:
-                    parameterId2.append('parameter'+repr(i+1))
+                    parameterId2.append('parameter' + repr(i + 1))
                 parameter.append(model.getParameter(i).getValue())
                 listOfParameter.append(model.getParameter(i))
 
+            ###############
+            # get species #
+            ###############
 
-###############
-# get species #
-###############
-
-            #Empty matrix to hold reactants
-            reactant=[]
-            #Empty matrix to hold products
-            product=[]
-            #Empty matrix to hold Species Ids
-            #Empty matrix to hold the InitValues used going forward
-            InitValues=[]
+            # Empty matrix to hold reactants
+            reactant = []
+            # Empty matrix to hold products
+            product = []
+            # Empty matrix to hold Species Ids
+            # Empty matrix to hold the InitValues used going forward
+            InitValues = []
             S1 = []
             S2 = []
 
-            #Get a list of species
+            # Get a list of species
             listOfSpecies = model.getListOfSpecies()
-            #Make the matrices long enough
+            # Make the matrices long enough
             for k in range(0, len(listOfSpecies)):
                 species.append(listOfSpecies[k])
                 speciesId.append(listOfSpecies[k].getId())
-                if len(speciesId2)<9:
-                    speciesId2.append('species0'+repr(k+1))
+                if len(speciesId2) < 9:
+                    speciesId2.append('species0' + repr(k + 1))
                 else:
-                    speciesId2.append('species'+repr(k+1))
-                #get the initial value
-                #Need to fix this part
-                #So that it will take getInitialConcentration
-                #or getInitialValue as appropriate
-                InitValues.append(getSpeciesValue(listOfSpecies[k],intType))
-                #I'm not really sure what this part is doing
-                #Hopefully it will become more clear later
+                    speciesId2.append('species' + repr(k + 1))
+                # get the initial value
+                # Need to fix this part
+                # So that it will take getInitialConcentration
+                # or getInitialValue as appropriate
+                InitValues.append(getSpeciesValue(listOfSpecies[k], intType))
+                # I'm not really sure what this part is doing
+                # Hopefully it will become more clear later
                 S1.append(0.0)
                 S2.append(0.0)
-                #placeholder in reactant matrix for this species
+                # placeholder in reactant matrix for this species
                 reactant.append(0)
-                #placeholder in product matrix for this species
+                # placeholder in product matrix for this species
                 product.append(0)
 
-###############################
-# analyse the model structure #
-###############################
+            ###############################
+            # analyse the model structure #
+            ###############################
 
-            reaction=[]
-            numReactants=[]
-            numProducts=[]
-            kineticLaw=[]
-            numLocalParameters=[]
+            reaction = []
+            numReactants = []
+            numProducts = []
+            kineticLaw = []
+            numLocalParameters = []
 
-            #Get the list of reactions
+            # Get the list of reactions
             listOfReactions = model.getListOfReactions()
 
-            #For every reaction    
+            # For every reaction
             for i in range(0, len(listOfReactions)):
-                #What does this part do?
+                # What does this part do?
                 for a in range(0, len(species)):
-                    #what do S1 and S2 represent?
-                    #S1 is something to do with stoichimetry of reactants
-                    #At the moment S1 and S2 are as long as len(species)
-                    S1[a]=0.0
-                    #S2 is something to do with stoichiometry of products
-                    S2[a]=0.0
-        
+                    # what do S1 and S2 represent?
+                    # S1 is something to do with stoichimetry of reactants
+                    # At the moment S1 and S2 are as long as len(species)
+                    S1[a] = 0.0
+                    # S2 is something to do with stoichiometry of products
+                    S2[a] = 0.0
+
                 numReactants.append(listOfReactions[i].getNumReactants())
                 numProducts.append(listOfReactions[i].getNumProducts())
-                
+
                 kineticLaw.append(listOfReactions[i].getKineticLaw().getFormula())
                 numLocalParameters.append(listOfReactions[i].getKineticLaw().getNumParameters())
 
                 for j in range(0, numReactants[i]):
-                    reactant[j]=listOfReactions[i].getReactant(j)
-        
-                    for k in range(0,len(species)):
-                        if reactant[j].getSpecies()==species[k].getId():
-                            S1[k]=reactant[j].getStoichiometry()
+                    reactant[j] = listOfReactions[i].getReactant(j)
 
-                    
-                for l in range(0,numProducts[i]):
-                    product[l]=listOfReactions[i].getProduct(l)
-        
-                    for k in range(0,len(species)):
-                        if product[l].getSpecies()==species[k].getId():
-                            S2[k]=product[l].getStoichiometry()
+                    for k in range(0, len(species)):
+                        if reactant[j].getSpecies() == species[k].getId():
+                            S1[k] = reactant[j].getStoichiometry()
+
+                for l in range(0, numProducts[i]):
+                    product[l] = listOfReactions[i].getProduct(l)
+
+                    for k in range(0, len(species)):
+                        if product[l].getSpecies() == species[k].getId():
+                            S2[k] = product[l].getStoichiometry()
 
                 for m in range(0, len(species)):
-                    stoichiometricMatrix[m][i]=-S1[m]+S2[m]
+                    stoichiometricMatrix[m][i] = -S1[m] + S2[m]
 
-                for n in range(0,numLocalParameters[i]):
+                for n in range(0, numLocalParameters[i]):
                     parameterId.append(listOfReactions[i].getKineticLaw().getParameter(n).getId())
-                    if (len(parameterId2)-comp)<10:
-                        parameterId2.append('parameter0'+repr(len(parameterId)-comp))
+                    if (len(parameterId2) - comp) < 10:
+                        parameterId2.append('parameter0' + repr(len(parameterId) - comp))
                     else:
-                        parameterId2.append('parameter'+repr(len(parameterId)-comp))
+                        parameterId2.append('parameter' + repr(len(parameterId) - comp))
                     parameter.append(listOfReactions[i].getKineticLaw().getParameter(n).getValue())
                     listOfParameter.append(listOfReactions[i].getKineticLaw().getParameter(n))
 
-                    name=listOfReactions[i].getKineticLaw().getParameter(n).getId()
-                    new_name='parameter'+repr(len(parameterId)-comp)
-                    node=model.getReaction(i).getKineticLaw().getMath()
-                    new_node=rename(node,name,new_name)
-                    kineticLaw[i]=formulaToString(new_node)
+                    name = listOfReactions[i].getKineticLaw().getParameter(n).getId()
+                    new_name = 'parameter' + repr(len(parameterId) - comp)
+                    node = model.getReaction(i).getKineticLaw().getMath()
+                    new_node = rename(node, name, new_name)
+                    kineticLaw[i] = formulaToString(new_node)
 
-                for n in range(0,comp):
-                    
-                    name=parameterId[n]
-                    new_name='compartment'+repr(n+1)
-                    node=model.getReaction(i).getKineticLaw().getMath()
-                    new_node=rename(node,name,new_name)
-                    kineticLaw[i]=formulaToString(new_node)
+                for n in range(0, comp):
+                    name = parameterId[n]
+                    new_name = 'compartment' + repr(n + 1)
+                    node = model.getReaction(i).getKineticLaw().getMath()
+                    new_node = rename(node, name, new_name)
+                    kineticLaw[i] = formulaToString(new_node)
 
-#####################
-# analyse functions #
-#####################
+                #####################
+                # analyse functions #
+                #####################
 
-            #Get the list of functions
+            # Get the list of functions
 
             listOfFunctions = model.getListOfFunctionDefinitions()
 
+            FunctionArgument = []
+            FunctionBody = []
 
-            FunctionArgument=[]
-            FunctionBody=[]
-                
-            for fun in range(0,len(listOfFunctions)):
+            for fun in range(0, len(listOfFunctions)):
                 FunctionArgument.append([])
                 for funArg in range(0, listOfFunctions[fun].getNumArguments()):
                     FunctionArgument[fun].append(formulaToString(listOfFunctions[fun].getArgument(funArg)))
@@ -1689,53 +1650,48 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
                 FunctionBody.append(formulaToString(listOfFunctions[fun].getBody()))
 
             for fun in range(0, len(listOfFunctions)):
-                for funArg in range(0,listOfFunctions[fun].getNumArguments()):
-                    name=FunctionArgument[fun][funArg]
-                    node=listOfFunctions[fun].getBody()
-                    new_node=rename(node,name,"a"+repr(funArg+1))
-                    FunctionBody[fun]=formulaToString(new_node)
-                    FunctionArgument[fun][funArg]='a'+repr(funArg+1)
-                   
-        
-#################
-# analyse rules #
-#################
+                for funArg in range(0, listOfFunctions[fun].getNumArguments()):
+                    name = FunctionArgument[fun][funArg]
+                    node = listOfFunctions[fun].getBody()
+                    new_node = rename(node, name, "a" + repr(funArg + 1))
+                    FunctionBody[fun] = formulaToString(new_node)
+                    FunctionArgument[fun][funArg] = 'a' + repr(funArg + 1)
 
-            #Get the list of rules
-            ruleFormula=[]
-            ruleVariable=[]
+                #################
+                # analyse rules #
+                #################
+
+            # Get the list of rules
+            ruleFormula = []
+            ruleVariable = []
             listOfRules = model.getListOfRules()
-            for ru in range(0,len(listOfRules)):
+            for ru in range(0, len(listOfRules)):
                 ruleFormula.append(listOfRules[ru].getFormula())
                 ruleVariable.append(listOfRules[ru].getVariable())
 
+            ##################
+            # analyse events #
+            ##################
 
-##################
-# analyse events #
-##################
-   
             listOfEvents = model.getListOfEvents()
 
-            EventCondition=[]
-            EventVariable=[]
-            EventFormula=[]
-           # listOfAssignmentRules=[]
+            EventCondition = []
+            EventVariable = []
+            EventFormula = []
+            # listOfAssignmentRules=[]
 
-            for eve in range(0,len(listOfEvents)):
+            for eve in range(0, len(listOfEvents)):
                 EventCondition.append(formulaToString(listOfEvents[eve].getTrigger().getMath()))
-                listOfAssignmentRules=listOfEvents[eve].getListOfEventAssignments()
+                listOfAssignmentRules = listOfEvents[eve].getListOfEventAssignments()
                 EventVariable.append([])
                 EventFormula.append([])
                 for ru in range(0, len(listOfAssignmentRules)):
-                   EventVariable[eve].append(listOfAssignmentRules[ru].getVariable())
-                   EventFormula[eve].append(formulaToString(listOfAssignmentRules[ru].getMath()))
+                    EventVariable[eve].append(listOfAssignmentRules[ru].getVariable())
+                    EventFormula[eve].append(formulaToString(listOfAssignmentRules[ru].getMath()))
 
-
-
-########################################################################
-#rename math expressions from python to cuda                           #
-########################################################################
-
+                ########################################################################
+                # rename math expressions from python to cuda                           #
+                ########################################################################
 
             mathPython = []
             mathCuda = []
@@ -1754,7 +1710,6 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
             mathPython.append('ceil')
             mathPython.append('floor')
             mathPython.append('tan')
-
 
             mathCuda.append('log10')
             mathCuda.append('acos')
@@ -1776,89 +1731,85 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
             mathCuda.append('floor')
             mathCuda.append('tan')
 
+            ########################################################################
+            # rename parameters and species in reactions, events, rules             #
+            ########################################################################
 
-        
-########################################################################
-#rename parameters and species in reactions, events, rules             #
-########################################################################
-
-            NAMES=[[],[]]
+            NAMES = [[], []]
             NAMES[0].append(parameterId)
             NAMES[0].append(parameterId2)
             NAMES[1].append(speciesId)
             NAMES[1].append(speciesId2)
 
-            for nam in range(0,2):
-                
+            for nam in range(0, 2):
+
                 for i in range(0, len(NAMES[nam][0])):
-                    name=NAMES[nam][0][i]
-                    new_name=NAMES[nam][1][i]
-             
+                    name = NAMES[nam][0][i]
+                    new_name = NAMES[nam][1][i]
+
                     for k in range(0, numReactions):
-                        node=model.getReaction(k).getKineticLaw().getMath()
-                        new_node=rename(node,name,new_name)
-                        kineticLaw[k]=formulaToString(new_node)
-                        
-                    for k in range(0,len(listOfRules)):
-                        node=listOfRules[k].getMath()
-                        new_node=rename(node,name,new_name)
-                        ruleFormula[k]=formulaToString(new_node)
-                        if ruleVariable[k]==name: ruleVariable[k]=new_name
+                        node = model.getReaction(k).getKineticLaw().getMath()
+                        new_node = rename(node, name, new_name)
+                        kineticLaw[k] = formulaToString(new_node)
 
+                    for k in range(0, len(listOfRules)):
+                        node = listOfRules[k].getMath()
+                        new_node = rename(node, name, new_name)
+                        ruleFormula[k] = formulaToString(new_node)
+                        if ruleVariable[k] == name:
+                            ruleVariable[k] = new_name
 
-                    for k in range(0,len(listOfEvents)):
-                        node=listOfEvents[k].getTrigger().getMath()
-                        new_node=rename(node,name,new_name)
-                        EventCondition[k]=formulaToString(new_node)
-                        listOfAssignmentRules=listOfEvents[k].getListOfEventAssignments()
+                    for k in range(0, len(listOfEvents)):
+                        node = listOfEvents[k].getTrigger().getMath()
+                        new_node = rename(node, name, new_name)
+                        EventCondition[k] = formulaToString(new_node)
+                        listOfAssignmentRules = listOfEvents[k].getListOfEventAssignments()
                         for cond in range(0, len(listOfAssignmentRules)):
-                            node=listOfAssignmentRules[cond].getMath()
-                            new_node=rename(node,name,new_name)
-                            EventFormula[k][cond]=formulaToString(new_node)
-                            if EventVariable[k][cond]==name: EventVariable[k][cond]=new_name
+                            node = listOfAssignmentRules[cond].getMath()
+                            new_node = rename(node, name, new_name)
+                            EventFormula[k][cond] = formulaToString(new_node)
+                            if EventVariable[k][cond] == name:
+                                EventVariable[k][cond] = new_name
 
-               
+            for nam in range(0, len(mathPython)):
 
-            for nam in range(0,len(mathPython)):
- 
-                        
-                for k in range(0,len(kineticLaw)):
-                    if re.search(mathPython[nam],kineticLaw[k]):
+                for k in range(0, len(kineticLaw)):
+                    if re.search(mathPython[nam], kineticLaw[k]):
                         s = kineticLaw[k]
-                        s = re.sub(mathPython[nam],mathCuda[nam],s)
-                        kineticLaw[k]=s
+                        s = re.sub(mathPython[nam], mathCuda[nam], s)
+                        kineticLaw[k] = s
 
-                for k in range(0,len(ruleFormula)):
-                    if re.search(mathPython[nam],ruleFormula[k]):
+                for k in range(0, len(ruleFormula)):
+                    if re.search(mathPython[nam], ruleFormula[k]):
                         s = ruleFormula[k]
-                        s = re.sub(mathPython[nam],mathCuda[nam],s)
-                        ruleFormula[k]=s
+                        s = re.sub(mathPython[nam], mathCuda[nam], s)
+                        ruleFormula[k] = s
 
-                for k in range(0,len(EventFormula)):
+                for k in range(0, len(EventFormula)):
                     for cond in range(0, len(listOfAssignmentRules)):
-                        if re.search(mathPython[nam],EventFormula[k][cond]):
+                        if re.search(mathPython[nam], EventFormula[k][cond]):
                             s = EventFormula[k][cond]
-                            s = re.sub(mathPython[nam],mathCuda[nam],s)
-                            EventFormula[k][cond]=s
+                            s = re.sub(mathPython[nam], mathCuda[nam], s)
+                            EventFormula[k][cond] = s
 
-                for k in range(0,len(EventCondition)):
-                    if re.search(mathPython[nam],EventCondition[k]):
+                for k in range(0, len(EventCondition)):
+                    if re.search(mathPython[nam], EventCondition[k]):
                         s = EventCondition[k]
-                        s = re.sub(mathPython[nam],mathCuda[nam],s)
-                        EventCondition[k]=s
+                        s = re.sub(mathPython[nam], mathCuda[nam], s)
+                        EventCondition[k] = s
 
-                for k in range(0,len(FunctionBody)):
-                    if re.search(mathPython[nam],FunctionBody[k]):
+                for k in range(0, len(FunctionBody)):
+                    if re.search(mathPython[nam], FunctionBody[k]):
                         s = FunctionBody[k]
-                        s = re.sub(mathPython[nam],mathCuda[nam],s)
-                        FunctionBody[k]=s
+                        s = re.sub(mathPython[nam], mathCuda[nam], s)
+                        FunctionBody[k] = s
 
                 for fun in range(0, len(listOfFunctions)):
-                    for k in range(0,len(FunctionArgument[fun])):
-                        if re.search(mathPython[nam],FunctionArgument[fun][k]):
+                    for k in range(0, len(FunctionArgument[fun])):
+                        if re.search(mathPython[nam], FunctionArgument[fun][k]):
                             s = FunctionArgument[fun][k]
-                            s = re.sub(mathPython[nam],mathCuda[nam],s)
-                            FunctionArgument[fun][k]=s
+                            s = re.sub(mathPython[nam], mathCuda[nam], s)
+                            FunctionArgument[fun][k] = s
 
             # Get list of delays
             delays = set()
@@ -1877,24 +1828,34 @@ def importSBMLCUDA(source,integrationType,ModelName=None,method=None,outpath="")
                             paramName = r[1]
                             j = int(paramName.replace("parameter", ''))
 
-                            memoryLocation = "tex2D(param_tex,"+repr(j)+",tid)"
+                            memoryLocation = "tex2D(param_tex," + repr(j) + ",tid)"
                             delays.add(memoryLocation)
 
             delays = list(delays)
 
-          
-##########################
-# call writing functions #
-##########################
+            ##########################
+            # call writing functions #
+            ##########################
 
-            s=re.compile('SDE')
+            s = re.compile('SDE')
             if o.match(integrationType[models]):
-                write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters+1, numReactions, speciesId2, listOfParameter, parameterId2, parameter, InitValues, ModelName[models], listOfFunctions,FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable,EventFormula, outpath)
+                write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters + 1,
+                              numReactions, speciesId2, listOfParameter, parameterId2, parameter, InitValues,
+                              ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
+                              ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula,
+                              outpath)
             if s.match(integrationType[models]):
-                write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters+1, numReactions, speciesId2,listOfParameter, parameterId2, parameter,InitValues,ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, outpath)
+                write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlobalParameters + 1,
+                              numReactions, speciesId2, listOfParameter, parameterId2, parameter, InitValues,
+                              ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
+                              ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula,
+                              outpath)
             if g.match(integrationType[models]):
-                  write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalParameters+1, numReactions, species, parameterId2, InitValues, speciesId2,ModelName[models], listOfFunctions,FunctionArgument,FunctionBody, listOfRules, ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, outpath)
-    
+                write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numGlobalParameters + 1, numReactions,
+                                    species, parameterId2, InitValues, speciesId2, ModelName[models], listOfFunctions,
+                                    FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable,
+                                    listOfEvents, EventCondition, EventVariable, EventFormula, outpath)
+
     # output is:
     # (numReactions,numGlobalParameters,numSpecies)
     # return output

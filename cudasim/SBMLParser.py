@@ -195,7 +195,7 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
         
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
             out_file.write("    float d_y"+repr(i)+"= DT * (")
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write("(")
             
             reactionWritten = False
@@ -244,7 +244,7 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                     out_file.write(string)
                     out_file.write(")")
                     
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):
@@ -284,7 +284,7 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
     for i in range(0,numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
             out_file.write("    d_y"+repr(i)+" += (")
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write("(")
             
             reactionWritten = False
@@ -337,7 +337,7 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                     #out_file.write("*randNormal(rngRegs,sqrt(DT))")
                     
                     
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):
@@ -508,7 +508,7 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
     for i in range(0,numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
             out_file.write("    float d_y"+repr(i)+"= DT * (")
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write("(")
             
             reactionWritten = False
@@ -556,7 +556,7 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                     out_file.write(string)
                     out_file.write(")")
                     
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):
@@ -596,7 +596,7 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
     for i in range(0,numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
             out_file.write("    d_y"+repr(i)+"+= (")
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write("(")
                 
             reactionWritten = False
@@ -647,7 +647,7 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                     out_file.write(randomVariables[k])
                     #out_file.write("*randNormal(rngRegs,sqrt(DT))")
                     
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):
@@ -1019,7 +1019,7 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
     for i in range(0,numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
             out_file.write("        ydot["+repr(i)+"]=")
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write("(")
                 
             reactionWritten = False
@@ -1078,7 +1078,7 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                     out_file.write(")")
                     
                     
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):
@@ -1259,7 +1259,7 @@ def write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
     for i in range(0,numSpecies):
         if species[i].getConstant() == False and species[i].getBoundaryCondition() == False:
             out_file.write("        ydot["+repr(i)+"]=")
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write("(")
 
             reactionWritten = False
@@ -1327,7 +1327,7 @@ def write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numSpecies, numGlob
                     out_file.write(")")
 
 
-            if species[i].isSetCompartment() == True:
+            if species[i].isSetCompartment():
                 out_file.write(")/")
                 mySpeciesCompartment = species[i].getCompartment()
                 for j in range(0, len(listOfParameter)):

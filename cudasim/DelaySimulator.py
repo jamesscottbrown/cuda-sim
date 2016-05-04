@@ -54,7 +54,7 @@ class DelaySimulator(sim.Simulator):
         general_parameters_source += '};'
 
 
-        tMax = self._timepoints[-1];
+        tMax = self._timepoints[-1]
 
         if (not self._putIntoShared):
             general_parameters_source += """

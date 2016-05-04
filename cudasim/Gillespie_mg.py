@@ -222,7 +222,7 @@ class Gillespie(sim.Simulator_mg):
         # run code
         timer = time.time()
         ## print "Actual run..",
-        self._compiledRunMethod(d_x, d_result, block=(threads,1,1), grid=(blocks,1) );
+        self._compiledRunMethod(d_x, d_result, block=(threads,1,1), grid=(blocks,1) )
         ## print "finished in", round(time.time()-timer,4), "s"
         
         # fetch from GPU memory

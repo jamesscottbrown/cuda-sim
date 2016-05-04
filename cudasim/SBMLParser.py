@@ -22,7 +22,7 @@ import os
 def rep(str,find,replace):
 
     ex = find+"[^0-9]"
-    ss = str;
+    ss = str
     while re.search(ex,ss) != None:
         res = re.search(ex,ss)
         ss = ss[0:res.start()] + replace + " " + ss[res.end()-1:]
@@ -32,7 +32,7 @@ def rep(str,find,replace):
         res = re.search(ex,ss)
         ss = ss[0:res.start()] + replace + " " + ss[res.end():]
  
-    return ss;
+    return ss
 
 
 ######################## CUDA SDE #################################

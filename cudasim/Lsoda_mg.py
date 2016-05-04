@@ -227,12 +227,12 @@ class Lsoda(sim.Simulator_mg):
             for i in range(0,self._resultNumber):    
     
                 for j in range(totalThreads):
-                    tout[j] = self._timepoints[i]; 
+                    tout[j] = self._timepoints[i]
                 driver.memcpy_htod( d_tout, tout ) 
     
                 self._compiledRunMethod( d_neq, d_y, d_t, d_tout, d_itol, d_rtol, d_atol, d_itask, d_istate,
-                            d_iopt, d_rwork, d_lrw, d_iwork, d_liw, d_jt, block=(threads,1,1), grid=(blocks,1) );
-    
+                            d_iopt, d_rwork, d_lrw, d_iwork, d_liw, d_jt, block=(threads,1,1), grid=(blocks,1) )
+
                 driver.memcpy_dtoh(t, d_t)
                 driver.memcpy_dtoh(y, d_y)
                 driver.memcpy_dtoh(istate, d_istate)
@@ -242,9 +242,9 @@ class Lsoda(sim.Simulator_mg):
                         ret_xt[j, 0, i, k] = y[j*self._speciesNumber + k]
 
                     if istate[j] < 0:
-                        ret_istate[j] = 0;
-    
-            # end of loop over time points
+                        ret_istate[j] = 0
+
+                        # end of loop over time points
     
         else:
             tt = self._timepoints[0]
@@ -256,12 +256,12 @@ class Lsoda(sim.Simulator_mg):
                     next_time = min(tt+self._dt, self._timepoints[i])
                     
                     for j in range(totalThreads):
-                        tout[j] = next_time; 
+                        tout[j] = next_time
                     driver.memcpy_htod( d_tout, tout ) 
     
                     self._compiledRunMethod( d_neq, d_y, d_t, d_tout, d_itol, d_rtol, d_atol, d_itask, d_istate,
-                                d_iopt, d_rwork, d_lrw, d_iwork, d_liw, d_jt, block=(threads,1,1), grid=(blocks,1) );
-    
+                                d_iopt, d_rwork, d_lrw, d_iwork, d_liw, d_jt, block=(threads,1,1), grid=(blocks,1) )
+
                     driver.memcpy_dtoh(t, d_t)
                     driver.memcpy_dtoh(y, d_y)
                     driver.memcpy_dtoh(istate, d_istate)
@@ -278,9 +278,9 @@ class Lsoda(sim.Simulator_mg):
                         ret_xt[j, 0, i, k] = y[j*self._speciesNumber + k]
 
                     if istate[j] < 0:
-                            ret_istate[j] = 0;
-    
-            # end of loop over time point i
+                            ret_istate[j] = 0
+
+                            # end of loop over time point i
 
         # return the values
 

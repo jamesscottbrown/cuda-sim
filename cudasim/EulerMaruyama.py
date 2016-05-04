@@ -53,12 +53,12 @@ class EulerMaruyama(sim.Simulator):
     
         for i in range(self._resultNumber):
             general_parameters_source += str(self._timepoints[i]) + 'f'
-            if(i !=  self._resultNumber-1):
+            if i !=  self._resultNumber-1:
                 general_parameters_source += ','
         
         general_parameters_source += '};'
         
-        if(not self._putIntoShared):
+        if not self._putIntoShared:
             general_parameters_source += """
     //parameter texture
     texture<float, 2, cudaReadModeElementType> param_tex;"""
@@ -95,7 +95,7 @@ class EulerMaruyama(sim.Simulator):
     }
     """
     
-        if(self._putIntoShared):
+        if self._putIntoShared:
             sde_source_rest = """
     __global__ void sdeMain(float *species, float *parameters, unsigned *seed, float *result){"""
         else:
@@ -123,7 +123,7 @@ class EulerMaruyama(sim.Simulator):
         """
         
      
-        if(self._putIntoShared):
+        if self._putIntoShared:
             sde_source_rest += """
         //offset for RNG (= number of threads)
         // beta = # of multiple use of the same parameters
@@ -157,7 +157,7 @@ class EulerMaruyama(sim.Simulator):
             t += DT;
             """
             
-        if(self._putIntoShared):
+        if self._putIntoShared:
             sde_source_rest += "step(parameter, y, t, rngRegs);"
         else:
             sde_source_rest += "step(y, t, rngRegs, texMemIndex);"
@@ -189,10 +189,10 @@ class EulerMaruyama(sim.Simulator):
         print "DEFAULT_NVCC_FLAGS:", pycuda.compiler.DEFAULT_NVCC_FLAGS
         module = SourceModule(completeCode)
         
-        if(not self._putIntoShared):
+        if not self._putIntoShared:
             self._param_tex = module.get_texref("param_tex")
         
-        return (module, module.get_function('sdeMain'))
+        return module, module.get_function('sdeMain')
         
         
     def _runSimulation(self, parameters, initValues, blocks, threads):
@@ -209,7 +209,7 @@ class EulerMaruyama(sim.Simulator):
         except IndexError:
             pass
         
-        if(not self._putIntoShared):
+        if not self._putIntoShared:
             # parameter texture
             ary = sim.create_2D_array( param )
             sim.copy2D_host_to_array(ary, param , self._parameterNumber*4, totalThreads/self._beta + 1)
@@ -222,7 +222,7 @@ class EulerMaruyama(sim.Simulator):
         sharedMemoryPerBlockForRNG = threads/self._warp_size*self._state_words * 4
         sharedTot = sharedMemoryPerBlockForRNG + sharedMemoryParameters
         
-        if(self._putIntoShared):
+        if self._putIntoShared:
             parametersInput = np.zeros(self._parameterNumber*totalThreads/self._beta, dtype=np.float32)
         speciesInput = np.zeros(self._speciesNumber*totalThreads, dtype=np.float32)
         result = np.zeros(self._speciesNumber*totalThreads*self._resultNumber, dtype=np.float32)
@@ -234,7 +234,7 @@ class EulerMaruyama(sim.Simulator):
                     speciesInput[i*self._speciesNumber + j] = initValues[i][j]
         except IndexError:
             pass
-        if(self._putIntoShared):
+        if self._putIntoShared:
             try:
                 for i in range(experiments):
                     for j in range(self._parameterNumber):
@@ -249,19 +249,19 @@ class EulerMaruyama(sim.Simulator):
             #seeds[i] =  np.random.random_integers(0,4294967295)
         
         species_gpu = driver.mem_alloc(speciesInput.nbytes)
-        if(self._putIntoShared):
+        if self._putIntoShared:
             parameters_gpu = driver.mem_alloc(parametersInput.nbytes)
         seeds_gpu = driver.mem_alloc(seeds.nbytes)
         result_gpu = driver.mem_alloc(result.nbytes)
         
         driver.memcpy_htod(species_gpu, speciesInput)
-        if(self._putIntoShared):
+        if self._putIntoShared:
             driver.memcpy_htod(parameters_gpu, parametersInput)
         driver.memcpy_htod(seeds_gpu, seeds)
         driver.memcpy_htod(result_gpu, result)
         
         # run code
-        if(self._putIntoShared):
+        if self._putIntoShared:
             self._compiledRunMethod(species_gpu, parameters_gpu, seeds_gpu, result_gpu, block=(threads,1,1), grid=(blocks,1), shared=sharedTot)
         else:
             self._compiledRunMethod(species_gpu, seeds_gpu, result_gpu, block=(threads,1,1), grid=(blocks,1), shared=sharedTot)
@@ -282,19 +282,19 @@ class EulerMaruyama(sim.Simulator):
         comment = False
        
         for i in range(len(lines)):
-            if(lines[i].find("//Code for shared memory") != -1):
-                if(putIntoShared):
+            if lines[i].find("//Code for shared memory") != -1:
+                if putIntoShared:
                     comment = False
                 else:
                     comment = True
-            elif(lines[i].find("//Code for texture memory") != -1):
-                if(putIntoShared):
+            elif lines[i].find("//Code for texture memory") != -1:
+                if putIntoShared:
                     comment = True
                 else:
                     comment = False
             else:
                 # comment out
-                if(comment): lines[i] = "// " + lines[i]
+                if comment: lines[i] = "// " + lines[i]
             
         return string.join(lines, "\n")
 

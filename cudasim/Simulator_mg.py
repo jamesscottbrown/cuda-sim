@@ -52,7 +52,7 @@ class Simulator_mg(multiprocessing.Process):
         
         # only beta which are factors of _MAXBLOCKSPERDEVICE are accepted, 
         # else _MAXBLOCKSPERDEVICE is reduced to the next smallest acceptable value
-        if(self._MAXBLOCKSPERDEVICE%int(beta) != 0):
+        if self._MAXBLOCKSPERDEVICE%int(beta) != 0:
             self._MAXBLOCKSPERDEVICE -= self._MAXBLOCKSPERDEVICE%int(beta)
             print "Beta must be a factor of", self._MAXBLOCKSPERDEVICE
             print "_MAXBLOCKSPERDEVICE reduced to", self._MAXBLOCKSPERDEVICE
@@ -64,22 +64,22 @@ class Simulator_mg(multiprocessing.Process):
     def _getKernelParams(self):
         lines = str(self._stepCode).split("\n")
         for i in lines:
-            if(i.find("NSPECIES") != -1):
+            if i.find("NSPECIES") != -1:
                 self._speciesNumber = int(i.split("NSPECIES")[1])
-            elif(i.find("NPARAM") != -1):
+            elif i.find("NPARAM") != -1:
                 self._parameterNumber = int(i.split("NPARAM")[1])
-            elif(i.find("NREACT") != -1):
+            elif i.find("NREACT") != -1:
                 self._hazardNumber = int(i.split("NREACT")[1])
 
     # check parameters and initValues for compability with pre-defined parameterNumber and spieciesNumber
     def _check_consistency(self):
-        if(len(self._parameters[0]) != self._parameterNumber):
+        if len(self._parameters[0]) != self._parameterNumber:
             print "Error: Number of parameters specified (" + str(self._parameterNumber) + ") and given in parameter array (" + str(len(self._parameters[0])) + ") differ from each other!"
             exit()
-        elif(len(self._initValues[0]) != self._speciesNumber):
+        elif len(self._initValues[0]) != self._speciesNumber:
             print "Error: Number of species specified (" +  str(self._speciesNumber) + ") and given in species array (" + str(len(self._initValues[0])) + ") differ from each other!"
             exit()
-        elif(len(self._parameters) != len(self._initValues)):
+        elif len(self._parameters) != len(self._initValues):
             print "Error: Number of sets of parameters (" + str(len(parameters)) + ") and species (" + str(len(initValues)) + ") do not match!"
             exit()
     
@@ -108,7 +108,7 @@ class Simulator_mg(multiprocessing.Process):
         threads = maxWarps * warp_size
         
         # assign number of blocks : len(self._parameters) is the number of threads
-        if (len(self._parameters)*self._beta%threads == 0):
+        if len(self._parameters)*self._beta%threads == 0:
             blocks = len(self._parameters)*self._beta/threads
         else:
             blocks = len(self._parameters)*self._beta/threads + 1
@@ -181,9 +181,9 @@ class Simulator_mg(multiprocessing.Process):
         runs = int(math.ceil(blocks / float(self._MAXBLOCKSPERDEVICE)))
         for i in range(runs):
             # for last device call calculate number of remaining threads to run
-            if(i==runs-1):
+            if i==runs-1:
                 runblocks = int(blocks % self._MAXBLOCKSPERDEVICE)
-                if(runblocks == 0):
+                if runblocks == 0:
                     runblocks = self._MAXBLOCKSPERDEVICE
             else:
                 runblocks = int(self._MAXBLOCKSPERDEVICE)
@@ -197,7 +197,7 @@ class Simulator_mg(multiprocessing.Process):
             runInitValues = self._initValues[minIndex:maxIndex]
             
             #first run store return Value
-            if(i==0):
+            if i==0:
                 self._returnValue = self._runSimulation(runParameters, runInitValues, runblocks, threads)
             else:
                 self._returnValue = np.append(self._returnValue,self._runSimulation(runParameters, runInitValues, runblocks, threads),axis=0)
@@ -275,13 +275,13 @@ def copy2D_host_to_array(arr, host, width, height ):
     
 # Determine maximum number of threads per MP
 def getMaxThreadsPerMP(compabilityTuple):
-    if(compabilityTuple[0] == 1):
-        if(compabilityTuple[1] == 0 or compabilityTuple[1] == 1):
+    if compabilityTuple[0] == 1:
+        if compabilityTuple[1] == 0 or compabilityTuple[1] == 1:
             return 768
-        elif(compabilityTuple[1] == 2 or compabilityTuple[1] == 3):
+        elif compabilityTuple[1] == 2 or compabilityTuple[1] == 3:
             return 1024
-    elif(compabilityTuple[0] == 2):
-        if(compabilityTuple[1] == 0):
+    elif compabilityTuple[0] == 2:
+        if compabilityTuple[1] == 0:
             return 1536
     return 768
 

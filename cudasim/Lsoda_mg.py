@@ -103,7 +103,7 @@ class Lsoda(sim.Simulator_mg):
         self._param_tex = compiled.get_texref("param_tex")
         
         lsoda_Kernel = compiled.get_function("cuLsoda")
-        return (compiled, lsoda_Kernel)
+        return compiled, lsoda_Kernel
         
             
     def _runSimulation(self, parameters, initValues, blocks, threads,in_atol=1e-6,in_rtol=1e-6 ):

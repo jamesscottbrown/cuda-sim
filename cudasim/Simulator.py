@@ -40,7 +40,7 @@ class Simulator:
     def __init__(self, timepoints, stepCode, beta=1, dt=0.01, dump=False):
         # only beta which are factors of _MAXBLOCKSPERDEVICE are accepted, 
         # else _MAXBLOCKSPERDEVICE is reduced to the next smallest acceptable value
-        if(self._MAXBLOCKSPERDEVICE%int(beta) != 0):
+        if self._MAXBLOCKSPERDEVICE%int(beta) != 0:
             self._MAXBLOCKSPERDEVICE -= self._MAXBLOCKSPERDEVICE%int(beta)
             print "Beta must be a factor of", self._MAXBLOCKSPERDEVICE
             print "_MAXBLOCKSPERDEVICE reduced to", self._MAXBLOCKSPERDEVICE
@@ -54,7 +54,7 @@ class Simulator:
         self._dump = dump
         
         device = os.getenv("CUDA_DEVICE")
-        if(device is None):
+        if device is None:
             self._device = 0
         else:
             self._device = int(device)
@@ -69,7 +69,7 @@ class Simulator:
         self._maxThreadsPerMP =  getMaxThreadsPerMP(compability)
         self._maxBlocksPerMP = getMaxBlocksPerMP(compability)
         
-        if(not self._runtimeCompile):
+        if not self._runtimeCompile:
             self._completeCode, self._compiledRunMethod = self._compile(stepCode)
         else:
             self._stepCode = stepCode
@@ -118,7 +118,7 @@ class Simulator:
         threads = maxWarps * warp_size
         
         # assign number of blocks
-        if (len(parameters)*self._beta%threads == 0):
+        if len(parameters)*self._beta%threads == 0:
             blocks = len(parameters)*self._beta/threads
         else:
             blocks = len(parameters)*self._beta/threads + 1
@@ -149,17 +149,17 @@ class Simulator:
     def run(self, parameters, initValues, timing=True, info=False):
         
         #check parameters and initValues for compability with pre-defined parameterNumber and spieciesNumber
-        if(len(parameters[0]) != self._parameterNumber):
+        if len(parameters[0]) != self._parameterNumber:
             print "Error: Number of parameters specified (" + str(self._parameterNumber) + ") and given in parameter array (" + str(len(parameters[0])) + ") differ from each other!"
             exit()
-        elif(len(initValues[0]) != self._speciesNumber):
+        elif len(initValues[0]) != self._speciesNumber:
             print "Error: Number of species specified (" +  str(self._speciesNumber) + ") and given in species array (" + str(len(initValues[0])) + ") differ from each other!"
             exit()
-        elif(len(parameters) != len(initValues)):
+        elif len(parameters) != len(initValues):
             print "Error: Number of sets of parameters (" + str(len(parameters)) + ") and species (" + str(len(initValues)) + ") do not match!"
             exit()
         
-        if(self._compiledRunMethod is None and self._runtimeCompile):
+        if self._compiledRunMethod is None and self._runtimeCompile:
             #compile to determine blocks and threads
             self._completeCode, self._compiledRunMethod = self._compileAtRuntime(self._stepCode, parameters)
         
@@ -193,9 +193,9 @@ class Simulator:
         runs = int(math.ceil(blocks / float(self._MAXBLOCKSPERDEVICE)))
         for i in range(runs):
             # for last device call calculate number of remaining threads to run
-            if(i==runs-1):
+            if i==runs-1:
                 runblocks = int(blocks % self._MAXBLOCKSPERDEVICE)
-                if(runblocks == 0):
+                if runblocks == 0:
                     runblocks = self._MAXBLOCKSPERDEVICE
             else:
                 runblocks = int(self._MAXBLOCKSPERDEVICE)
@@ -209,7 +209,7 @@ class Simulator:
             runInitValues = initValues[minIndex:maxIndex]
             
             #first run store return Value
-            if(i==0):
+            if i==0:
                 returnValue = self._runSimulation(runParameters, runInitValues, runblocks, threads)
             else:
                 returnValue = np.append(returnValue,self._runSimulation(runParameters, runInitValues, runblocks, threads),axis=0)
@@ -280,13 +280,13 @@ def copy2D_host_to_array(arr, host, width, height ):
     
 # Determine maximum number of threads per MP
 def getMaxThreadsPerMP(compabilityTuple):
-    if(compabilityTuple[0] == 1):
-        if(compabilityTuple[1] == 0 or compabilityTuple[1] == 1):
+    if compabilityTuple[0] == 1:
+        if compabilityTuple[1] == 0 or compabilityTuple[1] == 1:
             return 768
-        elif(compabilityTuple[1] == 2 or compabilityTuple[1] == 3):
+        elif compabilityTuple[1] == 2 or compabilityTuple[1] == 3:
             return 1024
-    elif(compabilityTuple[0] == 2):
-        if(compabilityTuple[1] == 0):
+    elif compabilityTuple[0] == 2:
+        if compabilityTuple[1] == 0:
             return 1536
     return 768
 

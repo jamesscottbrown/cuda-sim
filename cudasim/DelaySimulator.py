@@ -48,7 +48,7 @@ class DelaySimulator(sim.Simulator):
 
         for i in range(self._resultNumber):
             general_parameters_source += str(self._timepoints[i]) + 'f'
-            if (i != self._resultNumber - 1):
+            if i != self._resultNumber - 1:
                 general_parameters_source += ','
 
         general_parameters_source += '};'
@@ -56,7 +56,7 @@ class DelaySimulator(sim.Simulator):
 
         tMax = self._timepoints[-1]
 
-        if (not self._putIntoShared):
+        if not self._putIntoShared:
             general_parameters_source += """
         //parameter texture
         texture<float, 2, cudaReadModeElementType> param_tex;
@@ -182,10 +182,10 @@ class DelaySimulator(sim.Simulator):
 
         module = SourceModule(completeCode)
 
-        if (not self._putIntoShared):
+        if not self._putIntoShared:
             self._param_tex = module.get_texref("param_tex")
 
-        return (module, module.get_function('myDDEsolver'))
+        return module, module.get_function('myDDEsolver')
 
 
     def _runSimulation(self, parameters, initValues, blocks, threads):
@@ -202,7 +202,7 @@ class DelaySimulator(sim.Simulator):
         except IndexError:
             pass
 
-        if (not self._putIntoShared):
+        if not self._putIntoShared:
             # parameter texture
             ary = sim.create_2D_array(param)
             sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, totalThreads / self._beta + 1)
@@ -214,7 +214,7 @@ class DelaySimulator(sim.Simulator):
 
         sharedTot =  sharedMemoryParameters
 
-        if (self._putIntoShared):
+        if self._putIntoShared:
             parametersInput = np.zeros(self._parameterNumber * totalThreads / self._beta, dtype=np.float32)
         speciesInput = np.zeros(self._speciesNumber*totalThreads, dtype=np.float32)
         result = np.zeros(self._speciesNumber * totalThreads * self._resultNumber, dtype=np.float32)
@@ -226,7 +226,7 @@ class DelaySimulator(sim.Simulator):
                     speciesInput[i*self._speciesNumber + j] = initValues[i][j]
         except IndexError:
             pass
-        if (self._putIntoShared):
+        if self._putIntoShared:
             try:
                 for i in range(experiments):
                     for j in range(self._parameterNumber):
@@ -236,18 +236,18 @@ class DelaySimulator(sim.Simulator):
 
 
         species_gpu = driver.mem_alloc(speciesInput.nbytes)
-        if (self._putIntoShared):
+        if self._putIntoShared:
             parameters_gpu = driver.mem_alloc(parametersInput.nbytes)
         result_gpu = driver.mem_alloc(result.nbytes)
 
         driver.memcpy_htod(species_gpu, speciesInput)
-        if (self._putIntoShared):
+        if self._putIntoShared:
             driver.memcpy_htod(parameters_gpu, parametersInput)
         driver.memcpy_htod(result_gpu, result)
 
 
         # run code
-        if (self._putIntoShared):
+        if self._putIntoShared:
             print "Putting in shared"
             self._compiledRunMethod(species_gpu, parameters_gpu, result_gpu, block=(threads, 1, 1),
                                     grid=(blocks, 1), shared=sharedTot)

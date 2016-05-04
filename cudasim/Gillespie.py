@@ -56,7 +56,7 @@ class Gillespie(sim.Simulator):
         
         for i in range(self._resultNumber):
             _gillespieSource += str(self._timepoints[i]) + 'f'
-            if(i !=  self._resultNumber-1):
+            if i !=  self._resultNumber-1:
                 _gillespieSource += ','
         _gillespieSource += '};'
         
@@ -170,7 +170,7 @@ class Gillespie(sim.Simulator):
         self._pvxp = int(m.get_global("vxp")[0])
         self._param_tex = m.get_texref("param_tex")
         
-        return (m, m.get_function("Gillespie_one_step"))
+        return m, m.get_function("Gillespie_one_step")
             
     def _runSimulation(self, parameters, initValues, blocks, threads):
         totalThreads = blocks * threads

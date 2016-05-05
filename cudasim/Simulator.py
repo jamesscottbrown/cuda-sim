@@ -80,9 +80,9 @@ class Simulator:
         for i in lines:
             if (i.find("NSPECIES") != -1) and not self._speciesNumber:
                 self._speciesNumber = int(i.split("NSPECIES")[1])
-            elif (i.find("NPARAM") != -1) and not self._speciesNumber:
+            elif (i.find("NPARAM") != -1) and not self._parameterNumber:
                 self._parameterNumber = int(i.split("NPARAM")[1])
-            elif (i.find("NREACT") != -1) and not self._speciesNumber:
+            elif (i.find("NREACT") != -1) and not self._hazardNumber:
                 self._hazardNumber = int(i.split("NREACT")[1])
 
     # method for calculating optimal number of blocks and threads per block

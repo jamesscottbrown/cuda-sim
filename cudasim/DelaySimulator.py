@@ -1,6 +1,7 @@
 import numpy as np
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
+import pycuda.autoinit
 
 import Simulator as sim
 

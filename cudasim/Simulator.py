@@ -5,7 +5,7 @@ import time
 import numpy as np
 import pycuda.driver as driver
 import pycuda.tools as tools
-
+import pycuda.autoinit
 
 class Simulator:
     # constant private variables

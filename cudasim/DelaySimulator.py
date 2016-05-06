@@ -24,7 +24,7 @@ class DelaySimulator(sim.Simulator):
 
         delay_macro = """
         #define HISTLENGTH """ + str(self._histTimeSteps) + """
-        #define delay(dimension, delayNum) yOld[dimension][delayNum-1] // -1 because first param is compartment volume
+        #define delay(dimension, delayNum) yOld[dimension][delayNum - NCOMPARTMENTS]
         """
 
         general_parameters_source = """

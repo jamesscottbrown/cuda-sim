@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level2/version3" level="2" version="3">
+  <model id="SIR" name="SIR model with delay">
+    <listOfCompartments>
+      <compartment id="cell" size="1"/>
+    </listOfCompartments>
+    <listOfSpecies>
+      <species id="Susceptible" compartment="cell" initialAmount="1000"/>
+      <species id="Infected" compartment="cell" initialAmount="100"/>
+      <species id="Recovered" compartment="cell" initialAmount="0"/>
+    </listOfSpecies>
+    <listOfParameters>
+      <parameter id="tau1" value="1"/>
+      <parameter id="tau2" value="10"/>
+    </listOfParameters>
+    <listOfReactions>
+      <reaction id="Infection" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Susceptible" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Infected" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> Susceptible </ci>
+              <apply>
+                <csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/delay"> delay </csymbol>
+                <ci> Infected </ci>
+                <ci> tau1 </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="Recovery" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Infected" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Recovered" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <ci> Infected </ci>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="Relaps" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Recovered" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Susceptible" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/delay"> delay </csymbol>
+              <ci> Infected </ci>
+              <ci> tau2 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+    </listOfReactions>
+  </model>
+</sbml>

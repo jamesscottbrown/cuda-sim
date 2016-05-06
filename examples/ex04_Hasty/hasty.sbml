@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level2/version2" level="2" version="2">
+  <model id="Hasty" name="Model from a *A synchronized quorum of genetic clocks* ">
+    <listOfCompartments>
+      <compartment id="cell" size="1"/>
+      <compartment id="environment" size="1"/>
+    </listOfCompartments>
+    <listOfSpecies>
+      <species id="A" compartment="cell" initialAmount="1000"/>
+      <species id="I" compartment="cell" initialAmount="100"/>
+      <species id="Hi" compartment="cell" initialAmount="0"/>
+      <species id="He" compartment="environment" initialAmount="0"/>
+    </listOfSpecies>
+    <listOfParameters>
+      <parameter id="tau" value="10"/>
+      <parameter id="k1" value="0.1"/>
+      <parameter id="C_A" value="1"/>
+      <parameter id="C_I" value="4"/>
+      <parameter id="d_0" value="0.88"/>
+      <parameter id="gamma_A" value="15"/>
+      <parameter id="gamma_I" value="24"/>
+      <parameter id="gamma_H" value="0.01"/>
+      <parameter id="f" value="0.3"/>
+      <parameter id="b" value="0.06"/>
+      <parameter id="k" value="1"/>
+      <parameter id="g" value="0.01"/>
+      <parameter id="d" value="0.5"/>
+      <parameter id="delta" value="0.001"/>
+      <parameter id="alpha" value="2500"/>
+      <parameter id="D" value="2.5"/>
+      <parameter id="mu" value="0.5"/>
+    </listOfParameters>
+    <listOfReactions>
+      <reaction id="AiiA_synthesis" reversible="false">
+        <listOfProducts>
+          <speciesReference species="A" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> cell </ci>
+                <ci> C_A </ci>
+                <apply>
+                  <minus/>
+                  <cn type="integer"> 1 </cn>
+                  <apply>
+                    <power/>
+                    <apply>
+                      <divide/>
+                      <ci> d </ci>
+                      <ci> d_0 </ci>
+                    </apply>
+                    <cn type="integer"> 4 </cn>
+                  </apply>
+                </apply>
+                <apply>
+                  <plus/>
+                  <ci> delta </ci>
+                  <apply>
+                    <times/>
+                    <ci> alpha </ci>
+                    <apply>
+                      <power/>
+                      <apply>
+                        <csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/delay"> delay </csymbol>
+                        <ci> Hi </ci>
+                        <ci> tau </ci>
+                      </apply>
+                      <cn type="integer"> 2 </cn>
+                    </apply>
+                  </apply>
+                </apply>
+              </apply>
+              <apply>
+                <plus/>
+                <cn type="integer"> 1 </cn>
+                <apply>
+                  <times/>
+                  <ci> k1 </ci>
+                  <apply>
+                    <power/>
+                    <apply>
+                      <csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/delay"> delay </csymbol>
+                      <ci> Hi </ci>
+                      <ci> tau </ci>
+                    </apply>
+                    <cn type="integer"> 2 </cn>
+                  </apply>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="LuxI_synthesis" reversible="false">
+        <listOfProducts>
+          <speciesReference species="I" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> cell </ci>
+                <ci> C_I </ci>
+                <apply>
+                  <minus/>
+                  <cn type="integer"> 1 </cn>
+                  <apply>
+                    <power/>
+                    <apply>
+                      <divide/>
+                      <ci> d </ci>
+                      <ci> d_0 </ci>
+                    </apply>
+                    <cn type="integer"> 4 </cn>
+                  </apply>
+                </apply>
+                <apply>
+                  <plus/>
+                  <ci> delta </ci>
+                  <apply>
+                    <times/>
+                    <ci> alpha </ci>
+                    <apply>
+                      <power/>
+                      <apply>
+                        <csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/delay"> delay </csymbol>
+                        <ci> Hi </ci>
+                        <ci> tau </ci>
+                      </apply>
+                      <cn type="integer"> 2 </cn>
+                    </apply>
+                  </apply>
+                </apply>
+              </apply>
+              <apply>
+                <plus/>
+                <cn type="integer"> 1 </cn>
+                <apply>
+                  <times/>
+                  <ci> k1 </ci>
+                  <apply>
+                    <power/>
+                    <apply>
+                      <csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/delay"> delay </csymbol>
+                      <ci> Hi </ci>
+                      <ci> tau </ci>
+                    </apply>
+                    <cn type="integer"> 2 </cn>
+                  </apply>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="AiiA_degradation" reversible="false">
+        <listOfReactants>
+          <speciesReference species="A" stoichiometry="1"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> cell </ci>
+                <ci> gamma_A </ci>
+                <ci> A </ci>
+              </apply>
+              <apply>
+                <plus/>
+                <cn type="integer"> 1 </cn>
+                <apply>
+                  <times/>
+                  <ci> f </ci>
+                  <apply>
+                    <plus/>
+                    <ci> A </ci>
+                    <ci> I </ci>
+                  </apply>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="LuxI_degradation" reversible="false">
+        <listOfReactants>
+          <speciesReference species="I" stoichiometry="1"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> cell </ci>
+                <ci> gamma_I </ci>
+                <ci> I </ci>
+              </apply>
+              <apply>
+                <plus/>
+                <cn type="integer"> 1 </cn>
+                <apply>
+                  <times/>
+                  <ci> f </ci>
+                  <apply>
+                    <plus/>
+                    <ci> A </ci>
+                    <ci> I </ci>
+                  </apply>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="AHL_synthesis" reversible="false">
+        <listOfProducts>
+          <speciesReference species="Hi" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> cell </ci>
+                <ci> b </ci>
+                <ci> I </ci>
+              </apply>
+              <apply>
+                <plus/>
+                <cn type="integer"> 1 </cn>
+                <apply>
+                  <times/>
+                  <ci> k </ci>
+                  <ci> I </ci>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="AHL_enzymatic_degradation" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Hi" stoichiometry="1"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> cell </ci>
+                <ci> gamma_H </ci>
+                <ci> A </ci>
+                <ci> Hi </ci>
+              </apply>
+              <apply>
+                <plus/>
+                <cn type="integer"> 1 </cn>
+                <apply>
+                  <times/>
+                  <ci> g </ci>
+                  <ci> A </ci>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="AHL_degradation" reversible="false">
+        <listOfReactants>
+          <speciesReference species="He" stoichiometry="1"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> environment </ci>
+              <ci> mu </ci>
+              <ci> He </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="AHL_diffusion1" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Hi" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="He" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <ci> D </ci>
+              <ci> Hi </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="AHL_diffusion2" reversible="false">
+        <listOfReactants>
+          <speciesReference species="He" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Hi" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <ci> D </ci>
+              <ci> He </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+    </listOfReactions>
+  </model>
+</sbml>

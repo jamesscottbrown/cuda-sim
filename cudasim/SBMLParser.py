@@ -1181,24 +1181,6 @@ def mathMLConditionParserCuda(mathMLstring):
     return mathMLstring
 
 
-################################################################################
-# Function to get initial amount given a species and an algorithm type         #
-# Need to pass to this a libsbml species object and a type an integration type #
-################################################################################
-
-def getSpeciesValue(species, intType):
-    if species.isSetInitialAmount() and species.isSetInitialConcentration():
-        if intType == ODE or intType == SDE:
-            return species.getInitialConcentration()
-        else:  # implies intType = Gillespie
-            return species.getInitialAmount()
-
-    if species.isSetInitialAmount():
-        return species.getInitialAmount()
-    else:
-        return species.getInitialConcentration()
-
-
 ##########################################
 # Rename all parameters and species       #
 ##########################################

@@ -37,6 +37,11 @@ class Gillespie(sim.Simulator):
     
     """
 
+    def __init__(self, timepoints, stepCode, speciesCompartment=None, beta=1, dt=0.01, dump=False):
+        self._speciesCompartment = speciesCompartment
+        sim.Simulator.__init__(self, timepoints, stepCode, beta=beta, dt=dt, dump=dump)
+
+
     def _compile(self, application_code):
 
         mt_cu = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'MersenneTwister.cu')
@@ -203,7 +208,11 @@ class Gillespie(sim.Simulator):
         try:
             for i in range(len(initValues)):
                 for j in range(self._speciesNumber):
-                    speciesInput[i][j] = initValues[i][j]
+                    # if compartment corresponding to each species was specified, convert concentrations to counts
+                    if self._speciesCompartment:
+                        speciesInput[i][j] = initValues[i][j] * (6.022E23 * param[i][self._speciesCompartment[j]])
+                    else:
+                        speciesInput[i][j] = initValues[i][j]
         except IndexError:
             pass
         sim.copy2D_host_to_device(d_x, speciesInput, self._speciesNumber * 4, p_x, self._speciesNumber * 4,
@@ -220,6 +229,14 @@ class Gillespie(sim.Simulator):
         cuda.memcpy_dtoh(result, d_result)
         result = result[0:experiments * self._beta * self._resultNumber * self._speciesNumber]
         result.shape = (experiments, self._beta, self._resultNumber, self._speciesNumber)
+
+        # if compartment corresponding to each species was specified, convert counts back to concentrations
+        if self._speciesCompartment:
+            for i in range(0, experiments):
+                for j in range(0, self._beta):
+                    for k in range(0, self._resultNumber):
+                        for l in range(0, self._speciesNumber):
+                            result[i][j][k][l] /= (6.022E23 * param[i][self._speciesCompartment[l]])
 
         return result
 

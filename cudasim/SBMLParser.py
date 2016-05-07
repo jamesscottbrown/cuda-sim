@@ -576,12 +576,19 @@ def write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numReactions, speci
 
 ######################## CUDA Gillespie #################################
 
-def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numReactions, parameterId, speciesId, name,
+def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, species, numReactions, parameterId, speciesId, listOfParameter, name,
                         listOfFunctions, FunctionArgument, FunctionBody, listOfRules, ruleFormula, ruleVariable,
-                        listOfEvents, EventCondition, EventVariable, EventFormula, outpath=""):
+                        listOfEvents, EventCondition, EventVariable, EventFormula, speciesCompartmentList, useMoleculeCounts=False, outpath=""):
+
     p = re.compile('\s')
     # Open the outfile
     out_file = open(os.path.join(outpath, name + ".cu"), "w")
+
+    numSpecies = len(species)
+
+    numEvents = len(listOfEvents)
+    numRules = len(listOfRules)
+    num = numEvents + numRules
 
     # Write number of parameters and species
     out_file.write("#define NSPECIES " + str(numSpecies) + "\n")
@@ -589,9 +596,6 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numReactio
     out_file.write("#define NREACT " + str(numReactions) + "\n")
     out_file.write("\n")
 
-    numEvents = len(listOfEvents)
-    numRules = len(listOfRules)
-    num = numEvents + numRules
     if num > 0:
         out_file.write("#define leq(a,b) a<=b\n")
         out_file.write("#define neq(a,b) a!=b\n")
@@ -623,8 +627,22 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numReactio
 
     out_file.write("};\n\n\n")
 
-    out_file.write("__device__ void hazards(int *y, float *h, float t, int tid){")
-    # wirte rules and events 
+    if useMoleculeCounts:
+            out_file.write("__device__ void hazards(int *y, float *h, float t, int tid){\n")
+            out_file.write("        // Assume rate law expressed in terms of molecule counts \n")
+    else:
+        out_file.write("__device__ void hazards(int *yCounts, float *h, float t, int tid){")
+
+        out_file.write("""
+        // Calculate concentrations from molecule counts
+        int y[NSPECIES];
+        """)
+
+        for i in range(0, numSpecies):
+            volumeString = "tex2D(param_tex," + repr(speciesCompartmentList[i]) + ",tid)"
+            out_file.write( "y[%s] = yCounts[%s] / (6.022E23 * %s);\n" % (i, i, volumeString) )
+
+    # write rules and events
     for i in range(0, len(listOfRules)):
         if listOfRules[i].isRate():
             out_file.write("    ")
@@ -1244,7 +1262,7 @@ def getSubstitutionMatrix(integrationType, o):
     return (mathCuda, mathPython)
 
 
-def importSBMLCUDA(source, integrationType, ModelName=None, method=None, outpath=""):
+def importSBMLCUDA(source, integrationType, ModelName=None, method=None, useMoleculeCounts=False, outpath=""):
     """
     ***** args *****
     source:
@@ -1598,6 +1616,17 @@ def importSBMLCUDA(source, integrationType, ModelName=None, method=None, outpath
         delays = list(delays)
 
 
+        # Find compartment corresponding to each species
+        speciesCompartmentList = []
+        for i in range(0, numSpecies):
+
+            if species[i].isSetCompartment():
+                mySpeciesCompartment = species[i].getCompartment()
+                for j in range(0, len(listOfParameter)):
+                    if listOfParameter[j].getId() == mySpeciesCompartment:
+                        speciesCompartmentList.append(j)
+
+
         ##########################
         # call writing functions #
         ##########################
@@ -1612,14 +1641,14 @@ def importSBMLCUDA(source, integrationType, ModelName=None, method=None, outpath
                           parameterId2, ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
                           ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, outpath)
         if g.match(integrationType[models]):
-            write_GillespieCUDA(stoichiometricMatrix, kineticLaw, numSpecies, numReactions, parameterId2, speciesId2,
+            write_GillespieCUDA(stoichiometricMatrix, kineticLaw, species, numReactions, parameterId2, speciesId2, listOfParameter,
                                 ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
-                                ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula,
-                                outpath)
+                                ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, speciesCompartmentList,
+                                useMoleculeCounts=useMoleculeCounts, outpath=outpath)
         if d.match(integrationType[models]):
             write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numReactions, speciesId2, listOfParameter,
                           parameterId2, ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
                           ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, delays, numCompartments,
                           outpath)
 
-    return delays
+    return (delays, speciesCompartmentList)

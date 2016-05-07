@@ -1,189 +1,83 @@
 
-This is the distribution of the Python package cuda-sim.
-cuda-sim enables biochemical network simulation on NVIDIA
-CUDA GPUSs.
+This is a fork of [``cuda-sim``](https://sourceforge.net/projects/cuda-sim/), which is described in Zhou Y, Liepe J,
+Sheng X, Stumpf MP, Barnes C. [GPU accelerated biochemical network simulation.](http://dx.doi.org/10.1093/bioinformatics/btr015), Bioinformatics. 2011 Mar 15;27(6):874-6.
 
+``cuda-sim`` enables the use of [CUDA-compatible Nvidia GPUs](https://en.wikipedia.org/wiki/CUDA#Supported_GPUs) to perform
+many simulations in parallel, allowing rapid sweeps over different parameter values and/or initial conditions.
 
-## Prerequisites
+It supports a range of model types, simulating each with a different algorithm: a port of LSODA to simulate
+[Ordinary Differential Equations](https://en.wikipedia.org/wiki/Ordinary_differential_equation), the
+[Euler–Maruyama method](https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method) to simulate
+[stochastic differential equations](https://en.wikipedia.org/wiki/Stochastic_differential_equation), a modified
+[Runge-Kutta method](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods) to simulate
+ [delay differential equations](https://en.wikipedia.org/wiki/Delay_differential_equation), and the
+ [Gillespie method](https://en.wikipedia.org/wiki/Gillespie_algorithm) for exact stochastic simulations of systems of
+ chemical reactions.
 
-Before trying to install and use cuda-sim you must
-first install
-      
-      CUDA toolkit
+It can generate executable code automatically from an [SBML](http://sbml.org/) (Systems Biology Modelling Language) file.
 
-and the following python packages
+It was originally written to simulate biochemical networks, but it can be used more generally to simulate ODEs/SDEs/DDEs.
+However, if your model does not correspond to a chemical reaction network, it is probably more sensible to generate a .cu
+file by hand based on the examples, rather than trying to generate one from an SBML file.
 
-       numpy
-       pycuda 
-       libSBML (SBML interface)
-	
-While CUDA, numpy and pycuda are essential, [libsbml](http://sbml.org/Software/libSBML) need only
-be installed if model import from SBML is required.
+# Installation
 
+Before trying to install and use cuda-sim you must first install python and the CUDA toolkit, and several python packages
+(numpy, pycuda). Model import from ABML also requires [libsbml](http://sbml.org/Software/libSBML).
 
-## LINUX installation
+The package can then be installed like any other python package (download, ``cd``, ``python setup.py install``).
 
-1) CUDA toolkit
-Instructions are available [here](http://developer.download.nvidia.com/compute/cuda/3_1/docs/GettingStartedLinux.pdf)
-and the required files are [here](http://developer.nvidia.com/object/cuda_3_1_downloads.html#Linux)
+For more details see [INSTALL.md](INSTALL.md)
 
-2) [Python](http://www.python.org/ftp/python/2.6.5/Python-2.6.5.tgz) (if not already installed)
+# Changes
+This repository contains modifications made by James Scott-Brown (see commits after commit [89b231](https://github.com/jamesscottbrown/cuda-sim/commit/89b231b1894c39310fc85d17218630c226f3deb8).
 
-	tar xzf Python-2.6.5.tgz
-	cd Python-2.6.5
-	./configure --prefix=<dir> --enable-shared
-	make
-	sudo make install
+Broadly:
 
-If custom installation is required then replace ``<dir>``
-with the full path to a location. This will be the 
-location containing lib and bin directories (usually 
-/usr/local by default).
+* support for constant time-delays. Note that parameters specifying delay lengths must be defined before other variables
+in the SBML file.
+* general code clean-up
+* support for for multiple compartments, and compartments with volumes greater than 1
 
-The ``--prefix=<dir>`` option is recommended since it will
-guarantee that each package picks up the correct dependency.
+## Interpretation of kineticLaws and initial conditions
 
-Make sure this new version of python is picked up by default
-and this can be added to your .bash_profile or .bashrc etc
+Adding sensible support for compartments with a volume other than 1.0 required changes that **will affect the numerical
+results of the program**.
 
-	export PATH=<dir>/bin:$PATH  (for BASH)
-	setenv PATH <dir>/bin:$PATH
+In the initial release, if all compartment volumes are 1.0, then simulation using the ODE/SDE/MJP integration method
+gives numerically equivalent results (See Figures 1 and 2 of the manual). This is clearly a desirable feature to retain:
+we would like to be able to run simulations using the SDE and MJP schemes, using the same param.dat and species.dat files,
+and directly compare the results.
 
-3) Follow [the instructions](http://wiki.tiker.net/PyCuda/Installation/Linux) for numpy and pycuda installation.
-This may require installation of boost, distribute and pytools.
+However, if compartments have a volume other than 1, concentrations and molecule counts are not numerically equal.
+I made the slightly arbitrary choice to use concentrations (rather than molecule counts) in input and output formats:
+when simulating as a MJP, initial conditions are converted from concentrations to molecule counts before being passed to
+the kernel, and the results are converted from molecule counts to concentrations before being output. One rationale for
+this is that as deterministic models are faster to simulate (and simpler to analyse), people often begin with these before
+performing stochastic simulations of the same system, and so try to make this as convenient as possible.
 
-4) libSBML
-[Download](http://downloads.sourceforge.net/project/swig/swig/swig-1.3.40/swig-1.3.40.tar.gz) and install swig .
-Note that this is required by libsbml and it must be at least version 1.3.39
+To be consistent with general practice in chemistry and biochemistry, concentrations are treated as moles per unit volume
+(rather than molecules per unit volume), so that there is also a factor of [Avogardo's constant](https://en.wikipedia.org/wiki/Avogadro_constant) (6.022E23)
+in the conversion between counts and concentrations. The decision to treat them in this way has no effect on the ODE/SDE
+simulations. It does affect MJP simulations (including of the original examples, despite these
+using a compartment volume of 1.0), since for the same specified initial condition the number of particles is increased
+by a factor of 6.022E23; if the number in the initial condition *was already the intended number of molecules* then the
+simulation will use far more than intended, resulting in a massively increased simulation time and deceptively small
+stochastic effects.
 
-	tar -xzf swig-1.3.40.tar.gz
-	cd swig-1.3.40
-	./configure --prefix=<dir>
-	make
-	sudo make install
+**If you would like to use the old behaviour** for MJP simulations (treating the initial conditions as specifying numbers
+of molecules, and the rate laws as giving propensities directly as a function of molecule counts ), supply
+``useMoleculeCounts=True`` as an optional argument when calling ``Parser.importSBMLCUDA()``, and do not supply the
+optional argument ``speciesCompartment`` when calling ``Gillespie.Gillespie``.
 
-[Download](http://downloads.sourceforge.net/project/sbml/libsbml/4.0.1/libsbml-4.0.1-src.zip) and install libSBML
+### Comments
+In a SBML model, each ``kineticLaw`` attribute specifies a *reaction rate* with units substance/time (*not*
+concentration/time), this differs from what is generally referred to as the "rate law" by a factor that is the volume of
+the compartment in which the reaction occurs: this factor should be included in the rate law (e.g. first-order degredation
+of a protein may be represented by "k1 * protein * cell").
 
-	unzip libsbml-4.0.1-src.zip
-	cd libsbml-4.0.1	
-	./configure --with-python=<dir> --prefix=<dir> --with-swig=<dir>
-	make 
-	sudo make install
+The SBML specification indicates that references to species in a ``kineticLaw`` may refer to either their concentration
+or molecule count, and includes the attribute ``hasOnlySubstanceUnits``. **Cudasim ignores this**, always taking the default
+value of false and interpreting each species reference in a kinetic law as referring to the corresponding concentration.
 
-5) [Download](https://sourceforge.net/projects/cuda-sim/files/latest) and install cuda-sim
-
-In the unzipped cuda-sim package directory do
-           
-	tar xzf cuda-sim-VERSION.tar.gz
-	cd cuda-sim-VERSION
-	python setup.py install
-
-6) Done!
-You should be able to do
-	
-	python 
-	import libsbml
-	import cudasim
-
-
-
-## Mac OSX installation
-
-Notes:
-
-* Installing the dependencies on Mac is more problematic
-* 10.5 should work ok with the following instructions 
-* 10.6 is more difficult. More details are provided in the 
-  pycuda instructions
-
-1) CUDA toolkit 3.1 is recommended
-Instructions are available [here](http://developer.download.nvidia.com/compute/cuda/3_1/docs/GettingStartedMacOS.pdf)
-and the required files are [here](http://developer.nvidia.com/object/cuda_3_1_downloads.html#MacOS)
-
-Notes:
-When running the device query do you get 'NO CUDA DEVICE FOUND Device Emulation (CPU)'
-Try this fix and restarting:
-	 sudo chmod 755 /System/Library/StartupItems/CUDA/*
-	 sudo chmod 755 /System/Library/StartupItems/CUDA
-
-2) Follow the [instructions](http://wiki.tiker.net/PyCuda/Installation/Mac) for numpy and pycuda installation.
-This may require installation of boost, distribute and pytools
-
-[Download](http://sourceforge.net/projects/boost/files/boost/1.39.0/boost_1_39_0.tar.gz/download) and install BOOST.
-On 10.5 it suffices to do:
-
-	tar -xzf boost_1_39_0.tar.gz
-	cd boost_1_39_0
-	./bootstrap.sh --prefix=/usr/local/ --libdir=/usr/local/lib --with-libraries=signals,thread,python \
-		       --with-python=/Library/Frameworks/Python.framework/Versions/2.6/Python
-	./bjam variant=release link=shared install		
-	export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH   #(ADD THIS TO .bash_profile)
-
-[Download](http://downloads.sourceforge.net/project/numpy/NumPy/1.4.1rc2/numpy-1.4.1rc2-py2.6-python.org.dmg) and install numpy
-
-Download and install [pycuda](http://pypi.python.org/packages/source/p/pycuda/pycuda-0.94rc.tar.gz)
-
-Note you will need to look at which version of gcc is used. On my system it was 4.0.
-Look at the boost libraries (ie /usr/local/lib/libboost*) to see what extensions they have	
-	
-	tar xzf pycuda-0.94rc.tar.gz
-	cd pycuda-0.94rc
-	python configure.py --boost-inc-dir=/usr/local/include/boost-1_39 --boost-lib-dir=/usr/local/lib \
-	       --boost-python-libname=boost_python-xgcc40-mt --boost-thread-libname=boost_thread-xgcc40-mt \
-	       --cuda-root=/usr/local/cuda --boost-compiler=gcc40
-	sudo make install	
-	
-Perform the tests
-	cd pycuda-0.94rc/test
-	python test_driver.py
-
-If you have trouble, edit the siteconf.py file and retry the 'sudo make install'. 
-For example on my 10.5 system it looked like this
-
-    BOOST_INC_DIR = ['/usr/local/include/boost-1_39']
-    BOOST_LIB_DIR = ['/usr/local/lib']
-    BOOST_COMPILER = 'gcc40'
-    BOOST_PYTHON_LIBNAME = ['boost_python-xgcc40-mt']
-    BOOST_THREAD_LIBNAME = ['boost_thread-xgcc40-mt']
-    CUDA_TRACE = False
-    CUDA_ROOT = '/usr/local/cuda'
-    CUDA_ENABLE_GL = False
-    CUDADRV_LIB_DIR = []
-    CUDADRV_LIBNAME = ['cuda']
-    CXXFLAGS = []
-    LDFLAGS = []
-
-    CXXFLAGS.extend(['-isysroot', '/Developer/SDKs/MacOSX10.5.sdk'])
-    LDFLAGS.extend(['-isysroot', '/Developer/SDKs/MacOSX10.5.sdk'])
-
-
-4) [Download](http://downloads.sourceforge.net/project/sbml/libsbml/4.0.1/libsbml-4.0.1-src.zip) and install libSBML
-
-
-	unzip libsbml-4.0.1-src.zip
-	cd libsbml-4.0.1	
-	./configure --with-python=/usr/local
-	make 
-	sudo make install
-	
-This installs into the wrong directory, so we need to move it to the correct place"
-
-    cp -r /usr/local/lib/python2.6/site-packages/libsbml* /Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/
-
-5) [Download](https://sourceforge.net/projects/cuda-sim/files/latest) and install cuda-sim
-
-	tar xzf cuda-sim-VERSION.tar.gz
-	cd cuda-sim-VERSION
-	python setup.py install
-
-This places the cudasim package into 
-     
-	/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/
-
-6) Done!
-You should be able to do
-	
-	python 
-	import libsbml
-	import cudasim
-
+The SBML specification also includes references to units: again, these are ignored.

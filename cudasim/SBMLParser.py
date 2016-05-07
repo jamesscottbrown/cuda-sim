@@ -727,7 +727,11 @@ def write_GillespieCUDA(stoichiometricMatrix, kineticLaw, species, numReactions,
     out_file.write("\n")
 
     for i in range(0, numReactions):
-        out_file.write("    h[" + repr(i) + "] = ")
+
+        if useMoleculeCounts:
+            out_file.write("    h[" + repr(i) + "] = ")
+        else:
+            out_file.write("    h[" + repr(i) + "] = 6.022E23 * ")
 
         string = kineticLaw[i]
         for q in range(0, len(speciesId)):

@@ -20,8 +20,6 @@ class DelaySimulator(sim.Simulator):
     def _compile(self, step_code):
         # TODO: determine if shared memory is enough to fit parameters ???
 
-        # need extra params: _delays,
-
         delay_macro = """
         #define HISTLENGTH """ + str(self._histTimeSteps) + """
         #define delay(dimension, delayNum) yOld[dimension][delayNum - NCOMPARTMENTS]
@@ -35,7 +33,6 @@ class DelaySimulator(sim.Simulator):
 
         const int NSPECIES = """ + str(self._speciesNumber) + """;
         const int numDelays = """ + str(len(self._delays)) + """;
-
 
         //timepoints
         __device__ const float timepoints[""" + str(self._resultNumber) + "]={"
@@ -60,13 +57,6 @@ class DelaySimulator(sim.Simulator):
 """ + "\tint tid = blockDim.x * blockIdx.x + threadIdx.x;\n" + "\tconst float tau[numDelays] = {" + ", ".join(
             self._delays) + "};\n" + """
 
-                //float  Y[NRESULTS][NSPECIES] = *(results + NSPECIES*tid*NRESULTS);
-                //float (*Y)[NRESULTS][NSPECIES] = (float (*)[NRESULTS][NSPECIES]) (results + NSPECIES*tid*NRESULTS);
-
-                // if i is time and j is species:
-                // result[NSPECIES*tid*NRESULTS + i * NSPECIES + j]
-
-
                 float maxDelay = 0;
                 for (int i=0; i < numDelays; i++ ){
                     if (tau[i] > maxDelay ){
@@ -77,14 +67,15 @@ class DelaySimulator(sim.Simulator):
                 float tMax = """ + str(tMax) + """;
 
 
-
-
                 // populate initial conditions
                 float yHist[HISTLENGTH][NSPECIES];
-                for (int i=0; i < HISTLENGTH; i++){
-                    for (int j=0; j<NSPECIES; j++){
+                float yOld[NSPECIES];
+
+                for (int j=0; j<NSPECIES; j++){
+                    for (int i=0; i < HISTLENGTH; i++){
                         yHist[i][j] = ics[NSPECIES*tid + j];
                     }
+                    yOld[j] = ics[NSPECIES*tid + j];
                 }
 
 
@@ -92,7 +83,6 @@ class DelaySimulator(sim.Simulator):
 
                 // Set Y at t=0
                 for (int n = 0; n < NSPECIES; n++){
-                    //Y[0][n] = yHist[ (HISTLENGTH-1)][ n ];
                      Y[NSPECIES*tid*NRESULTS + 0 * NSPECIES + n] = yHist[ (HISTLENGTH-1)][ n ];
                 }
 
@@ -108,7 +98,9 @@ class DelaySimulator(sim.Simulator):
         array_declaration = "float kOld[%s][5][%s];\n" % (int(tMax / self._dt), self._speciesNumber)
         solver_source += array_declaration
 
-        solver_source += """for (int n = 0; n < NRESULTS - 1; n++){ // n is timestep
+        solver_source += """
+                int lastSavedTimepoint = 1;
+                for (int n = 0; n < (tMax / DT); n++){ // n is timestep
 
                     float t = n * DT;
 
@@ -135,17 +127,17 @@ class DelaySimulator(sim.Simulator):
                     }
 
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
-                        g[1][dimension] = Y[NSPECIES*tid*NRESULTS + n * NSPECIES + dimension];
+                        g[1][dimension] = yOld[dimension];
                     }
 
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
-                        g[2][dimension] = Y[NSPECIES*tid*NRESULTS + n * NSPECIES + dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[1], gam[1], dimension);
+                        g[2][dimension] = yOld[dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[1], gam[1], dimension);
                     }
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
-                        g[3][dimension] = Y[NSPECIES*tid*NRESULTS + n * NSPECIES + dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[2],  gam[2], dimension);
+                        g[3][dimension] = yOld[dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[2],  gam[2], dimension);
                     }
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
-                        g[4][dimension] = Y[NSPECIES*tid*NRESULTS + n * NSPECIES + dimension] + DT * f(t + DT, (float *) &g[3], gam[3], dimension);
+                        g[4][dimension] = yOld[dimension] + DT * f(t + DT, (float *) &g[3], gam[3], dimension);
                     }
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
                         float a = f(t, (float *) &g[1], gam[1], dimension);
@@ -153,18 +145,25 @@ class DelaySimulator(sim.Simulator):
                         float c = f(t + DT / 2, (float *) &g[3],  gam[3], dimension);
                         float d = f(t + DT, (float *) &g[4], gam[4], dimension);
 
-                        Y[NSPECIES*tid*NRESULTS + (n + 1) * NSPECIES + dimension] = Y[NSPECIES*tid*NRESULTS + n * NSPECIES + dimension] + (DT / 6) * (a + 2 * b + 2 * c + d);
+                        yOld[dimension] = yOld[dimension] + (DT / 6) * (a + 2 * b + 2 * c + d);
 
                         for (int d = 0; d <= 5; d++) {
                             kOld[n][d][dimension] = g[d][dimension];
                         }
 
                     }
+
+                     if ( (t + DT) >= timepoints[lastSavedTimepoint]){
+                        for (int dimension = 0; dimension < NSPECIES; dimension++) {
+                            Y[NSPECIES*tid*NRESULTS + lastSavedTimepoint * NSPECIES + dimension] = yOld[dimension];
+                        }
+                        lastSavedTimepoint++;
+                    }
+
+
                 }
             }
             """
-
-        # TODO: check step_code is the desired function
 
         # actual compiling step compile
         completeCode = general_parameters_source + delay_macro + step_code + solver_source

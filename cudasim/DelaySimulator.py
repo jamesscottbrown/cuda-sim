@@ -9,13 +9,13 @@ class DelaySimulator(sim.Simulator):
     _param_tex = None
     _putIntoShared = False
 
-    def __init__(self, timepoints, stepCode, delays, beta=1, dt=0.01):
+    def __init__(self, timepoints, stepCode, delays, beta=1, dt=0.01, dump=False):
         self._delays = delays
 
         maxDelay = 10
         self._histTimeSteps = int(1 + maxDelay / (dt / 2))  # TODO: calculate this correctly
 
-        sim.Simulator.__init__(self, timepoints, stepCode, beta=beta, dt=dt)
+        sim.Simulator.__init__(self, timepoints, stepCode, beta=beta, dt=dt, dump=dump)
 
     def _compile(self, step_code):
         # TODO: determine if shared memory is enough to fit parameters ???
@@ -108,7 +108,7 @@ class DelaySimulator(sim.Simulator):
         array_declaration = "float kOld[%s][5][%s];\n" % (int(tMax / self._dt), self._speciesNumber)
         solver_source += array_declaration
 
-        solver_source += """for (int n = 0; n <= tMax / DT; n++){ // n is timestep
+        solver_source += """for (int n = 0; n < NRESULTS - 1; n++){ // n is timestep
 
                     float t = n * DT;
 

@@ -1596,7 +1596,7 @@ def importSBMLCUDA(source, integrationType, ModelName=None, method=None, useMole
                         paramName = r[1]
                         j = int(paramName.replace("parameter", ''))
 
-                        memoryLocation = "tex2D(param_tex," + repr(j) + ",tid)"
+                        memoryLocation = "tex2D(param_tex," + repr(j + len(listOfCompartments) - 1) + ",tid)"
                         delays.add(memoryLocation)
 
         delays = list(delays)

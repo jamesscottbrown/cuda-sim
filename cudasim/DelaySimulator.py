@@ -12,8 +12,8 @@ class DelaySimulator(sim.Simulator):
     def __init__(self, timepoints, stepCode, delays, beta=1, dt=0.01, dump=False):
         self._delays = delays
 
-        maxDelay = 10
-        self._histTimeSteps = int(1 + maxDelay / (dt / 2))  # TODO: calculate this correctly
+        self._maxDelay = 10
+        self._histTimeSteps = int(1 + self._maxDelay / (dt / 2))  # TODO: calculate this correctly
 
         sim.Simulator.__init__(self, timepoints, stepCode, beta=beta, dt=dt, dump=dump)
 
@@ -22,6 +22,8 @@ class DelaySimulator(sim.Simulator):
 
         delay_macro = """
         #define HISTLENGTH """ + str(self._histTimeSteps) + """
+        #define KOLDLENGTH """ + str(int(self._maxDelay / self._dt)) + """
+
         #define delay(dimension, delayNum) yOld[dimension][delayNum - NCOMPARTMENTS]
         """
 
@@ -93,12 +95,8 @@ class DelaySimulator(sim.Simulator):
 
                 float gam[5][NSPECIES][numDelays];
                 float g[5][NSPECIES]; // so indexes stay 1-4, ignoring 0
-                """
+                float kOld[KOLDLENGTH][5][NSPECIES];
 
-        array_declaration = "float kOld[%s][5][%s];\n" % (int(tMax / self._dt), self._speciesNumber)
-        solver_source += array_declaration
-
-        solver_source += """
                 int lastSavedTimepoint = 1;
                 for (int n = 0; n < (tMax / DT); n++){ // n is timestep
 
@@ -118,10 +116,10 @@ class DelaySimulator(sim.Simulator):
                                 gam[3][dimension][delayNum] = yHist[(int) ( s + (t + (DT / 2.0)) / (DT / 2.0))][dimension];
                                 gam[4][dimension][delayNum] = yHist[(int) ( s + (t + DT) / DT)][dimension];
                             } else {
-                                gam[1][dimension][delayNum] = kOld[n - kR][1][dimension];
-                                gam[2][dimension][delayNum] = kOld[n - kR][2][dimension];
-                                gam[3][dimension][delayNum] = kOld[n - kR][3][dimension];
-                                gam[4][dimension][delayNum] = kOld[n - kR][4][dimension];
+                                gam[1][dimension][delayNum] = kOld[kR - 1][1][dimension];
+                                gam[2][dimension][delayNum] = kOld[kR - 1][2][dimension];
+                                gam[3][dimension][delayNum] = kOld[kR - 1][3][dimension];
+                                gam[4][dimension][delayNum] = kOld[kR - 1][4][dimension];
                             }
                         }
                     }
@@ -147,12 +145,17 @@ class DelaySimulator(sim.Simulator):
 
                         yOld[dimension] = yOld[dimension] + (DT / 6) * (a + 2 * b + 2 * c + d);
 
+                        // shift array of old values of k, and insert latest value
                         for (int d = 0; d <= 5; d++) {
-                            kOld[n][d][dimension] = g[d][dimension];
+                            for (int i = KOLDLENGTH - 1; i > 0 ; i--){
+                                kOld[i][d][dimension] = kOld[i - 1][d][dimension];
+                            }
+                            kOld[0][d][dimension] = g[d][dimension];
                         }
 
                     }
 
+                    // save current state, if we have passed a timepoint
                      if ( (t + DT) >= timepoints[lastSavedTimepoint]){
                         for (int dimension = 0; dimension < NSPECIES; dimension++) {
                             Y[NSPECIES*tid*NRESULTS + lastSavedTimepoint * NSPECIES + dimension] = yOld[dimension];
@@ -162,6 +165,12 @@ class DelaySimulator(sim.Simulator):
 
 
                 }
+
+                // ensure final timepoint is saved
+                for (int dimension = 0; dimension < NSPECIES; dimension++) {
+                    Y[NSPECIES*tid*NRESULTS + (NRESULTS - 1) * NSPECIES + dimension] = yOld[dimension];
+                }
+
             }
             """
 
@@ -244,7 +253,6 @@ class DelaySimulator(sim.Simulator):
             print "About to run", threads, blocks
             print "Number of threads is", totalThreads
 
-            print "Species inputs: ", speciesInput
             self._compiledRunMethod(species_gpu, result_gpu, block=(threads, 1, 1), grid=(blocks, 1),
                                     shared=sharedTot)
 

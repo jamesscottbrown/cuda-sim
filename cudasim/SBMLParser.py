@@ -1331,10 +1331,9 @@ def importSBMLCUDA(source, integrationType, ModelName=None, method=None, useMole
         numCompartments = len(listOfCompartments)
 
         for i in range(0, numCompartments):
-            if listOfCompartments[i].isSetVolume():
-                parameterId.append(listOfCompartments[i].getId())
-                parameterId2.append('compartment' + repr(i + 1))
-                listOfParameter.append(model.getCompartment(i))
+            parameterId.append(listOfCompartments[i].getId())
+            parameterId2.append('compartment' + repr(i + 1))
+            listOfParameter.append(model.getCompartment(i))
 
         # Get global parameters
         for i in range(0, numGlobalParameters):

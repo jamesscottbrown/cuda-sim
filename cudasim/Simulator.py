@@ -140,9 +140,9 @@ class Simulator:
 
         # check parameters and initValues for compability with pre-defined parameterNumber and spieciesNumber
         if len(parameters[0]) != self._parameterNumber:
-            print "Error: Number of parameters specified (" + str(
-                self._parameterNumber) + ") and given in parameter array (" + str(
-                len(parameters[0])) + ") differ from each other!"
+            print "Error: Number of parameters in model (" + str(
+                self._parameterNumber) + ", including compartment volumes) does not match length of array of " +\
+                "parameter values  (" + str(len(parameters[0])) + ")!"
             exit()
         elif len(initValues[0]) != self._speciesNumber:
             print "Error: Number of species specified (" + str(

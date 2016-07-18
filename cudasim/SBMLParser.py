@@ -787,6 +787,15 @@ def write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numReactions, speci
         out_file.write("#define and_(a,b) a&&b\n")
         out_file.write("#define or_(a,b) a||b\n")
 
+
+    # An expression of the form pow((function of state), (parameter), causes a function call with signature "pow(<double, float>)",
+    # an illegal call to the __host__ function std::pow from the __device__ function. To avoid this, we create wrapper functions
+    # that cast the float to a double then call pow(<double>,<double>), a __device__ function.
+
+    out_file.write("float __device__ pow(double i, float j){ return pow(i, (double) j); }")
+    out_file.write("float __device__ pow(float i, double j){ return pow((double) i, j); }")
+
+
     for i in range(0, len(listOfFunctions)):
         out_file.write("__device__ double " + listOfFunctions[i].getId() + "(")
         for j in range(0, listOfFunctions[i].getNumArguments()):

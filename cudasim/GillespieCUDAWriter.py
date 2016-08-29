@@ -6,45 +6,10 @@ import re
 from Writer import Writer
 
 
-# replace the species and parameters recursively
-def rep(string, find, replace):
-    ex = find + "[^0-9]"
-    while re.search(ex, string) is not None:
-        res = re.search(ex, string)
-        string = string[0:res.start()] + replace + " " + string[res.end() - 1:]
-
-    ex = find + "$"
-    if re.search(ex, string) is not None:
-        res = re.search(ex, string)
-        string = string[0:res.start()] + replace + " " + string[res.end():]
-
-    return string
-
-
 class GillespieCUDAWriter(Writer):
     def __init__(self, sbmlFileName, modelName="", inputPath="", outputPath=""):
         Writer.__init__(self, sbmlFileName, modelName, inputPath, outputPath)
         self.out_file = open(os.path.join(outputPath, self.parsedModel.name + ".cu"), "w")
-
-    def mathMLConditionParserCuda(self, mathMLstring):
-        """
-        Replaces and and or with and_ and or_ in a MathML string.
-        Returns the string with and and or replaced by and_ and or_
-    
-        ***** args *****
-    
-        mathMLstring:
-    
-                A mathMLstring
-    
-        """
-
-        andString = re.compile("and")
-        orString = re.compile("or")
-        mathMLstring = andString.sub("and_", mathMLstring)
-        mathMLstring = orString.sub("or_", mathMLstring)
-
-        return mathMLstring
 
     def write(self, useMoleculeCounts=False):
 
@@ -122,7 +87,7 @@ class GillespieCUDAWriter(Writer):
     
                 string = self.parsedModel.ruleFormula[i]
                 for q in range(0, len(self.parsedModel.speciesId)):
-                    string = rep(string, self.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                    string = self.rep(string, self.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
                 for q in range(0, len(self.parsedModel.parameterId)):
                     if not (self.parsedModel.parameterId[q] in self.parsedModel.ruleVariable):
                         flag = False
@@ -130,7 +95,7 @@ class GillespieCUDAWriter(Writer):
                             if self.parsedModel.parameterId[q] in self.parsedModel.EventVariable[r]:
                                 flag = True
                         if not flag:
-                            string = rep(string, self.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+                            string = self.rep(string, self.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
     
                 self.out_file.write(string)
                 self.out_file.write(";\n")
@@ -151,7 +116,7 @@ class GillespieCUDAWriter(Writer):
     
                 string = self.parsedModel.EventFormula[i][j]
                 for q in range(0, len(self.parsedModel.speciesId)):
-                    string = rep(string, self.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                    string = self.rep(string, self.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
                 for q in range(0, len(self.parsedModel.parameterId)):
                     if not (self.parsedModel.parameterId[q] in self.parsedModel.ruleVariable):
                         flag = False
@@ -159,7 +124,7 @@ class GillespieCUDAWriter(Writer):
                             if self.parsedModel.parameterId[q] in self.parsedModel.EventVariable[r]:
                                 flag = True
                         if not flag:
-                            string = rep(string, self.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+                            string = self.rep(string, self.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
     
                 self.out_file.write(string)
                 self.out_file.write(";\n")
@@ -180,7 +145,7 @@ class GillespieCUDAWriter(Writer):
     
                 string = self.mathMLConditionParserCuda(self.parsedModel.ruleFormula[i])
                 for q in range(0, len(self.parsedModel.speciesId)):
-                    string = rep(string, self.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                    string = self.rep(string, self.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
                 for q in range(0, len(self.parsedModel.parameterId)):
                     if not (self.parsedModel.parameterId[q] in self.parsedModel.ruleVariable):
                         flag = False
@@ -188,7 +153,7 @@ class GillespieCUDAWriter(Writer):
                             if self.parsedModel.parameterId[q] in self.parsedModel.EventVariable[r]:
                                 flag = True
                         if not flag:
-                            string = rep(string, self.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+                            string = self.rep(string, self.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
                 self.out_file.write(string)
                 self.out_file.write(";\n")
         self.out_file.write("\n")
@@ -202,7 +167,7 @@ class GillespieCUDAWriter(Writer):
     
             string = self.parsedModel.kineticLaw[i]
             for q in range(0, len(self.parsedModel.speciesId)):
-                string = rep(string, self.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                string = self.rep(string, self.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
             for q in range(0, len(self.parsedModel.parameterId)):
                 if not (self.parsedModel.parameterId[q] in self.parsedModel.ruleVariable):
                     flag = False
@@ -210,7 +175,7 @@ class GillespieCUDAWriter(Writer):
                         if self.parsedModel.parameterId[q] in self.parsedModel.EventVariable[r]:
                             flag = True
                     if not flag:
-                        string = rep(string, self.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+                        string = self.rep(string, self.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
     
             string = p.sub('', string)
             self.out_file.write(string + ";\n")

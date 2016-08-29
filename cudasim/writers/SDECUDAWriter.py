@@ -2,7 +2,7 @@ from libsbml import *
 from cudasim.relations import *
 import os
 import re
-from Writer import Writer
+from cudasim.Writer import Writer
 
 
 class SdeCUDAWriter(Writer):

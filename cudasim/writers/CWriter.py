@@ -1,6 +1,6 @@
 from libsbml import *
 from abcsysbio.relations import *
-from Writer import Writer
+from cudasim.Writer import Writer
 import os
 import re
 

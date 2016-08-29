@@ -1,10 +1,10 @@
-from ParsedModel import ParsedModel
+from cudasim.ParsedModel import ParsedModel
 import re
 
 class Writer:
     def __init__(self, sbmlFileName, modelName="", inputPath="", outputPath=""):
         pass
-    
+
     # replace the species and parameters recursively
     def rep(string, find, replace):
         ex = find + "[^0-9]"

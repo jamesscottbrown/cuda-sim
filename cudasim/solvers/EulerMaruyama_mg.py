@@ -5,7 +5,7 @@ import numpy as np
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
 
-import cudasim.Simulator_mg as sim
+import cudasim.solvers.Simulator_mg as sim
 
 
 class EulerMaruyama(sim.Simulator_mg):

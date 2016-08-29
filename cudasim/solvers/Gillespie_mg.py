@@ -1,12 +1,11 @@
 import os
-import time
 from struct import unpack
 
 import numpy as np
 import pycuda
 import pycuda.driver as cuda
 
-import cudasim.Simulator_mg as sim
+import cudasim.solvers.Simulator_mg as sim
 
 
 # total device global memory usage

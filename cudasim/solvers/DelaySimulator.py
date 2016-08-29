@@ -1,9 +1,9 @@
 import numpy as np
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
-import pycuda.autoinit
 
-import cudasim.Simulator as sim
+import cudasim.solvers.Simulator as sim
+
 
 class DelaySimulator(sim.Simulator):
     _param_tex = None

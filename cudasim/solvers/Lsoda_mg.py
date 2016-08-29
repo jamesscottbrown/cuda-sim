@@ -4,7 +4,7 @@ import numpy as np
 import pycuda
 import pycuda.driver as driver
 
-import cudasim.Simulator_mg as sim
+import cudasim.solvers.Simulator_mg as sim
 
 
 class Lsoda(sim.Simulator_mg):

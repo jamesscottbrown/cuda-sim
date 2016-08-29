@@ -16,412 +16,307 @@ class Parser:
 
     def __init__(self, sbmlFileName, modelName, integrationType, method, inputPath="", outputPath=""):
 
-#def importSBMLCUDA(source, integrationType, ModelName=None, method=None, useMoleculeCounts=False, outpath=""):
-        """
-        ***** args *****
-        source:
-                      a list of strings.
-                      Each tuple entry describes a SBML file to be parsed.
-
-        integrationType:
-                      a list of strings.
-                      The length of this tuple is determined by the number of SBML
-                      files to be parsed. Each entry describes the simulation algorithm.
-                      Possible algorithms are:
-                      ODE         ---   for deterministic systems; solved with odeint (scipy)
-                      SDE         ---   for stochastic systems; solved with sdeint (abc)
-                      MJP   ---   for staochastic systems; solved with GillespieAlgorithm (abc)
-                      DDE         ---  for deterministic systems with delays; solved with DelaySimulator
-
-        ***** kwargs *****
-        ModelName:
-                      a list of strings.
-                      ModelName describes the names of the parsed model files.
-
-        method:
-                      an integer number.
-                      Type of noise in a stochastic system.
-                      (Only implemented for stochastic systems solved with sdeint.)
-                      Possible options are:
-                      1 --- default
-                      2 --- Ornstein-Uhlenbeck
-                      3 --- geometric Brownian motion
-
-        """
+        # regular expressions indicating solution language
+        c = re.compile('C', re.IGNORECASE)
+        py = re.compile('Python', re.I)
+        cuda = re.compile('CUDA', re.I)
 
         # regular expressions for detecting integration types
-        g = re.compile('MJP')
-        o = re.compile('ODE')
-        s = re.compile('SDE')
-        d = re.compile('DDE')
+        gil = re.compile('MJP')
+        ode = re.compile('ODE')
+        sde = re.compile('SDE')
+        dde = re.compile('DDE')
 
-        if not (len(source) == len(integrationType)):
-            print "\nError: Number of sources is not the same as number of integrationTypes!\n"
-            return
+        if cuda.search(integrationType):
+            if gil.search(integrationType):
+                self.writer = GillespieCUDAWriter(sbmlFileName, modelName, inputPath, outputPath)
+            elif ode.search(integrationType):
+                self.writer = OdeCUDAWriter(sbmlFileName, modelName, inputPath, outputPath)
+            elif sde.search(integrationType):
+                self.writer = SdeCUDAWriter(sbmlFileName, modelName, inputPath, outputPath)
 
-        # If model names not specified, default to model1, model2, ...
-        if ModelName is None:
-            ModelName = []
-            for x in range(0, len(source)):
-                ModelName.append("model" + repr(x + 1))
+        elif c.search(integrationType):
+            self.writer = CWriter(sbmlFileName, modelName, inputPath, outputPath)
+
+        elif py.search(integrationType):
+            if gil.search(integrationType):
+                self.writer = GillespiePythonWriter(sbmlFileName, modelName, inputPath, outputPath)
+            elif ode.search(integrationType):
+                self.writer = ODEPythonWriter(sbmlFileName, modelName, inputPath, outputPath)
+            elif sde.search(integrationType):
+                self.writer = SDEPythonWriter(sbmlFileName, modelName, inputPath, outputPath)
+
+        reader = SBMLReader()
+        document = reader.readSBML(inputPath + sbmlFileName)
+        self.sbmlModel = document.getModel()
+
+        self.parameterId = []
+
+        self.listOfSpecies = []  # Used by the child
+        self.speciesId = []
+
+        self.product = []
+        self.reactant = []
+        self.S1 = []
+        self.S2 = []
+
+        self.listOfReactions = []  # Used by the child
+        self.listOfAssignmentRules = []
+        self.numLocalParameters = []  # Used by the child
+
+        self.comp = 0
+        self.parse()
+        if (py.search(integrationType) or cuda.search(integrationType)) and sde.search(integrationType):
+            self.writer.write(method)
+        else:
+            self.writer.write()
 
 
-        for models in range(0, len(source)):
 
-            # if no method is specified and the integrationType is "SDE", method type defaults to 1
-            if method is None:
-                if s.match(integrationType[models]):
-                    method = []
-                    for x in range(0, len(source)):
-                        method.append(1)
 
-            parameterId = []        # parameter IDs as given in the model
-            parameterId2 = []       # new parameter IDs, of the form parameter01, parameter02, ...
-            listOfParameter = []    # parameter (or compartment!) objects
-            speciesId = []          # species IDs as given in the model
-            speciesId2 = []         # new species IDs, of the form species01, species02, ...
-            species = []            # species objects, as returned by model.getListOfSpecies()
 
-            # Get the model
-            reader = SBMLReader()
-            document = reader.readSBML(source[models])
-            model = document.getModel()
 
-            # get basic model properties
-            numSpecies = model.getNumSpecies()
-            numReactions = model.getNumReactions()
-            numGlobalParameters = model.getNumParameters()
 
-            stoichiometricMatrix = empty([numSpecies, numReactions])
 
+
+
+
+        def parse(self):
+            self.getBasicModelProperties()
+            self.writer.parsedModel.stoichiometricMatrix = empty(
+                [self.writer.parsedModel.numSpecies, self.writer.parsedModel.numReactions])
+            self.getCompartmentVolume()
+            self.get_delays()
+
+        def getBasicModelProperties(self):
+            self.writer.parsedModel.numSpecies = model.getNumSpecies()
+            self.writer.parsedModel.numReactions = model.getNumReactions()
+            self.writer.parsedModel.numGlobalParameters = model.getNumParameters()
+
+        def getCompartmentVolume(self):
             # Add compartment volumes to lists of parameters
-            listOfCompartments = model.getListOfCompartments()
-            numCompartments = len(listOfCompartments)
+            listOfCompartments = self.sbmlModel.getListOfCompartments()
 
-            for i in range(0, numCompartments):
-                parameterId.append(listOfCompartments[i].getId())
-                parameterId2.append('compartment' + repr(i + 1))
-                listOfParameter.append(model.getCompartment(i))
+            for i in range(len(listOfCompartments)):
+                self.comp += 1
+                self.parameterId.append(listOfCompartments[i].getId())
+                self.writer.parsedModel.parameterId.append('compartment' + repr(i + 1))
+                self.writer.parsedModel.parameter.append(listOfCompartments[i].getVolume())
+                self.writer.parsedModel.listOfParameter.append(self.sbmlModel.getCompartment(i))
 
-            # Get global parameters
-            for i in range(0, numGlobalParameters):
-                parameterId.append(model.getParameter(i).getId())
-                if (len(parameterId2) - numCompartments) < 9:
-                    parameterId2.append('parameter0' + repr(i + 1))
-                else:
-                    parameterId2.append('parameter' + repr(i + 1))
-                listOfParameter.append(model.getParameter(i))
+        def getGlobalParameters(self):
+            # Differs between CUDA and Python/C
+            for i in range(self.writer.parsedModel.numGlobalParameters):
+                self.parameterId.append(self.sbmlModel.getParameter(i).getId())
+                self.writer.parsedModel.parameter.append(self.sbmlModel.getParameter(i).getValue())
+                self.writer.parsedModel.listOfParameter.append(self.sbmlModel.getParameter(i))
 
-            ###############
-            # get species #
-            ###############
+        def getSpecies(self):
+            # Differs between CUDA and Python/C
+            self.listOfSpecies = self.sbmlModel.getListOfSpecies()
 
-            reactant = []
-            product = []
+            for k in range(len(self.listOfSpecies)):
+                self.writer.parsedModel.species.append(self.listOfSpecies[k])
+                self.speciesId.append(self.listOfSpecies[k].getId())
 
-            S1 = []
-            S2 = []
+                self.S1.append(0.0)
+                self.S2.append(0.0)
 
-            # Get a list of species
-            listOfSpecies = model.getListOfSpecies()
+                self.reactant.append(0)
+                self.product.append(0)
 
-            for k in range(0, len(listOfSpecies)):
-                species.append(listOfSpecies[k])
-                speciesId.append(listOfSpecies[k].getId())
-                if len(speciesId2) < 9:
-                    speciesId2.append('species0' + repr(k + 1))
-                else:
-                    speciesId2.append('species' + repr(k + 1))
+                # Only used by the python writer:
+                self.writer.parsedModel.initValues.append(self.getSpeciesValue(self.listOfSpecies[k]))
 
-                # construct temporary placeholders
-                S1.append(0.0)
-                S2.append(0.0)
-                reactant.append(0)
-                product.append(0)
-
-            ###############################
-            # analyse the model structure #
-            ###############################
-
+        def analyseModelStructure(self):
+            # Differs between CUDA and Python/C
+            reaction = []
             numReactants = []
             numProducts = []
-            kineticLaw = []
-            numLocalParameters = []
 
-            # Get the list of reactions
-            listOfReactions = model.getListOfReactions()
+            self.listOfReactions = self.sbmlModel.getListOfReactions()
 
             # For every reaction
-            for i in range(0, len(listOfReactions)):
+            for i in range(len(self.listOfReactions)):
+                numReactants.append(self.listOfReactions[i].getNumReactants())
+                numProducts.append(self.listOfReactions[i].getNumProducts())
 
-                numReactants.append(listOfReactions[i].getNumReactants())
-                numProducts.append(listOfReactions[i].getNumProducts())
-
-                kineticLaw.append(listOfReactions[i].getKineticLaw().getFormula())
-                numLocalParameters.append(listOfReactions[i].getKineticLaw().getNumParameters())
+                self.writer.parsedModel.kineticLaw.append(self.listOfReactions[i].getKineticLaw().getFormula())
+                self.numLocalParameters.append(self.listOfReactions[i].getKineticLaw().getNumParameters())
 
                 # Zero all elements of S1 and s2
-                for a in range(0, len(species)):
-                    S1[a] = 0.0
-                    S2[a] = 0.0
+                for a in range(len(self.writer.parsedModel.species)):
+                    self.S1[a] = 0.0
+                    self.S2[a] = 0.0
 
                 # Fill non-zero elements of S1, such that S1[k] is the number of molecules of species[k] *consumed* when the
                 # reaction happens once.
-                for j in range(0, numReactants[i]):
-                    reactant[j] = listOfReactions[i].getReactant(j)
+                for j in range(numReactants[i]):
+                    self.reactant[j] = self.listOfReactions[i].getReactant(j)
 
-                    for k in range(0, len(species)):
-                        if reactant[j].getSpecies() == species[k].getId():
-                            S1[k] = reactant[j].getStoichiometry()
+                    for k in range(len(self.writer.parsedModel.species)):
+                        if self.reactant[j].getSpecies() == self.writer.parsedModel.species[k].getId():
+                            self.S1[k] = self.reactant[j].getStoichiometry()
 
                 # Fill non-zero elements of S2, such that S2[k] is the number of molecules of species[k] *produced* when the
                 # reaction happens once.
-                for l in range(0, numProducts[i]):
-                    product[l] = listOfReactions[i].getProduct(l)
+                for l in range(numProducts[i]):
+                    self.product[l] = self.listOfReactions[i].getProduct(l)
 
-                    for k in range(0, len(species)):
-                        if product[l].getSpecies() == species[k].getId():
-                            S2[k] = product[l].getStoichiometry()
+                    for k in range(len(self.writer.parsedModel.species)):
+                        if self.product[l].getSpecies() == self.writer.parsedModel.species[k].getId():
+                            self.S2[k] = self.product[l].getStoichiometry()
 
                 # Construct the row of the stoichiometry matrix corresponding to this reaction by subtracting S1 from S2
-                for m in range(0, len(species)):
-                    stoichiometricMatrix[m][i] = -S1[m] + S2[m]
+                for m in range(len(self.writer.parsedModel.species)):
+                    self.writer.parsedModel.stoichiometricMatrix[m][i] = -self.S1[m] + self.S2[m]
 
-                for n in range(0, numLocalParameters[i]):
-                    parameterId.append(listOfReactions[i].getKineticLaw().getParameter(n).getId())
-                    if (len(parameterId2) - numCompartments) < 10:
-                        parameterId2.append('parameter0' + repr(len(parameterId) - numCompartments))
-                    else:
-                        parameterId2.append('parameter' + repr(len(parameterId) - numCompartments))
-                    listOfParameter.append(listOfReactions[i].getKineticLaw().getParameter(n))
+                for n in range(self.numLocalParameters[i]):
+                    self.writer.parsedModel.parameter.append(
+                        self.listOfReactions[i].getKineticLaw().getParameter(n).getValue())
+                    self.writer.parsedModel.listOfParameter.append(self.listOfReactions[i].getKineticLaw().getParameter(n))
 
-                    name = listOfReactions[i].getKineticLaw().getParameter(n).getId()
-                    new_name = 'parameter' + repr(len(parameterId) - numCompartments)
-                    node = model.getReaction(i).getKineticLaw().getMath()
-                    new_node = rename(node, name, new_name)
-                    kineticLaw[i] = formulaToString(new_node)
-
-                for n in range(0, numCompartments):
-                    name = parameterId[n]
+                for n in range(self.comp):
+                    compartment_name = self.parameterId[n]
                     new_name = 'compartment' + repr(n + 1)
-                    node = model.getReaction(i).getKineticLaw().getMath()
-                    new_node = rename(node, name, new_name)
-                    kineticLaw[i] = formulaToString(new_node)
+                    node = self.sbmlModel.getReaction(i).getKineticLaw().getMath()
+                    new_node = self.rename(node, compartment_name, new_name)
+                    self.writer.parsedModel.kineticLaw[i] = formulaToString(new_node)
 
-            #####################
-            # analyse functions #
-            #####################
+        def analyseFunctions(self):
+            # TODO: how is self.writer.parsedModel.listOfFunctions initialized
 
-            listOfFunctions = model.getListOfFunctionDefinitions()
+            sbmlListOfFunctions = self.sbmlModel.getListOfFunctionDefinitions()
 
-            FunctionArgument = []
-            FunctionBody = []
+            for fun in range(len(sbmlListOfFunctions)):
+                self.writer.parsedModel.listOfFunctions.append(sbmlListOfFunctions[fun])
+                self.writer.parsedModel.functionArgument.append([])
+                self.writer.parsedModel.functionBody.append(
+                    formulaToString(self.writer.parsedModel.listOfFunctions[fun].getBody()))
 
-            for fun in range(0, len(listOfFunctions)):
-                FunctionArgument.append([])
-                for funArg in range(0, listOfFunctions[fun].getNumArguments()):
-                    FunctionArgument[fun].append(formulaToString(listOfFunctions[fun].getArgument(funArg)))
+                for funArg in range(self.writer.parsedModel.listOfFunctions[fun].getNumArguments()):
+                    self.writer.parsedModel.functionArgument[fun].append(
+                        formulaToString(self.writer.parsedModel.listOfFunctions[fun].getArgument(funArg)))
+                    old_name = self.writer.parsedModel.functionArgument[fun][funArg]
+                    node = self.writer.parsedModel.listOfFunctions[fun].getBody()
+                    new_node = self.rename(node, old_name, "a" + repr(funArg + 1))
+                    self.writer.parsedModel.functionBody[fun] = formulaToString(new_node)
+                    self.writer.parsedModel.functionArgument[fun][funArg] = "a" + repr(funArg + 1)
 
-                FunctionBody.append(formulaToString(listOfFunctions[fun].getBody()))
-
-            for fun in range(0, len(listOfFunctions)):
-                for funArg in range(0, listOfFunctions[fun].getNumArguments()):
-                    name = FunctionArgument[fun][funArg]
-                    node = listOfFunctions[fun].getBody()
-                    new_node = rename(node, name, "a" + repr(funArg + 1))
-                    FunctionBody[fun] = formulaToString(new_node)
-                    FunctionArgument[fun][funArg] = 'a' + repr(funArg + 1)
-
-            #################
-            # analyse rules #
-            #################
-
-            # Get the list of rules
-            ruleFormula = []
-            ruleVariable = []
-            listOfRules = model.getListOfRules()
-            for ru in range(0, len(listOfRules)):
-                ruleFormula.append(listOfRules[ru].getFormula())
-                ruleVariable.append(listOfRules[ru].getVariable())
-
-            ##################
-            # analyse events #
-            ##################
-
-            listOfEvents = model.getListOfEvents()
-
-            EventCondition = []
-            EventVariable = []
-            EventFormula = []
-
-            for eve in range(0, len(listOfEvents)):
-                EventCondition.append(formulaToString(listOfEvents[eve].getTrigger().getMath()))
-                listOfAssignmentRules = listOfEvents[eve].getListOfEventAssignments()
-                EventVariable.append([])
-                EventFormula.append([])
-                for ru in range(0, len(listOfAssignmentRules)):
-                    EventVariable[eve].append(listOfAssignmentRules[ru].getVariable())
-                    EventFormula[eve].append(formulaToString(listOfAssignmentRules[ru].getMath()))
-
-            ########################################################################
-            # rename parameters and species in reactions, events, rules             #
-            ########################################################################
-
-            # Get paired list of function names for substitution
-            (mathCuda, mathPython) = getSubstitutionMatrix(integrationType[models], o)
-
-            NAMES = [[], []]
-            NAMES[0].append(parameterId)
-            NAMES[0].append(parameterId2)
-            NAMES[1].append(speciesId)
-            NAMES[1].append(speciesId2)
-
-            for nam in range(0, 2):
-
-                for i in range(0, len(NAMES[nam][0])):
-                    name = NAMES[nam][0][i]
-                    new_name = NAMES[nam][1][i]
-
-                    for k in range(0, numReactions):
-                        node = model.getReaction(k).getKineticLaw().getMath()
-                        new_node = rename(node, name, new_name)
-                        kineticLaw[k] = formulaToString(new_node)
-
-                    for k in range(0, len(listOfRules)):
-                        node = listOfRules[k].getMath()
-                        new_node = rename(node, name, new_name)
-                        ruleFormula[k] = formulaToString(new_node)
-                        if ruleVariable[k] == name:
-                            ruleVariable[k] = new_name
-
-                    for k in range(0, len(listOfEvents)):
-                        node = listOfEvents[k].getTrigger().getMath()
-                        new_node = rename(node, name, new_name)
-                        EventCondition[k] = formulaToString(new_node)
-                        listOfAssignmentRules = listOfEvents[k].getListOfEventAssignments()
-                        for cond in range(0, len(listOfAssignmentRules)):
-                            node = listOfAssignmentRules[cond].getMath()
-                            new_node = rename(node, name, new_name)
-                            EventFormula[k][cond] = formulaToString(new_node)
-                            if EventVariable[k][cond] == name:
-                                EventVariable[k][cond] = new_name
-
-            for nam in range(0, len(mathPython)):
-
-                for k in range(0, len(kineticLaw)):
-                    if re.search(mathPython[nam], kineticLaw[k]):
-                        s = kineticLaw[k]
-                        s = re.sub(mathPython[nam], mathCuda[nam], s)
-                        kineticLaw[k] = s
-
-                for k in range(0, len(ruleFormula)):
-                    if re.search(mathPython[nam], ruleFormula[k]):
-                        s = ruleFormula[k]
-                        s = re.sub(mathPython[nam], mathCuda[nam], s)
-                        ruleFormula[k] = s
-
-                for k in range(0, len(EventFormula)):
-                    for cond in range(0, len(listOfAssignmentRules)):
-                        if re.search(mathPython[nam], EventFormula[k][cond]):
-                            s = EventFormula[k][cond]
-                            s = re.sub(mathPython[nam], mathCuda[nam], s)
-                            EventFormula[k][cond] = s
-
-                for k in range(0, len(EventCondition)):
-                    if re.search(mathPython[nam], EventCondition[k]):
-                        s = EventCondition[k]
-                        s = re.sub(mathPython[nam], mathCuda[nam], s)
-                        EventCondition[k] = s
-
-                for k in range(0, len(FunctionBody)):
-                    if re.search(mathPython[nam], FunctionBody[k]):
-                        s = FunctionBody[k]
-                        s = re.sub(mathPython[nam], mathCuda[nam], s)
-                        FunctionBody[k] = s
-
-                for fun in range(0, len(listOfFunctions)):
-                    for k in range(0, len(FunctionArgument[fun])):
-                        if re.search(mathPython[nam], FunctionArgument[fun][k]):
-                            s = FunctionArgument[fun][k]
-                            s = re.sub(mathPython[nam], mathCuda[nam], s)
-                            FunctionArgument[fun][k] = s
-
-            # Get list of delays
-            delays = set()
-
-            print "Looking for delay"
-            for n in range(0, model.getNumReactions()):
-                r = model.getReaction(n)
-                if r.isSetKineticLaw():
-                    kl = r.getKineticLaw()
-
-                    if kl.isSetMath():
-                        formula = formulaToString(kl.getMath())
-
-                        if "delay" in formula:
-                            r = re.search("delay\((\w+?), (\w+?)\)", formula).groups()
-                            paramName = r[1]
-                            j = int(paramName.replace("parameter", ''))
-
-                            memoryLocation = "tex2D(param_tex," + repr(j + len(listOfCompartments) - 1) + ",tid)"
-                            delays.add(memoryLocation)
-
-            delays = list(delays)
+        def analyseRules(self):
+            # TODO:how is self.writer.parsedModel.ruleFormula and self.writer.parsedModel.ruleVariable initialized
+            self.writer.parsedModel.listOfRules = self.sbmlModel.getListOfRules()
+            for rule in range(len(self.writer.parsedModel.listOfRules)):
+                self.writer.parsedModel.ruleFormula.append(self.writer.parsedModel.listOfRules[rule].getFormula())
+                self.writer.parsedModel.ruleVariable.append(self.writer.parsedModel.listOfRules[rule].getVariable())
 
 
-            # Find compartment corresponding to each species
-            speciesCompartmentList = []
-            for i in range(0, numSpecies):
+        def analyseEvents(self):
+            self.writer.parsedModel.listOfEvents = self.sbmlModel.getListOfEvents()
+            for event in range(len(self.writer.parsedModel.listOfEvents)):
+                self.writer.parsedModel.eventCondition.append(
+                    formulaToString(self.writer.parsedModel.listOfEvents[event].getTrigger().getMath()))
+                self.listOfAssignmentRules = self.writer.parsedModel.listOfEvents[event].getListOfEventAssignments()
+                self.writer.parsedModel.eventVariable.append([])
+                self.writer.parsedModel.eventFormula.append([])
 
-                if species[i].isSetCompartment():
-                    mySpeciesCompartment = species[i].getCompartment()
-                    for j in range(0, len(listOfParameter)):
-                        if listOfParameter[j].getId() == mySpeciesCompartment:
-                            speciesCompartmentList.append(j)
+                for rule in range(len(self.listOfAssignmentRules)):
+                    self.writer.parsedModel.eventVariable[event].append(self.listOfAssignmentRules[rule].getVariable())
+                    self.writer.parsedModel.eventFormula[event].append(
+                        formulaToString(self.listOfAssignmentRules[rule].getMath()))
 
+    def renameEverything(self):
 
-            ##########################
-            # call writing functions #
-            ##########################
+        NAMES = [[], []]
+        NAMES[0].append(self.parameterId)
+        NAMES[0].append(self.writer.parsedModel.parameterId)
+        NAMES[1].append(self.speciesId)
+        NAMES[1].append(self.writer.parsedModel.speciesId)
 
-            s = re.compile('SDE')
-            if o.match(integrationType[models]):
-                write_ODECUDA(stoichiometricMatrix, kineticLaw, species, numReactions, speciesId2, listOfParameter,
-                              parameterId2, ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
-                              ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, outpath)
-            if s.match(integrationType[models]):
-                write_SDECUDA(stoichiometricMatrix, kineticLaw, species, numReactions, speciesId2, listOfParameter,
-                              parameterId2, ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
-                              ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, outpath)
-            if g.match(integrationType[models]):
-                write_GillespieCUDA(stoichiometricMatrix, kineticLaw, species, numReactions, parameterId2, speciesId2, listOfParameter,
-                                    ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
-                                    ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, speciesCompartmentList,
-                                    useMoleculeCounts=useMoleculeCounts, outpath=outpath)
-            if d.match(integrationType[models]):
-                write_DDECUDA(stoichiometricMatrix, kineticLaw, species, numReactions, speciesId2, listOfParameter,
-                              parameterId2, ModelName[models], listOfFunctions, FunctionArgument, FunctionBody, listOfRules,
-                              ruleFormula, ruleVariable, listOfEvents, EventCondition, EventVariable, EventFormula, delays, numCompartments,
-                              outpath)
+        for nam in range(2):
 
-        return (delays, speciesCompartmentList)
+            for i in range(len(NAMES[nam][0])):
+                old_name = NAMES[nam][0][i]
+                new_name = NAMES[nam][1][i]
 
+                for k in range(self.writer.parsedModel.numReactions):
+                    node = self.sbmlModel.getReaction(k).getKineticLaw().getMath()
+                    new_node = self.rename(node, old_name, new_name)
+                    self.writer.parsedModel.kineticLaw[k] = formulaToString(new_node)
 
+                for k in range(len(self.writer.parsedModel.listOfRules)):
+                    node = self.writer.parsedModel.listOfRules[k].getMath()
+                    new_node = self.rename(node, old_name, new_name)
+                    self.writer.parsedModel.ruleFormula[k] = formulaToString(new_node)
+                    if self.writer.parsedModel.ruleVariable[k] == old_name:
+                        self.writer.parsedModel.ruleVariable[k] = new_name
 
+                for k in range(len(self.writer.parsedModel.listOfEvents)):
+                    node = self.writer.parsedModel.listOfEvents[k].getTrigger().getMath()
+                    new_node = self.rename(node, old_name, new_name)
+                    self.writer.parsedModel.eventCondition[k] = formulaToString(new_node)
+                    self.listOfAssignmentRules = self.writer.parsedModel.listOfEvents[k].getListOfEventAssignments()
 
+                    for cond in range(len(self.listOfAssignmentRules)):
+                        node = self.listOfAssignmentRules[cond].getMath()
+                        new_node = self.rename(node, old_name, new_name)
+                        self.writer.parsedModel.eventFormula[k][cond] = formulaToString(new_node)
+                        if self.writer.parsedModel.eventVariable[k][cond] == old_name:
+                            self.writer.parsedModel.eventVariable[k][cond] = new_name
 
+    def rename(self, node, old_name, new_name):
+        typ = node.getType()
 
+        if typ == AST_NAME or typ == AST_NAME_TIME:
+            nme = node.getName()
+            if nme == old_name:
+                node.setName(new_name)
 
+        for n in range(node.getNumChildren()):
+            self.rename(node.getChild(n), old_name, new_name)
+        return node
 
+    def getSpeciesValue(self, specie):
+        if specie.isSetInitialAmount() and specie.isSetInitialConcentration():
+            return specie.getInitialConcentration()  # The initial values are only used in ODE and SDE solvers so we take the concentration (if it was used in gillespie we would have taken the value)
+        if specie.isSetInitialAmount():
+            return specie.getInitialAmount()
+        else:
+            return specie.getInitialConcentration()
 
+    def get_delays(self):
 
+        delays = set()
 
+        print "Looking for delay"
+        for n in range(0, self.sbmlModel.getNumReactions()):
+            r = self.sbmlModel.getReaction(n)
+            if r.isSetKineticLaw():
+                kl = r.getKineticLaw()
 
+                if kl.isSetMath():
+                    formula = formulaToString(kl.getMath())
 
+                    if "delay" in formula:
+                        r = re.search("delay\((\w+?), (\w+?)\)", formula).groups()
+                        paramName = r[1]
+                        j = int(paramName.replace("parameter", ''))
 
+                        listOfCompartments = self.sbmlModel.getListOfCompartments()
+                        memoryLocation = "tex2D(param_tex," + repr(j + len(listOfCompartments) - 1) + ",tid)"
+                        delays.add(memoryLocation)
 
+        self.writer.parsedModel.delays = list(delays)
 
+    def get_species_compartments(self):
+        # Find compartment corresponding to each species
+        self.writer.parsedModel.speciesCompartmentList = []
+        for i in range(0, self.writer.parsedModel.numSpecies):
 
-
+            if self.parsedModel.species[i].isSetCompartment():
+                mySpeciesCompartment = self.parsedModel.species[i].getCompartment()
+                for j in range(0, len(self.writer.parsedModel.listOfParameter)):
+                    if self.writer.parsedModel.listOfParameter[j].getId() == mySpeciesCompartment:
+                        self.writer.parsedModel.speciesCompartmentList.append(j)
 
 

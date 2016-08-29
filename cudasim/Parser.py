@@ -52,9 +52,9 @@ class Parser:
             self.get_delays()
 
         def getBasicModelProperties(self):
-            self.parsedModel.numSpecies = model.getNumSpecies()
-            self.parsedModel.numReactions = model.getNumReactions()
-            self.parsedModel.numGlobalParameters = model.getNumParameters()
+            self.parsedModel.numSpecies = self.sbmlModel.getNumSpecies()
+            self.parsedModel.numReactions = self.sbmlModel.getNumReactions()
+            self.parsedModel.numGlobalParameters = self.sbmlModel.getNumParameters()
 
         def getCompartmentVolume(self):
             # Add compartment volumes to lists of parameters

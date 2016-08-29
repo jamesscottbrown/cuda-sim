@@ -6,7 +6,7 @@ import numpy as np
 import pycuda
 import pycuda.driver as cuda
 
-import Simulator as sim
+import cudasim.Simulator as sim
 
 
 # total device global memory usage

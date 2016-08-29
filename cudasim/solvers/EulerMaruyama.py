@@ -6,7 +6,7 @@ import pycuda
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
 
-import Simulator as sim
+import cudasim.Simulator as sim
 
 
 class EulerMaruyama(sim.Simulator):

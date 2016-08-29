@@ -4,10 +4,10 @@ import numpy as np
 import pycuda
 import pycuda.driver as driver
 
-import Simulator as sim
+import cudasim.Simulator_mg as sim
 
 
-class Lsoda(sim.Simulator):
+class Lsoda(sim.Simulator_mg):
     _param_tex = None
 
     _step_code = None
@@ -48,7 +48,7 @@ class Lsoda(sim.Simulator):
     
     """
 
-    def _compileAtRuntime(self, step_code, parameters):
+    def _compile(self, step_code):
         # set beta to 1: repeats are pointless as simulation is deterministic
         self._beta = 1
 
@@ -69,7 +69,7 @@ class Lsoda(sim.Simulator):
         # dummy compile to determine optimal blockSize and gridSize
         compiled = pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
 
-        blocks, threads = self._getOptimalGPUParam(parameters, compiled.get_function("cuLsoda"))
+        blocks, threads = self._getOptimalGPUParam(compiled.get_function("cuLsoda"))
         blocks = self._MAXBLOCKSPERDEVICE
 
         # real compile

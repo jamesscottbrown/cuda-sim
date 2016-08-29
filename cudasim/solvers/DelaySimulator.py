@@ -3,7 +3,7 @@ import pycuda.driver as driver
 from pycuda.compiler import SourceModule
 import pycuda.autoinit
 
-import Simulator as sim
+import cudasim.Simulator as sim
 
 class DelaySimulator(sim.Simulator):
     _param_tex = None

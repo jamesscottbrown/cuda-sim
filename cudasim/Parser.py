@@ -7,7 +7,7 @@ from ParsedModel import ParsedModel
 
 class Parser:
 
-    def __init__(self, sbmlFileName, modelName, integrationType, method, inputPath="", outputPath=""):
+    def __init__(self, sbmlFileName, modelName, inputPath=""):
 
         # regular expressions indicating solution language
         c = re.compile('C', re.IGNORECASE)
@@ -47,147 +47,146 @@ class Parser:
         else:
             self.parsedModel.name = modelName
 
+    def parse(self):
+        self.getBasicModelProperties()
+        self.parsedModel.stoichiometricMatrix = empty(
+            [self.parsedModel.numSpecies, self.parsedModel.numReactions])
+        self.getCompartmentVolume()
+        self.get_delays()
 
-        def parse(self):
-            self.getBasicModelProperties()
-            self.parsedModel.stoichiometricMatrix = empty(
-                [self.parsedModel.numSpecies, self.parsedModel.numReactions])
-            self.getCompartmentVolume()
-            self.get_delays()
+    def getBasicModelProperties(self):
+        self.parsedModel.numSpecies = self.sbmlModel.getNumSpecies()
+        self.parsedModel.numReactions = self.sbmlModel.getNumReactions()
+        self.parsedModel.numGlobalParameters = self.sbmlModel.getNumParameters()
 
-        def getBasicModelProperties(self):
-            self.parsedModel.numSpecies = self.sbmlModel.getNumSpecies()
-            self.parsedModel.numReactions = self.sbmlModel.getNumReactions()
-            self.parsedModel.numGlobalParameters = self.sbmlModel.getNumParameters()
+    def getCompartmentVolume(self):
+        # Add compartment volumes to lists of parameters
+        listOfCompartments = self.sbmlModel.getListOfCompartments()
 
-        def getCompartmentVolume(self):
-            # Add compartment volumes to lists of parameters
-            listOfCompartments = self.sbmlModel.getListOfCompartments()
+        for i in range(len(listOfCompartments)):
+            self.comp += 1
+            self.parameterId.append(listOfCompartments[i].getId())
+            self.parsedModel.parameterId.append('compartment' + repr(i + 1))
+            self.parsedModel.parameter.append(listOfCompartments[i].getVolume())
+            self.parsedModel.listOfParameter.append(self.sbmlModel.getCompartment(i))
 
-            for i in range(len(listOfCompartments)):
-                self.comp += 1
-                self.parameterId.append(listOfCompartments[i].getId())
-                self.parsedModel.parameterId.append('compartment' + repr(i + 1))
-                self.parsedModel.parameter.append(listOfCompartments[i].getVolume())
-                self.parsedModel.listOfParameter.append(self.sbmlModel.getCompartment(i))
+    def getGlobalParameters(self):
+        # Differs between CUDA and Python/C
+        for i in range(self.parsedModel.numGlobalParameters):
+            self.parameterId.append(self.sbmlModel.getParameter(i).getId())
+            self.parsedModel.parameter.append(self.sbmlModel.getParameter(i).getValue())
+            self.parsedModel.listOfParameter.append(self.sbmlModel.getParameter(i))
 
-        def getGlobalParameters(self):
-            # Differs between CUDA and Python/C
-            for i in range(self.parsedModel.numGlobalParameters):
-                self.parameterId.append(self.sbmlModel.getParameter(i).getId())
-                self.parsedModel.parameter.append(self.sbmlModel.getParameter(i).getValue())
-                self.parsedModel.listOfParameter.append(self.sbmlModel.getParameter(i))
+    def getSpecies(self):
+        # Differs between CUDA and Python/C
+        self.listOfSpecies = self.sbmlModel.getListOfSpecies()
 
-        def getSpecies(self):
-            # Differs between CUDA and Python/C
-            self.listOfSpecies = self.sbmlModel.getListOfSpecies()
+        for k in range(len(self.listOfSpecies)):
+            self.parsedModel.species.append(self.listOfSpecies[k])
+            self.speciesId.append(self.listOfSpecies[k].getId())
 
-            for k in range(len(self.listOfSpecies)):
-                self.parsedModel.species.append(self.listOfSpecies[k])
-                self.speciesId.append(self.listOfSpecies[k].getId())
+            self.S1.append(0.0)
+            self.S2.append(0.0)
 
-                self.S1.append(0.0)
-                self.S2.append(0.0)
+            self.reactant.append(0)
+            self.product.append(0)
 
-                self.reactant.append(0)
-                self.product.append(0)
+            # Only used by the python writer:
+            self.parsedModel.initValues.append(self.getSpeciesValue(self.listOfSpecies[k]))
 
-                # Only used by the python writer:
-                self.parsedModel.initValues.append(self.getSpeciesValue(self.listOfSpecies[k]))
+    def analyseModelStructure(self):
+        # Differs between CUDA and Python/C
+        reaction = []
+        numReactants = []
+        numProducts = []
 
-        def analyseModelStructure(self):
-            # Differs between CUDA and Python/C
-            reaction = []
-            numReactants = []
-            numProducts = []
+        self.listOfReactions = self.sbmlModel.getListOfReactions()
 
-            self.listOfReactions = self.sbmlModel.getListOfReactions()
+        # For every reaction
+        for i in range(len(self.listOfReactions)):
+            numReactants.append(self.listOfReactions[i].getNumReactants())
+            numProducts.append(self.listOfReactions[i].getNumProducts())
 
-            # For every reaction
-            for i in range(len(self.listOfReactions)):
-                numReactants.append(self.listOfReactions[i].getNumReactants())
-                numProducts.append(self.listOfReactions[i].getNumProducts())
+            self.parsedModel.kineticLaw.append(self.listOfReactions[i].getKineticLaw().getFormula())
+            self.numLocalParameters.append(self.listOfReactions[i].getKineticLaw().getNumParameters())
 
-                self.parsedModel.kineticLaw.append(self.listOfReactions[i].getKineticLaw().getFormula())
-                self.numLocalParameters.append(self.listOfReactions[i].getKineticLaw().getNumParameters())
+            # Zero all elements of S1 and s2
+            for a in range(len(self.parsedModel.species)):
+                self.S1[a] = 0.0
+                self.S2[a] = 0.0
 
-                # Zero all elements of S1 and s2
-                for a in range(len(self.parsedModel.species)):
-                    self.S1[a] = 0.0
-                    self.S2[a] = 0.0
+            # Fill non-zero elements of S1, such that S1[k] is the number of molecules of species[k] *consumed* when the
+            # reaction happens once.
+            for j in range(numReactants[i]):
+                self.reactant[j] = self.listOfReactions[i].getReactant(j)
 
-                # Fill non-zero elements of S1, such that S1[k] is the number of molecules of species[k] *consumed* when the
-                # reaction happens once.
-                for j in range(numReactants[i]):
-                    self.reactant[j] = self.listOfReactions[i].getReactant(j)
+                for k in range(len(self.parsedModel.species)):
+                    if self.reactant[j].getSpecies() == self.parsedModel.species[k].getId():
+                        self.S1[k] = self.reactant[j].getStoichiometry()
 
-                    for k in range(len(self.parsedModel.species)):
-                        if self.reactant[j].getSpecies() == self.parsedModel.species[k].getId():
-                            self.S1[k] = self.reactant[j].getStoichiometry()
+            # Fill non-zero elements of S2, such that S2[k] is the number of molecules of species[k] *produced* when the
+            # reaction happens once.
+            for l in range(numProducts[i]):
+                self.product[l] = self.listOfReactions[i].getProduct(l)
 
-                # Fill non-zero elements of S2, such that S2[k] is the number of molecules of species[k] *produced* when the
-                # reaction happens once.
-                for l in range(numProducts[i]):
-                    self.product[l] = self.listOfReactions[i].getProduct(l)
+                for k in range(len(self.parsedModel.species)):
+                    if self.product[l].getSpecies() == self.parsedModel.species[k].getId():
+                        self.S2[k] = self.product[l].getStoichiometry()
 
-                    for k in range(len(self.parsedModel.species)):
-                        if self.product[l].getSpecies() == self.parsedModel.species[k].getId():
-                            self.S2[k] = self.product[l].getStoichiometry()
+            # Construct the row of the stoichiometry matrix corresponding to this reaction by subtracting S1 from S2
+            for m in range(len(self.parsedModel.species)):
+                self.parsedModel.stoichiometricMatrix[m][i] = -self.S1[m] + self.S2[m]
 
-                # Construct the row of the stoichiometry matrix corresponding to this reaction by subtracting S1 from S2
-                for m in range(len(self.parsedModel.species)):
-                    self.parsedModel.stoichiometricMatrix[m][i] = -self.S1[m] + self.S2[m]
+            for n in range(self.numLocalParameters[i]):
+                self.parsedModel.parameter.append(
+                    self.listOfReactions[i].getKineticLaw().getParameter(n).getValue())
+                self.parsedModel.listOfParameter.append(self.listOfReactions[i].getKineticLaw().getParameter(n))
 
-                for n in range(self.numLocalParameters[i]):
-                    self.parsedModel.parameter.append(
-                        self.listOfReactions[i].getKineticLaw().getParameter(n).getValue())
-                    self.parsedModel.listOfParameter.append(self.listOfReactions[i].getKineticLaw().getParameter(n))
+            for n in range(self.comp):
+                compartment_name = self.parameterId[n]
+                new_name = 'compartment' + repr(n + 1)
+                node = self.sbmlModel.getReaction(i).getKineticLaw().getMath()
+                new_node = self.rename(node, compartment_name, new_name)
+                self.parsedModel.kineticLaw[i] = formulaToString(new_node)
 
-                for n in range(self.comp):
-                    compartment_name = self.parameterId[n]
-                    new_name = 'compartment' + repr(n + 1)
-                    node = self.sbmlModel.getReaction(i).getKineticLaw().getMath()
-                    new_node = self.rename(node, compartment_name, new_name)
-                    self.parsedModel.kineticLaw[i] = formulaToString(new_node)
+    def analyseFunctions(self):
+        sbmlListOfFunctions = self.sbmlModel.getListOfFunctionDefinitions()
 
-        def analyseFunctions(self):
-            sbmlListOfFunctions = self.sbmlModel.getListOfFunctionDefinitions()
+        for fun in range(len(sbmlListOfFunctions)):
+            self.parsedModel.listOfFunctions.append(sbmlListOfFunctions[fun])
+            self.parsedModel.functionArgument.append([])
+            self.parsedModel.functionBody.append(
+                formulaToString(self.parsedModel.listOfFunctions[fun].getBody()))
 
-            for fun in range(len(sbmlListOfFunctions)):
-                self.parsedModel.listOfFunctions.append(sbmlListOfFunctions[fun])
-                self.parsedModel.functionArgument.append([])
-                self.parsedModel.functionBody.append(
-                    formulaToString(self.parsedModel.listOfFunctions[fun].getBody()))
+            for funArg in range(self.parsedModel.listOfFunctions[fun].getNumArguments()):
+                self.parsedModel.functionArgument[fun].append(
+                    formulaToString(self.parsedModel.listOfFunctions[fun].getArgument(funArg)))
+                old_name = self.parsedModel.functionArgument[fun][funArg]
+                node = self.parsedModel.listOfFunctions[fun].getBody()
+                new_node = self.rename(node, old_name, "a" + repr(funArg + 1))
+                self.parsedModel.functionBody[fun] = formulaToString(new_node)
+                self.parsedModel.functionArgument[fun][funArg] = "a" + repr(funArg + 1)
 
-                for funArg in range(self.parsedModel.listOfFunctions[fun].getNumArguments()):
-                    self.parsedModel.functionArgument[fun].append(
-                        formulaToString(self.parsedModel.listOfFunctions[fun].getArgument(funArg)))
-                    old_name = self.parsedModel.functionArgument[fun][funArg]
-                    node = self.parsedModel.listOfFunctions[fun].getBody()
-                    new_node = self.rename(node, old_name, "a" + repr(funArg + 1))
-                    self.parsedModel.functionBody[fun] = formulaToString(new_node)
-                    self.parsedModel.functionArgument[fun][funArg] = "a" + repr(funArg + 1)
-
-        def analyseRules(self):
-            self.parsedModel.listOfRules = self.sbmlModel.getListOfRules()
-            for rule in range(len(self.parsedModel.listOfRules)):
-                self.parsedModel.ruleFormula.append(self.parsedModel.listOfRules[rule].getFormula())
-                self.parsedModel.ruleVariable.append(self.parsedModel.listOfRules[rule].getVariable())
+    def analyseRules(self):
+        self.parsedModel.listOfRules = self.sbmlModel.getListOfRules()
+        for rule in range(len(self.parsedModel.listOfRules)):
+            self.parsedModel.ruleFormula.append(self.parsedModel.listOfRules[rule].getFormula())
+            self.parsedModel.ruleVariable.append(self.parsedModel.listOfRules[rule].getVariable())
 
 
-        def analyseEvents(self):
-            self.parsedModel.listOfEvents = self.sbmlModel.getListOfEvents()
-            for event in range(len(self.parsedModel.listOfEvents)):
-                self.parsedModel.eventCondition.append(
-                    formulaToString(self.parsedModel.listOfEvents[event].getTrigger().getMath()))
-                self.listOfAssignmentRules = self.parsedModel.listOfEvents[event].getListOfEventAssignments()
-                self.parsedModel.eventVariable.append([])
-                self.parsedModel.eventFormula.append([])
+    def analyseEvents(self):
+        self.parsedModel.listOfEvents = self.sbmlModel.getListOfEvents()
+        for event in range(len(self.parsedModel.listOfEvents)):
+            self.parsedModel.eventCondition.append(
+                formulaToString(self.parsedModel.listOfEvents[event].getTrigger().getMath()))
+            self.listOfAssignmentRules = self.parsedModel.listOfEvents[event].getListOfEventAssignments()
+            self.parsedModel.eventVariable.append([])
+            self.parsedModel.eventFormula.append([])
 
-                for rule in range(len(self.listOfAssignmentRules)):
-                    self.parsedModel.eventVariable[event].append(self.listOfAssignmentRules[rule].getVariable())
-                    self.parsedModel.eventFormula[event].append(
-                        formulaToString(self.listOfAssignmentRules[rule].getMath()))
+            for rule in range(len(self.listOfAssignmentRules)):
+                self.parsedModel.eventVariable[event].append(self.listOfAssignmentRules[rule].getVariable())
+                self.parsedModel.eventFormula[event].append(
+                    formulaToString(self.listOfAssignmentRules[rule].getMath()))
 
     def renameEverything(self):
 

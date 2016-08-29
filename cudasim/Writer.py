@@ -3,13 +3,8 @@ import re
 
 class Writer:
     def __init__(self, sbmlFileName, modelName="", inputPath="", outputPath=""):
-        self.parsedModel = ParsedModel()
-
-        if modelName == "":
-            self.parsedModel.name = "unnamedModel"
-        else:
-            self.parsedModel.name = modelName
-
+        pass
+    
     # replace the species and parameters recursively
     def rep(string, find, replace):
         ex = find + "[^0-9]"

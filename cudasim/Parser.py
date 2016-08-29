@@ -42,6 +42,10 @@ class Parser:
         self.parse()
 
         self.parsedModel = ParsedModel()
+        if not modelName:
+            self.parsedModel.name = "unnamedModel"
+        else:
+            self.parsedModel.name = modelName
 
 
         def parse(self):

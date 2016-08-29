@@ -1,8 +1,7 @@
-from libsbml import *
-from abcsysbio.relations import *
 import os
 import re
-from cudasim.Writer import Writer
+
+from cudasim.writers.Writer import Writer
 
 
 class OdeCUDAWriter(Writer):

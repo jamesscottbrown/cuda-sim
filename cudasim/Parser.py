@@ -165,6 +165,18 @@ class Parser:
                 new_node = self.rename(node, compartment_name, new_name)
                 self.parsedModel.kineticLaw[i] = formulaToString(new_node)
 
+            # Process local parameters
+            for i in range(len(self.listOfReactions)):
+                for n in range(self.numLocalParameters[i]):
+                    self.parameterId.append(self.listOfReactions[i].getKineticLaw().getParameter(n).getId())
+                    self.parsedModel.parameterId.append("parameter" + repr(len(self.parameterId) - self.comp))
+                    param_name = self.listOfReactions[i].getKineticLaw().getParameter(n).getId()
+                    new_name = 'parameter' + repr(len(self.parameterId) - self.comp)
+                    node = self.sbmlModel.getReaction(i).getKineticLaw().getMath()
+                    new_node = self.rename(node, param_name, new_name)
+                    self.parsedModel.kineticLaw[i] = formulaToString(new_node)
+
+
     def analyseFunctions(self):
         sbmlListOfFunctions = self.sbmlModel.getListOfFunctionDefinitions()
 

@@ -6,8 +6,8 @@ from Writer import Writer
 
 
 class ODEPythonWriter(Writer):
-    def __init__(self, sbmlFileName, modelName="", inputPath="", outputPath=""):
-        Writer.__init__(self, sbmlFileName, modelName, inputPath, outputPath)
+    def __init__(self, parsedModel, outputPath=""):
+        self.parsedModel = parsedModel
         self.out_file = open(os.path.join(outputPath, self.parsedModel.name + ".py"), "w")
         self.rename()
 

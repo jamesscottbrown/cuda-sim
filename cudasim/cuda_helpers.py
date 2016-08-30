@@ -34,7 +34,7 @@ def list_math_function_names(time_symbol):
     mathCuda.append('tan')
     mathCuda.append(time_symbol)
 
-    return (mathCuda, mathPython)
+    return mathCuda, mathPython
 
 
 def rename_math_functions(model, time_symbol):

@@ -9,6 +9,28 @@ class OdeCUDAWriter(Writer):
         Writer.__init__(self, sbmlFileName, modelName, inputPath, outputPath)
         self.out_file = open(os.path.join(outputPath, self.parsedModel.name + ".cu"), "w")
 
+    def rename(self):
+        """
+        This function renames parts of self.parsedModel to meet the specific requirements of this writer.
+        This behaviour replaces the previous approach of subclassing the parser to produce different results depending
+        on the which writer was intended to be used.
+        """
+
+        # Pad single-digit parameter names with a leading zero
+        for i in range(self.comp-1, len(self.parsedModel.parameterId)):
+            old_name = self.parsedModel.parameterId[i]
+            num = old_name[len('parameter'):]
+            if len(num) < 2:
+                self.parsedModel.parameterId[i] = '0' + str(num)
+
+        # Pad single-digit species names with a leading zero
+        for i in range(0, len(self.parsedModel.speciesId)):
+            old_name = self.parsedModel.speciesId[i]
+            num = old_name[len('species'):]
+            if len(num) < 2:
+                self.parsedModel.speciesId[i] = '0' + str(num)
+
+
     def write(self):
         """
         Write the cuda file with DDE functions using the information taken by the parser

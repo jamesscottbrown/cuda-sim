@@ -13,6 +13,29 @@ class CWriter(Writer):
         self.hppOutputFile = open(os.path.join(outputPath, self.parsedModel.name + ".hpp"), "w")
         self.cppOutputFile = open(os.path.join(outputPath, self.parsedModel.name + ".cpp"), "w")
 
+    def rename(self):
+        """
+        This function renames parts of self.parsedModel to meet the specific requirements of this writer.
+        This behaviour replaces the previous approach of subclassing the parser to produce different results depending
+        on the which writer was intended to be used.
+        """
+
+        # Remove any zero-padding from single-digit parameter names
+        # This reverses any change applied by one of the CUDA writers
+        for i in range(self.comp-1, len(self.parsedModel.parameterId)):
+            old_name = self.parsedModel.parameterId[i]
+            num = old_name[len('parameter'):]
+            if len(num) > 1 and num[0] == '0':
+                self.parsedModel.parameterId[i] = str(num[1:])
+
+        # Remove any zero-padding from single-digit species names
+        # This reverses any change applied by one of the CUDA writers
+        for i in range(0, len(self.parsedModel.speciesId)):
+            old_name = self.parsedModel.speciesId[i]
+            num = old_name[len('species'):]
+            if len(num) > 1 and num[0] == '0':
+                self.parsedModel.speciesId[i] = str(num[1:])
+
     def write(self):
         self.writeCheader()
         self.writeCsourceCode()

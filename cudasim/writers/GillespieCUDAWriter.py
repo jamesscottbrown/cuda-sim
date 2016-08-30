@@ -4,7 +4,7 @@ import re
 from numpy import *
 
 from cudasim.writers.Writer import Writer
-
+from cudasim.cuda_helpers import renameMathFunctions
 
 class GillespieCUDAWriter(Writer):
     def __init__(self, sbmlFileName, modelName="", inputPath="", outputPath=""):
@@ -31,6 +31,9 @@ class GillespieCUDAWriter(Writer):
             num = old_name[len('species'):]
             if len(num) < 2:
                 self.parsedModel.speciesId[i] = '0' + str(num)
+
+        (mathCuda, mathPython) = renameMathFunctions()
+        mathCuda.append('t')
 
     def write(self, useMoleculeCounts=False):
 

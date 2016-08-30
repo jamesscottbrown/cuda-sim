@@ -2,7 +2,7 @@ import os
 import re
 
 from cudasim.writers.Writer import Writer
-
+from cudasim.cuda_helpers import renameMathFunctions
 
 class OdeCUDAWriter(Writer):
     def __init__(self, sbmlFileName, modelName="", inputPath="", outputPath=""):
@@ -30,6 +30,8 @@ class OdeCUDAWriter(Writer):
             if len(num) < 2:
                 self.parsedModel.speciesId[i] = '0' + str(num)
 
+        (mathCuda, mathPython) = renameMathFunctions()
+        mathCuda.append('t')
 
     def write(self):
         """

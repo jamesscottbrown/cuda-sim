@@ -30,6 +30,9 @@ class SdeCUDAWriter(Writer):
             if len(num) < 2:
                 self.parsedModel.speciesId[i] = '0' + str(num)
 
+        (mathCuda, mathPython) = renameMathFunctions()
+        mathCuda.append('t')
+
     def write(self, method):
         """
         Write the cuda file with ODE functions using the information taken by the parser

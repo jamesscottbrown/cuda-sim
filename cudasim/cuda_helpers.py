@@ -1,45 +1,13 @@
 import re
 
 
-def list_math_function_names(time_symbol):
-    mathPython = []
-    mathPython.append('log10')
-    mathPython.append('acos')
-    mathPython.append('asin')
-    mathPython.append('atan')
-    mathPython.append('exp')
-    mathPython.append('sqrt')
-    mathPython.append('pow')
-    mathPython.append('log')
-    mathPython.append('sin')
-    mathPython.append('cos')
-    mathPython.append('ceil')
-    mathPython.append('floor')
-    mathPython.append('tan')
-    mathPython.append('time')
-
-    mathCuda = []
-    mathCuda.append('log10')
-    mathCuda.append('acos')
-    mathCuda.append('asin')
-    mathCuda.append('atan')
-    mathCuda.append('exp')
-    mathCuda.append('sqrt')
-    mathCuda.append('mpow')
-    mathCuda.append('log')
-    mathCuda.append('sin')
-    mathCuda.append('cos')
-    mathCuda.append('ceil')
-    mathCuda.append('floor')
-    mathCuda.append('tan')
-    mathCuda.append(time_symbol)
-
-    return mathCuda, mathPython
-
-
 def rename_math_functions(model, time_symbol):
 
-    (mathCuda, mathPython) = list_math_function_names(time_symbol)
+    mathPython = ['log10', 'acos', 'asin', 'atan', 'exp', 'sqrt', 'pow', 'log', 'sin', 'cos', 'ceil', 'floor', 'tan',
+                  'time']
+
+    mathCuda = ['log10', 'acos', 'asin', 'atan', 'exp', 'sqrt', 'mpow', 'log', 'sin', 'cos', 'ceil', 'floor', 'tan',
+                time_symbol]
 
     for nam in range(len(mathPython)):
         for k in range(len(model.kineticLaw)):
@@ -55,7 +23,7 @@ def rename_math_functions(model, time_symbol):
                 model.ruleFormula[k] = s
     
         for k in range(len(model.eventFormula)):
-            for cond in range(len(self.listOfAssignmentRules)):
+            for cond in range(len(model.listOfAssignmentRules)):
                 if re.search(mathPython[nam], model.eventFormula[k][cond]):
                     s = model.eventFormula[k][cond]
                     s = re.sub(mathPython[nam], mathCuda[nam], s)

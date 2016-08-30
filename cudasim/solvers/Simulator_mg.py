@@ -87,8 +87,8 @@ class Simulator_mg(multiprocessing.Process):
                 len(self._initValues[0])) + ") differ from each other!"
             exit()
         elif len(self._parameters) != len(self._initValues):
-            print "Error: Number of sets of parameters (" + str(len(parameters)) + ") and species (" + str(
-                len(initValues)) + ") do not match!"
+            print "Error: Number of sets of parameters (" + str(len(self._parameters)) + ") and species (" + str(
+                len(self._initValues)) + ") do not match!"
             exit()
 
     # method for calculating optimal number of blocks and threads per block

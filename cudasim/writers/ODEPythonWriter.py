@@ -7,6 +7,7 @@ from Writer import Writer
 
 class ODEPythonWriter(Writer):
     def __init__(self, parsedModel, outputPath=""):
+        Writer.__init__(self)
         self.parsedModel = parsedModel
         self.out_file = open(os.path.join(outputPath, self.parsedModel.name + ".py"), "w")
         self.rename()
@@ -20,7 +21,7 @@ class ODEPythonWriter(Writer):
 
         # Remove any zero-padding from single-digit parameter names
         # This reverses any change applied by one of the CUDA writers
-        for i in range(self.comp-1, len(self.parsedModel.parameterId)):
+        for i in range(self.parsedModel.comp-1, len(self.parsedModel.parameterId)):
             old_name = self.parsedModel.parameterId[i]
             num = old_name[len('parameter'):]
             if len(num) > 1 and num[0] == '0':

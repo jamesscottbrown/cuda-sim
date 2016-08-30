@@ -8,6 +8,7 @@ from cudasim.writers.Writer import Writer
 
 class CWriter(Writer):
     def __init__(self, parsedModel, outputPath=""):
+        Writer.__init__(self)
         self.parsedModel = parsedModel
         self.hppOutputFile = open(os.path.join(outputPath, self.parsedModel.name + ".hpp"), "w")
         self.cppOutputFile = open(os.path.join(outputPath, self.parsedModel.name + ".cpp"), "w")

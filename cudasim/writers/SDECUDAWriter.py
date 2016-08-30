@@ -7,6 +7,7 @@ from cudasim.cuda_helpers import rename_math_functions
 
 class SdeCUDAWriter(Writer):
     def __init__(self, parsedModel, outputPath=""):
+        Writer.__init__(self)
         self.parsedModel = parsedModel
         self.out_file = open(os.path.join(outputPath, self.parsedModel.name + ".cu"), "w")
         self.rename()
@@ -19,7 +20,7 @@ class SdeCUDAWriter(Writer):
         """
 
         # Pad single-digit parameter names with a leading zero
-        for i in range(self.comp-1, len(self.parsedModel.parameterId)):
+        for i in range(self.parsedModel.comp-1, len(self.parsedModel.parameterId)):
             old_name = self.parsedModel.parameterId[i]
             num = old_name[len('parameter'):]
             if len(num) < 2:

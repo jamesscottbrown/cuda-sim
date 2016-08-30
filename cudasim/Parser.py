@@ -236,7 +236,7 @@ class Parser:
             self.parsedModel.kineticLaw[k] = formulaToString(new_node)
 
         for k in range(len(self.parsedModel.listOfRules)):
-            node = self.writer.parsedModel.listOfRules[k].getMath()
+            node = self.parsedModel.listOfRules[k].getMath()
             new_node = self.rename(node, old_name, new_name)
             self.parsedModel.ruleFormula[k] = formulaToString(new_node)
             if self.parsedModel.ruleVariable[k] == old_name:

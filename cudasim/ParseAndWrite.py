@@ -1,23 +1,24 @@
-from ODEPythonWriter import ODEPythonWriter
-from GillespiePythonWriter import GillespiePythonWriter
-from SDEPythonWriter import SDEPythonWriter
-from ODECUDAWriter import OdeCUDAWriter
-from SDECUDAWriter import SdeCUDAWriter
-from GillespieCUDAWriter import GillespieCUDAWriter
 # from CWriter import CWriter
 
-from CandPythonParser import CandPythonParser
-from SDEAndGillespieCUDAParser import SdeAndGillespieCUDAParser
-from ODECUDAParser import OdeCUDAParser
 import re
+import sys
+from Parser import Parser
+
+from writers.GillespieCUDAWriter import GillespieCUDAWriter
+from writers.DDECUDAWriter import DDECUDAWriter
+from writers.CWriter import CWriter
+from writers.GillespiePythonWriter import GillespiePythonWriter
+from writers.ODEPythonWriter import ODEPythonWriter
+from writers.SDECUDAWriter import SdeCUDAWriter
+from writers.ODECUDAWriter import OdeCUDAWriter
+from writers.SDEPythonWriter import SDEPythonWriter
 
 
-def ParseAndWrite(source, integrationType, modelName=None, inputPath="", outputPath="", method=None):
+def ParseAndWrite(source, integrationType, modelName=None, inputPath="", outputPath=""):
     """
     ***** args *****
     source:
-                  a list of strings.
-                  Each tuple entry describes a SBML file to be parsed.
+                  a list of names of SBML files to process (each name is a string)
 
     integrationType:
                   a list of strings.
@@ -51,72 +52,43 @@ def ParseAndWrite(source, integrationType, modelName=None, inputPath="", outputP
 
     ode = re.compile('ODE', re.I)
     sde = re.compile('SDE', re.I)
-    heun = re.compile('Heun', re.I)
-    milstein = re.compile('Milstein', re.I)
     gil = re.compile('Gillespie', re.I)
 
     # check that you have appropriate lengths of integration types and sources
     # (need equal lengths)
     if not (len(source) == len(integrationType)):
-        print "\nError: Number of sources is not the same as number of integrationTypes!\n"
+        sys.exit("\nError: Number of sources is not the same as number of integrationTypes!\n")
     # check that you have model names,
     # if not the models will be named model1, model2, etc
+    if modelName is None:
+        modelName = []
+        for x in range(len(source)):
+            modelName.append("model" + repr(x + 1))
     else:
-        if modelName is None:
-            modelName = []
-            for x in range(len(source)):
-                modelName.append("model" + repr(x + 1))
-        else:
-            for x in range(len(modelName)):
-                if modelName[x] == "":
-                    modelName[x] = "model" + repr(x + 1)
+        for x in range(len(modelName)):
+            if modelName[x] == "":
+                modelName[x] = "model" + repr(x + 1)
 
-        # if no method is specified and the integrationType is "SDE"
-        # the method type defaults to 1
-        for model in range(len(source)):
-            if cuda.search(integrationType[model]):
-                if not (sde.search(integrationType[model]) or gil.search(integrationType[model]) or ode.search(
-                        integrationType[model])):
-                    print "\nError: an integration type is required for CUDA"
-                elif sde.search(integrationType[model]):
-                    if heun.search(integrationType[model]) or milstein.search(integrationType[model]):
-                        print "\nError: Only Euler is available in Cuda"
-                    else:
-                        if method is None or method[model] == "":
-                            parser = SdeAndGillespieCUDAParser(source[model], modelName[model], "CUDA SDE", 1,
-                                                               inputPath, outputPath)
-                        else:
-                            parser = SdeAndGillespieCUDAParser(source[model], modelName[model], "CUDA SDE",
-                                                               method[model], inputPath, outputPath)
-                elif gil.search(integrationType[model]):
-                    parser = SdeAndGillespieCUDAParser(source[model], modelName[model], integrationType[model], None,
-                                                       inputPath, outputPath)
-                else:
-                    parser = OdeCUDAParser(source[model], modelName[model], integrationType[model], None, inputPath,
-                                           outputPath)
+    for model in range(len(source)):
 
-            elif c.search(integrationType[model]):
-                if sde.search(integrationType[model]):
-                    if not (method is None or method == 1):
-                        print "\nError: Only the method 1 of SDE resolution can be used in C"
-                    else:
-                        parser = CandPythonParser(source[model], modelName[model], "C", None, inputPath, outputPath)
-                else:
-                    parser = CandPythonParser(source[model], modelName[model], "C", None, inputPath, outputPath)
+        parsed_model = Parser(source[model], modelName[model], inputPath)
+        if cuda.search(integrationType[model]):
+            if sde.search(integrationType[model]):
+                writer = SdeCUDAWriter(parsed_model, outputPath)
+            elif gil.search(integrationType[model]):
+                writer = GillespieCUDAWriter(parsed_model, outputPath)
+            else:
+                writer = OdeCUDAWriter(parsed_model, outputPath)
 
-            elif py.search(integrationType[model]):
-                if integrationType is None:
-                    print "\nError: an integration type is required for Python"
-                elif sde.search(integrationType[model]):
-                    if heun.search(integrationType[model]) or milstein.search(integrationType[model]):
-                        print "\nError: Only Euler is available in Python"
-                    else:
-                        if method is None or method[model] == "":
-                            parser = CandPythonParser(source[model], modelName[model], "Python SDE", 1, inputPath,
-                                                      outputPath)
-                        else:
-                            parser = CandPythonParser(source[model], modelName[model], "Python SDE", method[model],
-                                                      inputPath, outputPath)
-                else:
-                    parser = CandPythonParser(source[model], modelName[model], integrationType[model], None, inputPath,
-                                              outputPath)
+        elif c.search(integrationType[model]):
+                writer = CWriter(parsed_model, outputPath)
+
+        elif py.search(integrationType[model]):
+            if sde.search(integrationType[model]):
+                writer = SDEPythonWriter(parsed_model, outputPath)
+            elif gil.search(integrationType[model]):
+                writer = GillespiePythonWriter(parsed_model, outputPath)
+            else:
+                writer = ODEPythonWriter(parsed_model, outputPath)
+
+        writer.write()

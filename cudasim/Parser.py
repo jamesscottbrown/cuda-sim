@@ -22,8 +22,8 @@ class Parser:
         dde = re.compile('DDE')
 
         reader = SBMLReader()
-        document = reader.readSBML(inputPath + sbmlFileName)
-        self.sbmlModel = document.getModel()
+        self.document = reader.readSBML(inputPath + sbmlFileName)
+        self.sbmlModel = self.document.getModel()
 
         self.parameterId = []
 

@@ -5,6 +5,7 @@ import os
 from abcsysbio.relations import *
 from ParsedModel import ParsedModel
 
+
 class Parser:
 
     def __init__(self, sbmlFileName, modelName, inputPath=""):
@@ -83,14 +84,17 @@ class Parser:
             self.parsedModel.listOfParameter.append(self.sbmlModel.getCompartment(i))
 
     def getGlobalParameters(self):
-        # Differs between CUDA and Python/C
+        # The entries of parsedModel.parameterId are modified by the writers,
+        # to add or remove padding zeros
         for i in range(self.parsedModel.numGlobalParameters):
             self.parameterId.append(self.sbmlModel.getParameter(i).getId())
             self.parsedModel.parameter.append(self.sbmlModel.getParameter(i).getValue())
             self.parsedModel.listOfParameter.append(self.sbmlModel.getParameter(i))
 
     def getSpecies(self):
-        # Differs between CUDA and Python/C
+        # The entries of parsedModel.speciesId are modified by the writers,
+        # to add or remove padding zeros
+
         self.listOfSpecies = self.sbmlModel.getListOfSpecies()
 
         for k in range(len(self.listOfSpecies)):

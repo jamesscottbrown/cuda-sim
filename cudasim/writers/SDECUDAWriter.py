@@ -39,7 +39,7 @@ class SdeCUDAWriter(Writer):
 
         rename_math_functions(self, 't')
 
-    def write(self, method):
+    def write(self):
         """
         Write the cuda file with ODE functions using the information taken by the parser
         """

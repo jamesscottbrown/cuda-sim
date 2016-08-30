@@ -1,7 +1,7 @@
 import os
 import re
 
-from abcsysbio.relations import *
+from cudasim.relations import *
 
 from cudasim.writers.Writer import Writer
 

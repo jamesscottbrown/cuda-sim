@@ -1,5 +1,5 @@
 from libsbml import *
-from abcsysbio.relations import *
+from cudasim.relations import *
 import os
 import re
 import sys
@@ -48,7 +48,7 @@ class GillespiePythonWriter(Writer):
 
         p = re.compile('\s')
 
-        self.out_file.write("from abcsysbio.relations import *\n\n#Functions\n")
+        self.out_file.write("from cudasim.relations import *\n\n#Functions\n")
 
         for i in range(len(self.parsedModel.listOfFunctions)):
             self.out_file.write("def ")

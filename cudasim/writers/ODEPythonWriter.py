@@ -1,7 +1,7 @@
 import os
 import re
 from libsbml import *
-from abcsysbio.relations import *
+from cudasim.relations import *
 from Writer import Writer
 
 
@@ -42,7 +42,7 @@ class ODEPythonWriter(Writer):
     def write(self):
         p = re.compile('\s')
         # Import the necessaries
-        self.out_file.write("from math import *\nfrom numpy import *\nfrom abcsysbio.relations import *\n\n")
+        self.out_file.write("from math import *\nfrom numpy import *\nfrom cudasim.relations import *\n\n")
         # The user-defined functions used in the model must be written in the file
 
         for i in range(len(self.parser.parsedModel.listOfFunctions)):

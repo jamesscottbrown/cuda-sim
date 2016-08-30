@@ -2,7 +2,7 @@ from numpy import *
 from libsbml import *
 import re
 import os
-from abcsysbio.relations import *
+from cudasim.relations import *
 from ParsedModel import ParsedModel
 
 

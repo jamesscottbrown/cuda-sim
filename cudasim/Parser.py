@@ -54,6 +54,18 @@ class Parser:
         self.getCompartmentVolume()
         self.get_delays()
 
+        # TODO: check ordering of these is ok
+        self.getGlobalParameters()
+        self.getSpecies()
+        self.analyseModelStructure()
+        self.analyseFunctions()
+        self.analyseRules()
+        self.analyseEvents()
+        # self.renameMathFunctions()
+        self.renameEverything()
+        # self.writer.parsedModel.numGlobalParameters += 1 # in CUDA parer only, WTF?
+
+
     def getBasicModelProperties(self):
         self.parsedModel.numSpecies = self.sbmlModel.getNumSpecies()
         self.parsedModel.numReactions = self.sbmlModel.getNumReactions()

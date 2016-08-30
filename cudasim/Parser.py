@@ -229,31 +229,34 @@ class Parser:
             for i in range(len(NAMES[nam][0])):
                 old_name = NAMES[nam][0][i]
                 new_name = NAMES[nam][1][i]
+                self.rename_everywhere(old_name, new_name)
 
-                for k in range(self.parsedModel.numReactions):
-                    node = self.sbmlModel.getReaction(k).getKineticLaw().getMath()
-                    new_node = self.rename(node, old_name, new_name)
-                    self.parsedModel.kineticLaw[k] = formulaToString(new_node)
+    def rename_everywhere(self, old_name, new_name):
 
-                for k in range(len(self.parsedModel.listOfRules)):
-                    node = self.parsedModel.listOfRules[k].getMath()
-                    new_node = self.rename(node, old_name, new_name)
-                    self.parsedModel.ruleFormula[k] = formulaToString(new_node)
-                    if self.parsedModel.ruleVariable[k] == old_name:
-                        self.parsedModel.ruleVariable[k] = new_name
+        for k in range(self.parsedModel.numReactions):
+            node = self.sbmlModel.getReaction(k).getKineticLaw().getMath()
+            new_node = self.rename(node, old_name, new_name)
+            self.parsedModel.kineticLaw[k] = formulaToString(new_node)
 
-                for k in range(len(self.parsedModel.listOfEvents)):
-                    node = self.parsedModel.listOfEvents[k].getTrigger().getMath()
-                    new_node = self.rename(node, old_name, new_name)
-                    self.parsedModel.eventCondition[k] = formulaToString(new_node)
-                    self.listOfAssignmentRules = self.parsedModel.listOfEvents[k].getListOfEventAssignments()
+        for k in range(len(self.parsedModel.listOfRules)):
+            node = self.writer.parsedModel.listOfRules[k].getMath()
+            new_node = self.rename(node, old_name, new_name)
+            self.parsedModel.ruleFormula[k] = formulaToString(new_node)
+            if self.parsedModel.ruleVariable[k] == old_name:
+                self.parsedModel.ruleVariable[k] = new_name
 
-                    for cond in range(len(self.listOfAssignmentRules)):
-                        node = self.listOfAssignmentRules[cond].getMath()
-                        new_node = self.rename(node, old_name, new_name)
-                        self.parsedModel.eventFormula[k][cond] = formulaToString(new_node)
-                        if self.parsedModel.eventVariable[k][cond] == old_name:
-                            self.parsedModel.eventVariable[k][cond] = new_name
+        for k in range(len(self.parsedModel.listOfEvents)):
+            node = self.parsedModel.listOfEvents[k].getTrigger().getMath()
+            new_node = self.rename(node, old_name, new_name)
+            self.parsedModel.eventCondition[k] = formulaToString(new_node)
+            self.listOfAssignmentRules = self.parsedModel.listOfEvents[k].getListOfEventAssignments()
+
+            for cond in range(len(self.listOfAssignmentRules)):
+                node = self.listOfAssignmentRules[cond].getMath()
+                new_node = self.rename(node, old_name, new_name)
+                self.parsedModel.eventFormula[k][cond] = formulaToString(new_node)
+                if self.parsedModel.eventVariable[k][cond] == old_name:
+                    self.parsedModel.eventVariable[k][cond] = new_name
 
     def rename(self, node, old_name, new_name):
         typ = node.getType()

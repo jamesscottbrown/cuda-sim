@@ -41,6 +41,8 @@ class Parser:
 
         self.comp = 0
 
+        self.name = modelName
+
         self.parsedModel = ParsedModel()
         if not modelName:
             self.parsedModel.name = "unnamedModel"
@@ -90,6 +92,7 @@ class Parser:
         for i in range(self.parsedModel.numGlobalParameters):
             self.parameterId.append(self.sbmlModel.getParameter(i).getId())
             self.parsedModel.parameter.append(self.sbmlModel.getParameter(i).getValue())
+            self.parsedModel.parameterId.append("parameter" + repr(i + 1))
             self.parsedModel.listOfParameter.append(self.sbmlModel.getParameter(i))
 
     def getSpecies(self):
@@ -101,6 +104,7 @@ class Parser:
         for k in range(len(self.listOfSpecies)):
             self.parsedModel.species.append(self.listOfSpecies[k])
             self.speciesId.append(self.listOfSpecies[k].getId())
+            self.parsedModel.speciesId.append("species" + repr(k + 1))
 
             self.S1.append(0.0)
             self.S2.append(0.0)

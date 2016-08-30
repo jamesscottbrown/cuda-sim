@@ -62,6 +62,7 @@ class Parser:
         self.getGlobalParameters()
         self.getSpecies()
         self.analyseModelStructure()
+        self.get_species_compartments()
         self.analyseFunctions()
         self.analyseRules()
         self.analyseEvents()

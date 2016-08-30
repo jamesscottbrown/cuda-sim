@@ -4,6 +4,7 @@ import re
 from cudasim.writers.Writer import Writer
 from cudasim.cuda_helpers import rename_math_functions
 
+
 class OdeCUDAWriter(Writer):
     def __init__(self, parsedModel, outputPath=""):
         self.parsedModel = parsedModel
@@ -65,16 +66,14 @@ class OdeCUDAWriter(Writer):
             self.out_file.write("#define eq(a,b) a==b\n")
             self.out_file.write("#define and_(a,b) a&&b\n")
             self.out_file.write("#define or_(a,b) a||b\n")
-    
-    
+
         # An expression of the form pow((function of state), (parameter), causes a function call with signature "pow(<double, float>)",
         # an illegal call to the __host__ function std::pow from the __device__ function. To avoid this, we create wrapper functions
         # that cast the float to a double then call pow(<double>,<double>), a __device__ function.
     
         self.out_file.write("float __device__ pow(double i, float j){ return pow(i, (double) j); }")
         self.out_file.write("float __device__ pow(float i, double j){ return pow((double) i, j); }")
-    
-    
+
         for i in range(0, len(self.parsedModel.listOfFunctions)):
             self.out_file.write("__device__ double " + self.parsedModel.listOfFunctions[i].getId() + "(")
             for j in range(0, self.parsedModel.listOfFunctions[i].getNumArguments()):
@@ -88,8 +87,7 @@ class OdeCUDAWriter(Writer):
     
         self.out_file.write(
             "struct myFex{\n    __device__ void operator()(int *neq, double *t, double *y, double *ydot/*, void *otherData*/)\n    {\n        int tid = blockDim.x * blockIdx.x + threadIdx.x;\n")
-    
-    
+
         # write rules and events
         for i in range(0, len(self.parsedModel.listOfRules)):
             if self.parsedModel.listOfRules[i].isRate():

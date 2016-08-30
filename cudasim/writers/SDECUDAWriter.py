@@ -4,6 +4,7 @@ import re
 from cudasim.writers.Writer import Writer
 from cudasim.cuda_helpers import rename_math_functions
 
+
 class SdeCUDAWriter(Writer):
     def __init__(self, parsedModel, outputPath=""):
         self.parsedModel = parsedModel
@@ -568,4 +569,3 @@ class SdeCUDAWriter(Writer):
                 self.out_file.write("    y[" + repr(i) + "] += d_y" + repr(i) + ";\n")
     
         self.out_file.write("}\n")
-    

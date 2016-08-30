@@ -6,6 +6,7 @@ from numpy import *
 from cudasim.writers.Writer import Writer
 from cudasim.cuda_helpers import rename_math_functions
 
+
 class GillespieCUDAWriter(Writer):
     def __init__(self, parsedModel, outputPath=""):
         self.parsedModel = parsedModel
@@ -100,7 +101,7 @@ class GillespieCUDAWriter(Writer):
     
             for i in range(0, numSpecies):
                 volumeString = "tex2D(param_tex," + repr(self.parsedModel.speciesCompartmentList[i]) + ",tid)"
-                self.out_file.write( "y[%s] = yCounts[%s] / (6.022E23 * %s);\n" % (i, i, volumeString) )
+                self.out_file.write("y[%s] = yCounts[%s] / (6.022E23 * %s);\n" % (i, i, volumeString))
     
         # write rules and events
         for i in range(0, len(self.parsedModel.listOfRules)):

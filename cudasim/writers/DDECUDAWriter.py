@@ -4,7 +4,8 @@ import re
 from cudasim.writers.Writer import Writer
 from cudasim.cuda_helpers import rename_math_functions
 
-class OdeCUDAWriter(Writer):
+
+class DDECUDAWriter(Writer):
     def __init__(self, parsedModel, outputPath=""):
         self.parsedModel = parsedModel
         self.out_file = open(os.path.join(outputPath, self.parsedModel.name + ".cu"), "w")

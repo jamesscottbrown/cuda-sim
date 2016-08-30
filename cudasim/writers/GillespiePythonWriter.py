@@ -6,7 +6,7 @@ from Writer import Writer
 
 
 class GillespiePythonWriter(Writer):
-    def __init__(self,parsedModel, outputPath=""):
+    def __init__(self, parsedModel, outputPath=""):
         self.parsedModel = parsedModel
         self.out_file = open(os.path.join(outputPath, self.parsedModel.name + ".py"), "w")
         self.rename()

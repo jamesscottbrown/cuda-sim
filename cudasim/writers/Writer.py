@@ -1,7 +1,11 @@
 from cudasim.ParsedModel import ParsedModel
 import re
 
+
 class Writer:
+
+    def __init__(self):
+        pass
 
     # replace the species and parameters recursively
     def rep(self, string, find, replace):
@@ -16,7 +20,6 @@ class Writer:
             string = string[0:res.start()] + replace + " " + string[res.end():]
 
         return string
-
 
     def mathMLConditionParserCuda(self, mathMLstring):
         """

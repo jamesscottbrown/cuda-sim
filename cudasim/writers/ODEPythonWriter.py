@@ -38,7 +38,6 @@ class ODEPythonWriter(Writer):
                 self.parsedModel.speciesId[i] = new_name
                 self.parsedModel.rename_everywhere(old_name, new_name)
 
-
     def write(self):
         p = re.compile('\s')
         # Import the necessaries
@@ -95,7 +94,6 @@ class ODEPythonWriter(Writer):
             if not dontPrint:
                 self.out_file.write("\t" + self.parsedModel.parameterId[i] + "=parameter[" + repr(counter) + "]\n")
                 counter += 1
-
 
         self.out_file.write("\n")
 

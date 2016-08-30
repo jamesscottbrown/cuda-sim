@@ -40,7 +40,6 @@ class Gillespie(sim.Simulator):
         self._speciesCompartment = speciesCompartment
         sim.Simulator.__init__(self, timepoints, stepCode, beta=beta, dt=dt, dump=dump)
 
-
     def _compile(self, application_code):
 
         mt_cu = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'MersenneTwister.cu')

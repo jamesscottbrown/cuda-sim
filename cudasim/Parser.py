@@ -175,7 +175,6 @@ class Parser:
                 new_node = self.rename(node, param_name, new_name)
                 self.parsedModel.kineticLaw[i] = formulaToString(new_node)
 
-
     def analyseFunctions(self):
         sbmlListOfFunctions = self.sbmlModel.getListOfFunctionDefinitions()
 
@@ -199,7 +198,6 @@ class Parser:
         for rule in range(len(self.parsedModel.listOfRules)):
             self.parsedModel.ruleFormula.append(self.parsedModel.listOfRules[rule].getFormula())
             self.parsedModel.ruleVariable.append(self.parsedModel.listOfRules[rule].getVariable())
-
 
     def analyseEvents(self):
         self.parsedModel.listOfEvents = self.sbmlModel.getListOfEvents()

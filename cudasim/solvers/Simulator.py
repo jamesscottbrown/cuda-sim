@@ -7,6 +7,7 @@ import pycuda.driver as driver
 import pycuda.tools as tools
 import pycuda.autoinit
 
+
 class Simulator:
     # constant private variables
     _MAXBLOCKSPERDEVICE = 500

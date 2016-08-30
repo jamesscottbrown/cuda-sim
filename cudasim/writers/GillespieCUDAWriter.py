@@ -1,9 +1,9 @@
-from libsbml import *
-from numpy import *
-from cudasim.relations import *
 import os
 import re
-from cudasim.Writer import Writer
+
+from numpy import *
+
+from cudasim.writers.Writer import Writer
 
 
 class GillespieCUDAWriter(Writer):

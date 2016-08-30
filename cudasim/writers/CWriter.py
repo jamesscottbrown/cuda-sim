@@ -1,8 +1,9 @@
-from libsbml import *
-from abcsysbio.relations import *
-from cudasim.Writer import Writer
 import os
 import re
+
+from abcsysbio.relations import *
+
+from cudasim.writers.Writer import Writer
 
 
 class CWriter(Writer):

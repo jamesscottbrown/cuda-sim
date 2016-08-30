@@ -78,11 +78,11 @@ class OdeCUDAWriter(Writer):
         for i in range(0, len(self.parser.parsedModel.listOfFunctions)):
             self.out_file.write("__device__ double " + self.parser.parsedModel.listOfFunctions[i].getId() + "(")
             for j in range(0, self.parser.parsedModel.listOfFunctions[i].getNumArguments()):
-                self.out_file.write("double " + self.parser.parsedModel.FunctionArgument[i][j])
+                self.out_file.write("double " + self.parser.parsedModel.functionArgument[i][j])
                 if j < (self.parser.parsedModel.listOfFunctions[i].getNumArguments() - 1):
                     self.out_file.write(",")
             self.out_file.write("){\n    return ")
-            self.out_file.write(self.parser.parsedModel.FunctionBody[i])
+            self.out_file.write(self.parser.parsedModel.functionBody[i])
             self.out_file.write(";\n}\n")
             self.out_file.write("\n")
     
@@ -107,8 +107,8 @@ class OdeCUDAWriter(Writer):
                 for q in range(0, len(self.parser.parsedModel.parameterId)):
                     if not (self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.ruleVariable):
                         flag = False
-                        for r in range(0, len(self.parser.parsedModel.EventVariable)):
-                            if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.EventVariable[r]:
+                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                            if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
                             pq = re.compile(self.parser.parsedModel.parameterId[q])
@@ -124,10 +124,10 @@ class OdeCUDAWriter(Writer):
             listOfAssignmentRules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
             for j in range(0, len(listOfAssignmentRules)):
                 self.out_file.write("        ")
-                if not (self.parser.parsedModel.EventVariable[i][j] in self.parser.parsedModel.speciesId):
-                    self.out_file.write(self.parser.parsedModel.EventVariable[i][j])
+                if not (self.parser.parsedModel.eventVariable[i][j] in self.parser.parsedModel.speciesId):
+                    self.out_file.write(self.parser.parsedModel.eventVariable[i][j])
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(self.parser.parsedModel.EventVariable[i][j])) + "]"
+                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(self.parser.parsedModel.eventVariable[i][j])) + "]"
                     self.out_file.write(string)
                 self.out_file.write("=")
     
@@ -137,8 +137,8 @@ class OdeCUDAWriter(Writer):
                 for q in range(0, len(self.parser.parsedModel.parameterId)):
                     if not (self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.ruleVariable):
                         flag = False
-                        for r in range(0, len(self.parser.parsedModel.EventVariable)):
-                            if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.EventVariable[r]:
+                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                            if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
                             string = self.rep(string, self.parser.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
@@ -166,8 +166,8 @@ class OdeCUDAWriter(Writer):
                 for q in range(0, len(self.parser.parsedModel.parameterId)):
                     if not (self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.ruleVariable):
                         flag = False
-                        for r in range(0, len(self.parser.parsedModel.EventVariable)):
-                            if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.EventVariable[r]:
+                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                            if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
                             string = self.rep(string, self.parser.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
@@ -199,8 +199,8 @@ class OdeCUDAWriter(Writer):
                         for q in range(0, len(self.parser.parsedModel.parameterId)):
                             if not (self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.ruleVariable):
                                 flag = False
-                                for r in range(0, len(self.parser.parsedModel.EventVariable)):
-                                    if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.EventVariable[r]:
+                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                                    if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
                                     string = self.rep(string, self.parser.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
@@ -218,8 +218,8 @@ class OdeCUDAWriter(Writer):
                         if self.parser.parsedModel.listOfParameter[j].getId() == mySpeciesCompartment:
                             if not (self.parser.parsedModel.parameterId[j] in self.parser.parsedModel.ruleVariable):
                                 flag = False
-                                for r in range(0, len(self.parser.parsedModel.EventVariable)):
-                                    if self.parser.parsedModel.parameterId[j] in self.parser.parsedModel.EventVariable[r]:
+                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                                    if self.parser.parsedModel.parameterId[j] in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
                                     self.out_file.write("tex2D(param_tex," + repr(j) + ",tid)" + ";")

@@ -21,14 +21,16 @@ class OdeCUDAWriter(Writer):
             old_name = self.parsedModel.parameterId[i]
             num = old_name[len('parameter'):]
             if len(num) < 2:
-                self.parsedModel.parameterId[i] = '0' + str(num)
+                new_name = 'parameter' + '0' + str(num)
+                self.parsedModel.parameterId[i] = new_name
 
         # Pad single-digit species names with a leading zero
         for i in range(0, len(self.parsedModel.speciesId)):
             old_name = self.parsedModel.speciesId[i]
             num = old_name[len('species'):]
             if len(num) < 2:
-                self.parsedModel.speciesId[i] = '0' + str(num)
+                new_name = 'species' + '0' + str(num)
+                self.parsedModel.speciesId[i] = new_name
 
         (mathCuda, mathPython) = renameMathFunctions()
         mathCuda.append('t[0]')

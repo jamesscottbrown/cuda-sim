@@ -26,7 +26,8 @@ class CWriter(Writer):
             old_name = self.parsedModel.parameterId[i]
             num = old_name[len('parameter'):]
             if len(num) > 1 and num[0] == '0':
-                self.parsedModel.parameterId[i] = str(num[1:])
+                new_name = 'parameter' + str(num[1:])
+                self.parsedModel.parameterId[i] = new_name
 
         # Remove any zero-padding from single-digit species names
         # This reverses any change applied by one of the CUDA writers
@@ -34,7 +35,8 @@ class CWriter(Writer):
             old_name = self.parsedModel.speciesId[i]
             num = old_name[len('species'):]
             if len(num) > 1 and num[0] == '0':
-                self.parsedModel.speciesId[i] = str(num[1:])
+                new_name = 'species' + str(num[1:])
+                self.parsedModel.speciesId[i] = new_name
 
     def write(self):
         self.writeCheader()

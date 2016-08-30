@@ -40,7 +40,7 @@ class SDEPythonWriter(Writer):
                 self.parser.parsedModel.speciesId[i] = new_name
                 self.parser.parsedModel.rename_everywhere(old_name, new_name)
 
-    def write(self, method):
+    def write(self, method=1):
         p = re.compile('\s')
         self.out_file.write("from math import sqrt\nfrom numpy import random\nfrom cudasim.relations import *\n\n")
 

@@ -8,6 +8,7 @@ class SdeCUDAWriter(Writer):
     def __init__(self, sbmlFileName, modelName="", inputPath="", outputPath=""):
         Writer.__init__(self, sbmlFileName, modelName, inputPath, outputPath)
         self.out_file = open(os.path.join(outputPath, self.parsedModel.name + ".cu"), "w")
+        self.rename()
 
     def rename(self):
         """

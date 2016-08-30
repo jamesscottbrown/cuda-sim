@@ -12,6 +12,7 @@ class CWriter(Writer):
 
         self.hppOutputFile = open(os.path.join(outputPath, self.parsedModel.name + ".hpp"), "w")
         self.cppOutputFile = open(os.path.join(outputPath, self.parsedModel.name + ".cpp"), "w")
+        self.rename()
 
     def rename(self):
         """

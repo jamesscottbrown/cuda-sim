@@ -37,7 +37,7 @@ class OdeCUDAWriter(Writer):
                 self.parser.parsedModel.speciesId[i] = new_name
                 self.parser.rename_everywhere(old_name, new_name)
 
-        rename_math_functions(self, 't[0]')
+        rename_math_functions(self.parser.parsedModel, 't[0]')
 
     def write(self):
         """

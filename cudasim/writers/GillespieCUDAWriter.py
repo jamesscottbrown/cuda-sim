@@ -39,7 +39,7 @@ class GillespieCUDAWriter(Writer):
                 self.parser.parsedModel.speciesId[i] = new_name
                 self.parser.rename_everywhere(old_name, new_name)
 
-        rename_math_functions(self, 't')
+        rename_math_functions(self.parser.parsedModel, 't')
 
     def write(self, useMoleculeCounts=False):
 

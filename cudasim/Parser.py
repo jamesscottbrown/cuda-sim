@@ -40,13 +40,14 @@ class Parser:
         self.numLocalParameters = []  # Used by the child
 
         self.comp = 0
-        self.parse()
 
         self.parsedModel = ParsedModel()
         if not modelName:
             self.parsedModel.name = "unnamedModel"
         else:
             self.parsedModel.name = modelName
+
+        self.parse()
 
     def parse(self):
         self.getBasicModelProperties()

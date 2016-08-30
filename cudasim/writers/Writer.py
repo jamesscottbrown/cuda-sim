@@ -4,7 +4,7 @@ import re
 class Writer:
 
     # replace the species and parameters recursively
-    def rep(string, find, replace):
+    def rep(self, string, find, replace):
         ex = find + "[^0-9]"
         while re.search(ex, string) is not None:
             res = re.search(ex, string)

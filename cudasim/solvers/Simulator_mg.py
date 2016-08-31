@@ -269,13 +269,13 @@ def create_2D_array(mat):
 # Copy 2D host numpy array to 2D
 # GPU array object
 def copy2D_host_to_array(arr, host, width, height):
-    copy = driver.Memcpy2D()
-    copy.set_src_host(host)
-    copy.set_dst_array(arr)
-    copy.height = height
-    copy.width_in_bytes = copy.src_pitch = width
-    copy.height = height
-    copy(aligned=True)
+    c = driver.Memcpy2D()
+    c.set_src_host(host)
+    c.set_dst_array(arr)
+    c.height = height
+    c.width_in_bytes = copy.src_pitch = width
+    c.height = height
+    c(aligned=True)
 
 
 # Determine maximum number of threads per MP

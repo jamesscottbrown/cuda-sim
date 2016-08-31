@@ -238,7 +238,10 @@ class Gillespie(sim.Simulator):
 
         return result
 
-    def _compile_mt_code(self, code, mt_cu, options=[]):
+    def _compile_mt_code(self, code, mt_cu, options=False):
+
+        if not options:
+            options = []
 
         f = open(mt_cu, 'r')
         _code_ = f.read() + code

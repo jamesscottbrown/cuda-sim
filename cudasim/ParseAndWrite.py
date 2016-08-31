@@ -4,17 +4,17 @@ import re
 import sys
 from Parser import Parser
 
-from writers.GillespieCUDAWriter import GillespieCUDAWriter
-from writers.DDECUDAWriter import DDECUDAWriter
-from writers.CWriter import CWriter
-from writers.GillespiePythonWriter import GillespiePythonWriter
-from writers.ODEPythonWriter import ODEPythonWriter
-from writers.SDECUDAWriter import SdeCUDAWriter
-from writers.ODECUDAWriter import OdeCUDAWriter
-from writers.SDEPythonWriter import SDEPythonWriter
+from cudasim.writers.GillespieCUDAWriter import GillespieCUDAWriter
+from cudasim.writers.DDECUDAWriter import DDECUDAWriter
+from cudasim.writers.CWriter import CWriter
+from cudasim.writers.GillespiePythonWriter import GillespiePythonWriter
+from cudasim.writers.ODEPythonWriter import ODEPythonWriter
+from cudasim.writers.SDECUDAWriter import SdeCUDAWriter
+from cudasim.writers.ODECUDAWriter import OdeCUDAWriter
+from cudasim.writers.SDEPythonWriter import SDEPythonWriter
 
 
-def ParseAndWrite(source, integrationType, modelName=None, inputPath="", outputPath=""):
+def ParseAndWrite(source, integrationType, model_name=None, inputPath="", outputPath=""):
     """
     ***** args *****
     source:
@@ -50,7 +50,6 @@ def ParseAndWrite(source, integrationType, modelName=None, inputPath="", outputP
     py = re.compile('Python', re.I)
     cuda = re.compile('CUDA', re.I)
 
-    ode = re.compile('ODE', re.I)
     sde = re.compile('SDE', re.I)
     gil = re.compile('Gillespie', re.I)
 
@@ -60,18 +59,19 @@ def ParseAndWrite(source, integrationType, modelName=None, inputPath="", outputP
         sys.exit("\nError: Number of sources is not the same as number of integrationTypes!\n")
     # check that you have model names,
     # if not the models will be named model1, model2, etc
-    if modelName is None:
-        modelName = []
+    if model_name is None:
+        model_name = []
         for x in range(len(source)):
-            modelName.append("model" + repr(x + 1))
+            model_name.append("model" + repr(x + 1))
     else:
-        for x in range(len(modelName)):
-            if modelName[x] == "":
-                modelName[x] = "model" + repr(x + 1)
+        for x in range(len(model_name)):
+            if model_name[x] == "":
+                model_name[x] = "model" + repr(x + 1)
 
     for model in range(len(source)):
 
-        parsed_model = Parser(source[model], modelName[model], inputPath)
+        parsed_model = Parser(source[model], model_name[model], inputPath)
+        writer = False
         if cuda.search(integrationType[model]):
             if sde.search(integrationType[model]):
                 writer = SdeCUDAWriter(parsed_model, outputPath)
@@ -91,4 +91,5 @@ def ParseAndWrite(source, integrationType, modelName=None, inputPath="", outputP
             else:
                 writer = ODEPythonWriter(parsed_model, outputPath)
 
-        writer.write()
+        if writer:
+            writer.write()

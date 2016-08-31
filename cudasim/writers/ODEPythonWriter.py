@@ -1,5 +1,4 @@
 import os
-import re
 from libsbml import *
 from cudasim.relations import *
 from Writer import Writer

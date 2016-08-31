@@ -1,8 +1,5 @@
 import os
-import re
-
 from cudasim.relations import *
-
 from cudasim.writers.Writer import Writer
 
 

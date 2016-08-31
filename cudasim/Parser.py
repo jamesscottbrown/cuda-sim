@@ -1,7 +1,5 @@
 from numpy import *
 from libsbml import *
-import re
-import os
 from cudasim.relations import *
 from ParsedModel import ParsedModel
 
@@ -70,7 +68,6 @@ class Parser:
         self.renameEverything()
         # self.writer.parsedModel.numGlobalParameters += 1 # in CUDA parer only, WTF?
 
-
     def getBasicModelProperties(self):
         self.parsedModel.numSpecies = self.sbmlModel.getNumSpecies()
         self.parsedModel.numReactions = self.sbmlModel.getNumReactions()
@@ -78,13 +75,13 @@ class Parser:
 
     def getCompartmentVolume(self):
         # Add compartment volumes to lists of parameters
-        listOfCompartments = self.sbmlModel.getListOfCompartments()
+        list_of_compartments = self.sbmlModel.getListOfCompartments()
 
-        for i in range(len(listOfCompartments)):
+        for i in range(len(list_of_compartments)):
             self.comp += 1
-            self.parameterId.append(listOfCompartments[i].getId())
+            self.parameterId.append(list_of_compartments[i].getId())
             self.parsedModel.parameterId.append('compartment' + repr(i + 1))
-            self.parsedModel.parameter.append(listOfCompartments[i].getVolume())
+            self.parsedModel.parameter.append(list_of_compartments[i].getVolume())
             self.parsedModel.listOfParameter.append(self.sbmlModel.getCompartment(i))
 
     def getGlobalParameters(self):
@@ -119,15 +116,15 @@ class Parser:
     def analyseModelStructure(self):
         # Differs between CUDA and Python/C
         reaction = []
-        numReactants = []
-        numProducts = []
+        num_reactants = []
+        num_products = []
 
         self.listOfReactions = self.sbmlModel.getListOfReactions()
 
         # For every reaction
         for i in range(len(self.listOfReactions)):
-            numReactants.append(self.listOfReactions[i].getNumReactants())
-            numProducts.append(self.listOfReactions[i].getNumProducts())
+            num_reactants.append(self.listOfReactions[i].getNumReactants())
+            num_products.append(self.listOfReactions[i].getNumProducts())
 
             self.parsedModel.kineticLaw.append(self.listOfReactions[i].getKineticLaw().getFormula())
             self.numLocalParameters.append(self.listOfReactions[i].getKineticLaw().getNumParameters())
@@ -139,7 +136,7 @@ class Parser:
 
             # Fill non-zero elements of S1, such that S1[k] is the number of molecules of species[k] *consumed* when the
             # reaction happens once.
-            for j in range(numReactants[i]):
+            for j in range(num_reactants[i]):
                 self.reactant[j] = self.listOfReactions[i].getReactant(j)
 
                 for k in range(len(self.parsedModel.species)):
@@ -148,7 +145,7 @@ class Parser:
 
             # Fill non-zero elements of S2, such that S2[k] is the number of molecules of species[k] *produced* when the
             # reaction happens once.
-            for l in range(numProducts[i]):
+            for l in range(num_products[i]):
                 self.product[l] = self.listOfReactions[i].getProduct(l)
 
                 for k in range(len(self.parsedModel.species)):
@@ -182,10 +179,10 @@ class Parser:
                 self.parsedModel.kineticLaw[i] = formulaToString(new_node)
 
     def analyseFunctions(self):
-        sbmlListOfFunctions = self.sbmlModel.getListOfFunctionDefinitions()
+        sbml_list_of_functions = self.sbmlModel.getListOfFunctionDefinitions()
 
-        for fun in range(len(sbmlListOfFunctions)):
-            self.parsedModel.listOfFunctions.append(sbmlListOfFunctions[fun])
+        for fun in range(len(sbml_list_of_functions)):
+            self.parsedModel.listOfFunctions.append(sbml_list_of_functions[fun])
             self.parsedModel.functionArgument.append([])
             self.parsedModel.functionBody.append(
                 formulaToString(self.parsedModel.listOfFunctions[fun].getBody()))
@@ -221,17 +218,17 @@ class Parser:
 
     def renameEverything(self):
 
-        NAMES = [[], []]
-        NAMES[0].append(self.parameterId)
-        NAMES[0].append(self.parsedModel.parameterId)
-        NAMES[1].append(self.speciesId)
-        NAMES[1].append(self.parsedModel.speciesId)
+        names = [[], []]
+        names[0].append(self.parameterId)
+        names[0].append(self.parsedModel.parameterId)
+        names[1].append(self.speciesId)
+        names[1].append(self.parsedModel.speciesId)
 
         for nam in range(2):
 
-            for i in range(len(NAMES[nam][0])):
-                old_name = NAMES[nam][0][i]
-                new_name = NAMES[nam][1][i]
+            for i in range(len(names[nam][0])):
+                old_name = names[nam][0][i]
+                new_name = names[nam][1][i]
                 self.rename_everywhere(old_name, new_name)
 
     def rename_everywhere(self, old_name, new_name):
@@ -296,12 +293,12 @@ class Parser:
 
                     if "delay" in formula:
                         r = re.search("delay\((\w+?), (\w+?)\)", formula).groups()
-                        paramName = r[1]
-                        j = int(paramName.replace("parameter", ''))
+                        param_name = r[1]
+                        j = int(param_name.replace("parameter", ''))
 
-                        listOfCompartments = self.sbmlModel.getListOfCompartments()
-                        memoryLocation = "tex2D(param_tex," + repr(j + len(listOfCompartments) - 1) + ",tid)"
-                        delays.add(memoryLocation)
+                        list_of_compartments = self.sbmlModel.getListOfCompartments()
+                        memory_location = "tex2D(param_tex," + repr(j + len(list_of_compartments) - 1) + ",tid)"
+                        delays.add(memory_location)
 
         self.parsedModel.delays = list(delays)
 
@@ -311,9 +308,9 @@ class Parser:
         for i in range(0, self.parsedModel.numSpecies):
 
             if self.parsedModel.species[i].isSetCompartment():
-                mySpeciesCompartment = self.parsedModel.species[i].getCompartment()
+                my_species_compartment = self.parsedModel.species[i].getCompartment()
                 for j in range(0, len(self.parsedModel.listOfParameter)):
-                    if self.parsedModel.listOfParameter[j].getId() == mySpeciesCompartment:
+                    if self.parsedModel.listOfParameter[j].getId() == my_species_compartment:
                         self.parsedModel.speciesCompartmentList.append(j)
 
 

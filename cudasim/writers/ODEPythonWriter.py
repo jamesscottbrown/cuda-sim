@@ -149,7 +149,6 @@ class ODEPythonWriter(Writer):
         self.out_file.write("\ndef rules((")
 
         for i in range(len(self.parser.parsedModel.species)):
-            ##if (self.parser.parsedModel.species[i].getConstant() == False):
             self.out_file.write(self.parser.parsedModel.speciesId[i])
             self.out_file.write(",")
         for i in range(len(self.parser.parsedModel.listOfParameter)):

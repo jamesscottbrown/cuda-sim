@@ -30,7 +30,7 @@ def select_hazard(total_hazard, list_of_hazards):
     return len(list_of_hazards) - 1
 
 
-def GillespieInt(func, init_values, parameters, outputtimes):
+def gillespie_int(func, init_values, parameters, outputtimes):
     """Simulate the function func from the initial values initValues using the parameters given by parameters.
     Return values at the times in outputtimes.
 

@@ -107,7 +107,7 @@ class Simulator_mg(multiprocessing.Process):
 
         # assume smaller blocksize creates less overhead; ignore occupancy..
         max_threads = min(self._context.get_device().max_registers_per_block / compiledRunMethod.num_regs,
-                         self._MAXTHREADSPERBLOCK)
+                          self._MAXTHREADSPERBLOCK)
 
         max_warps = max_threads / warp_size
         # warp granularity up to compability 2.0 is 2. Therefore if maxWarps is uneven only maxWarps-1 warps

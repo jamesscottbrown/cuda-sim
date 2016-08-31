@@ -46,8 +46,6 @@ class GillespiePythonWriter(Writer):
                 print "\n Model '" + self.parser.parsedModel.name + "' contains at least one rate rule. This model can not be parsed and simmulated with the Gillespie algorithm! Please change the simmulation Type! \n"
                 sys.exit()
 
-        p = re.compile('\s')
-
         self.out_file.write("from cudasim.relations import *\n\n#Functions\n")
 
         for i in range(len(self.parser.parsedModel.listOfFunctions)):
@@ -66,7 +64,6 @@ class GillespiePythonWriter(Writer):
         self.out_file.write("def Hazards((")
 
         for i in range(self.parser.parsedModel.numSpecies):
-            # if (self.parser.parsedModel.species[i].getConstant() == False):
             self.out_file.write(self.parser.parsedModel.speciesId[i])
             self.out_file.write(",")
 
@@ -74,12 +71,6 @@ class GillespiePythonWriter(Writer):
 
         for i in range(len(self.parser.parsedModel.parameterId)):
             self.out_file.write("\t" + self.parser.parsedModel.parameterId[i] + "=parameter[" + repr(i) + "]\n")
-
-        counter = len(self.parser.parsedModel.parameterId)
-        # for i in range(self.parser.parsedModel.numSpecies):
-        # if (self.parser.parsedModel.species[i].getConstant() == True):
-        #    self.out_file.write("\t"+self.parser.parsedModel.speciesId[i]+"=parameter["+repr(counter)+"]\n")
-        #    counter = counter+1
 
         self.out_file.write("\n")
 

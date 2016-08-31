@@ -309,7 +309,7 @@ class SdeCUDAWriter(Writer):
     
         self.out_file.write("}\n")
     
-        ################# same file
+        # same file
     
         p = re.compile('\s')
         # The user-defined functions used in the model must be written in the file

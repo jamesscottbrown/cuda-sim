@@ -100,7 +100,7 @@ class Simulator:
 
         # assume smaller blocksize creates less overhead; ignore occupancy..
         max_threads = min(driver.Device(self._device).max_registers_per_block / compiledRunMethod.num_regs,
-                         self._MAXTHREADSPERBLOCK)
+                          self._MAXTHREADSPERBLOCK)
 
         max_warps = max_threads / warp_size
         # warp granularity up to compability 2.0 is 2. Therefore if max_warps is uneven only max_warps-1 warps

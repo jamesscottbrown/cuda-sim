@@ -86,9 +86,9 @@ class Model:
                 else:
                     par = numpy.power(10, p[i][0:self.kparameters])
 
-                dat = GillespieAlgorithm.GillespieInt(func=self.module,
-                                                      init_values=p[i][self.kparameters:self.nparameters],
-                                                      parameters=par, outputtimes=t)
+                dat = GillespieAlgorithm.gillespie_int(func=self.module,
+                                                       init_values=p[i][self.kparameters:self.nparameters],
+                                                       parameters=par, outputtimes=t)
                 for k in range(len(t)):
                     for l in range(self.nspecies):
                         ret[i, j, k, l] = dat[k, l]

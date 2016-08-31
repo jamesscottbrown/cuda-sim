@@ -42,10 +42,10 @@ class CWriter(Writer):
                 self.parsedModel.rename_everywhere(old_name, new_name)
 
     def write(self):
-        self.writeCheader()
-        self.writeCsourceCode()
+        self.write_c_header()
+        self.write_c_source_code()
 
-    def writeCheader(self):
+    def write_c_header(self):
         self.hppOutputFile.write("#ifndef ")
         self.hppOutputFile.write(self.parsedModel.name.upper())
         self.hppOutputFile.write("_HPP_\n")
@@ -128,20 +128,20 @@ class CWriter(Writer):
         self.hppOutputFile.write(self.parsedModel.name.upper())
         self.hppOutputFile.write('_HPP_ */\n')
 
-    def writeCsourceCode(self):
+    def write_c_source_code(self):
         p1 = re.compile('species(\d+)')
         p2 = re.compile('parameter(\d+)')
 
         # self.cppOutputFile.write('#include "' + self.parsedModel.name + '.hpp"\n')
         self.cppOutputFile.write('#include "ChildModel.hpp"\n')
         self.cppOutputFile.write('#include <cmath>\n')
-        self.writeModelConstructor()
-        self.writeUserDefinedFunctions()
-        self.writeStoichiometricMatrix()
-        self.writeGetHazardFunction(p1, p2)
-        self.writeRulesAndEvents(p1, p2)
+        self.write_model_constructor()
+        self.write_user_defined_functions()
+        self.write_stoichiometric_matrix()
+        self.write_get_hazard_function(p1, p2)
+        self.write_rules_and_events(p1, p2)
 
-    def writeModelConstructor(self):
+    def write_model_constructor(self):
 
         self.cppOutputFile.write("\nChildModel::ChildModel(int i){")
         self.cppOutputFile.write("\n\tNSPECIES = " + str(self.parsedModel.numSpecies) + ";")
@@ -151,7 +151,7 @@ class CWriter(Writer):
         self.cppOutputFile.write("\n\tgetStoichiometricMatrix();")
         self.cppOutputFile.write("\n}")
 
-    def writeUserDefinedFunctions(self):
+    def write_user_defined_functions(self):
 
         # The user-defined functions used in the model must be written in the file
 
@@ -170,7 +170,7 @@ class CWriter(Writer):
             self.cppOutputFile.write(self.parsedModel.functionBody[i] + ";")
             self.cppOutputFile.write("\n\n\t\treturn output;\n\t}\n")
 
-    def writeStoichiometricMatrix(self):
+    def write_stoichiometric_matrix(self):
 
         self.cppOutputFile.write("\n\n\tvoid ChildModel::getStoichiometricMatrix() {")
 
@@ -181,7 +181,7 @@ class CWriter(Writer):
                     self.parsedModel.stoichiometricMatrix[k][i]) + ";")
         self.cppOutputFile.write("\n\t}")
 
-    def writeGetHazardFunction(self, p1, p2):
+    def write_get_hazard_function(self, p1, p2):
         self.cppOutputFile.write(
             "\n\n\tColumnVector ChildModel::getHazards(const double concentrations[],const double parameters[]) {")
         self.cppOutputFile.write("\n\t\tColumnVector hazards(NREACTIONS);\n")
@@ -196,18 +196,18 @@ class CWriter(Writer):
         self.cppOutputFile.write("\t\treturn hazards;\n")
         self.cppOutputFile.write("\t}\n")
 
-    def writeRulesAndEvents(self, p1, p2):
+    def write_rules_and_events(self, p1, p2):
 
         # Write the rules and events
         self.cppOutputFile.write(
             "\n\tvoid ChildModel::applyRulesAndEvents(double concentrations[], double parameters[], double time) {\n")
 
-        self.writeEvents(p1, p2)
-        self.writeRules(p1, p2)
+        self.write_events(p1, p2)
+        self.write_rules(p1, p2)
 
         self.cppOutputFile.write("\n\t}\n")
 
-    def writeEvents(self, p1, p2):
+    def write_events(self, p1, p2):
         # Write the events
 
         for i in range(len(self.parsedModel.listOfEvents)):
@@ -243,7 +243,7 @@ class CWriter(Writer):
 
         self.cppOutputFile.write("\n")
 
-    def writeRules(self, p1, p2):
+    def write_rules(self, p1, p2):
         # write the rules
 
         for i in range(len(self.parsedModel.listOfRules)):

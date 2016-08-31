@@ -95,11 +95,6 @@ class SDEPythonWriter(Writer):
                 self.out_file.write(repr(self.parser.parsedModel.parameter[i]))
                 self.out_file.write(",")
 
-                ##for i in range(self.parser.parsedModel.numSpecies):
-                ##if (self.parser.parsedModel.species[i].getConstant() == True):
-                ##    self.out_file.write(repr(self.parser.parsedModel.initValues[i]))
-                ##    self.out_file.write(",")
-
         self.out_file.write("),time=0):\n\n")
 
         counter = 0
@@ -108,22 +103,17 @@ class SDEPythonWriter(Writer):
             if not self.parser.parsedModel.listOfParameter[i].getConstant():
                 for k in range(len(self.parser.parsedModel.listOfRules)):
                     if self.parser.parsedModel.listOfRules[k].isRate() and self.parser.parsedModel.ruleVariable[k] == \
-                            self.parser.parsedModel.parameterId[i]: dont_print = True
+                            self.parser.parsedModel.parameterId[i]:
+                        dont_print = True
             if not dont_print:
                 self.out_file.write("\t" + self.parser.parsedModel.parameterId[i] + "=parameter[" + repr(counter) + "]\n")
                 counter += 1
-
-                ##for i in range(self.parser.parsedModel.numSpecies):
-                ##if (self.parser.parsedModel.species[i].getConstant() == True):
-                ##    self.out_file.write("\t"+self.parser.parsedModel.speciesId[i]+"=parameter["+repr(counter)+"]\n")
-                ##    counter = counter+1
 
         self.out_file.write("\n")
 
         self.out_file.write("\n")
 
         for i in range(self.parser.parsedModel.numSpecies):
-            ##if (self.parser.parsedModel.species[i].getConstant() == False):
             self.out_file.write("\td_" + self.parser.parsedModel.speciesId[i] + "=")
             if self.parser.parsedModel.species[i].isSetCompartment():
                 self.out_file.write("(")
@@ -175,7 +165,6 @@ class SDEPythonWriter(Writer):
         if method == 1:
 
             for i in range(self.parser.parsedModel.numSpecies):
-                ##if (self.parser.parsedModel.species[i].getConstant() == False):
                 self.out_file.write("\tnoise_" + self.parser.parsedModel.speciesId[i] + "=")
                 for k in range(self.parser.parsedModel.numReactions):
                     if not self.parser.parsedModel.stoichiometricMatrix[i][k] == 0.0:
@@ -201,7 +190,6 @@ class SDEPythonWriter(Writer):
         if method == 2:
 
             for i in range(self.parser.parsedModel.numSpecies):
-                ##if (self.parser.parsedModel.species[i].getConstant() == False):
                 self.out_file.write("\tnoise_" + self.parser.parsedModel.speciesId[i] + "=")
                 self.out_file.write("random.normal(0.0,sqrt(dt))\n")
 
@@ -215,7 +203,6 @@ class SDEPythonWriter(Writer):
         if method == 3:
 
             for i in range(self.parser.parsedModel.numSpecies):
-                ##if (self.parser.parsedModel.species[i].getConstant() == False):
                 self.out_file.write("\tnoise_" + self.parser.parsedModel.speciesId[i] + "=")
                 for k in range(self.parser.parsedModel.numReactions):
                     if not self.parser.parsedModel.stoichiometricMatrix[i][k] == 0.0:
@@ -241,7 +228,6 @@ class SDEPythonWriter(Writer):
         self.out_file.write("\n\treturn((")
 
         for i in range(len(self.parser.parsedModel.species)):
-            ##if (self.parser.parsedModel.species[i].getConstant() == False):
             self.out_file.write("d_" + self.parser.parsedModel.speciesId[i])
             self.out_file.write(",")
         for i in range(len(self.parser.parsedModel.listOfParameter)):
@@ -254,7 +240,6 @@ class SDEPythonWriter(Writer):
 
         self.out_file.write("),(")
         for i in range(self.parser.parsedModel.numSpecies):
-            ##if (self.parser.parsedModel.species[i].getConstant() == False):
             self.out_file.write("noise_" + self.parser.parsedModel.speciesId[i])
             self.out_file.write(", ")
         for i in range(len(self.parser.parsedModel.listOfParameter)):
@@ -271,7 +256,6 @@ class SDEPythonWriter(Writer):
         self.out_file.write("\ndef rules((")
 
         for i in range(len(self.parser.parsedModel.species)):
-            ##if (self.parser.parsedModel.species[i].getConstant() == False):
             self.out_file.write(self.parser.parsedModel.speciesId[i])
             self.out_file.write(",")
         for i in range(len(self.parser.parsedModel.listOfParameter)):
@@ -292,11 +276,6 @@ class SDEPythonWriter(Writer):
             if not dont_print:
                 self.out_file.write(self.parser.parsedModel.parameterId[i])
                 self.out_file.write(",")
-
-                ##for i in range(self.parser.parsedModel.numSpecies):
-                ##if (self.parser.parsedModel.species[i].getConstant() == True):
-                ##    self.out_file.write(self.parser.parsedModel.speciesId[i])
-                ##    self.out_file.write(",")
 
         self.out_file.write("),time):\n\n")
 
@@ -327,7 +306,6 @@ class SDEPythonWriter(Writer):
 
         self.out_file.write("\n\treturn((")
         for i in range(self.parser.parsedModel.numSpecies):
-            ##if (self.parser.parsedModel.species[i].getConstant() == False):
             self.out_file.write(self.parser.parsedModel.speciesId[i])
             self.out_file.write(",")
         for i in range(len(self.parser.parsedModel.listOfParameter)):
@@ -350,9 +328,5 @@ class SDEPythonWriter(Writer):
                 self.out_file.write(self.parser.parsedModel.parameterId[i])
                 self.out_file.write(",")
 
-                ##for i in range(self.parser.parsedModel.numSpecies):
-                ##if (self.parser.parsedModel.species[i].getConstant() == True):
-                ##self.out_file.write(self.parser.parsedModel.speciesId[i])
-                ##self.out_file.write(",")
         self.out_file.write("))\n\n")
         self.out_file.close()

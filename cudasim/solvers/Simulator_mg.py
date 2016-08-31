@@ -26,6 +26,8 @@ class Simulator_mg(multiprocessing.Process):
     _context = None
     _device = None
 
+    self._returnValue = None
+
     def __init__(self, timepoints, stepCodeFile, parameters, initValues, output_cpu, card=-1, beta=1, dt=0.01,
                  timing=True, info=False, dump=False):
         # threading.Thread.__init__(self)

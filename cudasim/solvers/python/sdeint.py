@@ -1,5 +1,4 @@
 from numpy import *
-import math
 
 
 def sdeint(func, init_values, parameter, timepoints, dt=0.01):

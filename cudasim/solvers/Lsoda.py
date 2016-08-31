@@ -84,48 +84,48 @@ class Lsoda(sim.Simulator):
 
         self._param_tex = compiled.get_texref("param_tex")
 
-        lsoda_Kernel = compiled.get_function("cuLsoda")
-        return compiled, lsoda_Kernel
+        lsoda_kernel = compiled.get_function("cuLsoda")
+        return compiled, lsoda_kernel
 
     def _runSimulation(self, parameters, initValues, blocks, threads, in_atol=1e-6, in_rtol=1e-6):
 
-        totalThreads = threads * blocks
+        total_threads = threads * blocks
         experiments = len(parameters)
 
         neqn = self._speciesNumber
 
         # compile
-        init_common_Kernel = self._completeCode.get_function("init_common")
-        init_common_Kernel(block=(threads, 1, 1), grid=(blocks, 1))
+        init_common_kernel = self._completeCode.get_function("init_common")
+        init_common_kernel(block=(threads, 1, 1), grid=(blocks, 1))
 
         # output array
-        ret_xt = np.zeros([totalThreads, 1, self._resultNumber, self._speciesNumber])
-        ret_istate = np.ones([totalThreads], dtype=np.int32)
+        ret_xt = np.zeros([total_threads, 1, self._resultNumber, self._speciesNumber])
+        ret_istate = np.ones([total_threads], dtype=np.int32)
 
         # calculate sizes of work spaces
         isize = 20 + self._speciesNumber
         rsize = 22 + self._speciesNumber * max(16, self._speciesNumber + 9)
 
         # local variables
-        t = np.zeros([totalThreads], dtype=np.float64)
-        jt = np.zeros([totalThreads], dtype=np.int32)
-        neq = np.zeros([totalThreads], dtype=np.int32)
-        itol = np.zeros([totalThreads], dtype=np.int32)
-        iopt = np.zeros([totalThreads], dtype=np.int32)
-        rtol = np.zeros([totalThreads], dtype=np.float64)
-        iout = np.zeros([totalThreads], dtype=np.int32)
-        tout = np.zeros([totalThreads], dtype=np.float64)
-        itask = np.zeros([totalThreads], dtype=np.int32)
-        istate = np.zeros([totalThreads], dtype=np.int32)
-        atol = np.zeros([totalThreads], dtype=np.float64)
+        t = np.zeros([total_threads], dtype=np.float64)
+        jt = np.zeros([total_threads], dtype=np.int32)
+        neq = np.zeros([total_threads], dtype=np.int32)
+        itol = np.zeros([total_threads], dtype=np.int32)
+        iopt = np.zeros([total_threads], dtype=np.int32)
+        rtol = np.zeros([total_threads], dtype=np.float64)
+        iout = np.zeros([total_threads], dtype=np.int32)
+        tout = np.zeros([total_threads], dtype=np.float64)
+        itask = np.zeros([total_threads], dtype=np.int32)
+        istate = np.zeros([total_threads], dtype=np.int32)
+        atol = np.zeros([total_threads], dtype=np.float64)
 
-        liw = np.zeros([totalThreads], dtype=np.int32)
-        lrw = np.zeros([totalThreads], dtype=np.int32)
-        iwork = np.zeros([isize * totalThreads], dtype=np.int32)
-        rwork = np.zeros([rsize * totalThreads], dtype=np.float64)
-        y = np.zeros([self._speciesNumber * totalThreads], dtype=np.float64)
+        liw = np.zeros([total_threads], dtype=np.int32)
+        lrw = np.zeros([total_threads], dtype=np.int32)
+        iwork = np.zeros([isize * total_threads], dtype=np.int32)
+        rwork = np.zeros([rsize * total_threads], dtype=np.float64)
+        y = np.zeros([self._speciesNumber * total_threads], dtype=np.float64)
 
-        for i in range(totalThreads):
+        for i in range(total_threads):
             neq[i] = neqn
             t[i] = 0
             itol[i] = 1
@@ -184,7 +184,7 @@ class Lsoda(sim.Simulator):
         driver.memcpy_htod(d_iwork, iwork)
         driver.memcpy_htod(d_rwork, rwork)
 
-        param = np.zeros((totalThreads, self._parameterNumber), dtype=np.float32)
+        param = np.zeros((total_threads, self._parameterNumber), dtype=np.float32)
         try:
             for i in range(len(parameters)):
                 for j in range(self._parameterNumber):
@@ -194,13 +194,13 @@ class Lsoda(sim.Simulator):
 
         # parameter texture
         ary = sim.create_2D_array(param)
-        sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, totalThreads)
+        sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads)
         self._param_tex.set_array(ary)
 
         if self._dt <= 0:
             for i in range(0, self._resultNumber):
 
-                for j in range(totalThreads):
+                for j in range(total_threads):
                     tout[j] = self._timepoints[i]
                 driver.memcpy_htod(d_tout, tout)
 
@@ -212,7 +212,7 @@ class Lsoda(sim.Simulator):
                 driver.memcpy_dtoh(y, d_y)
                 driver.memcpy_dtoh(istate, d_istate)
 
-                for j in range(totalThreads):
+                for j in range(total_threads):
                     for k in range(self._speciesNumber):
                         ret_xt[j, 0, i, k] = y[j * self._speciesNumber + k]
 
@@ -229,7 +229,7 @@ class Lsoda(sim.Simulator):
 
                     next_time = min(tt + self._dt, self._timepoints[i])
 
-                    for j in range(totalThreads):
+                    for j in range(total_threads):
                         tout[j] = next_time
                     driver.memcpy_htod(d_tout, tout)
 
@@ -247,7 +247,7 @@ class Lsoda(sim.Simulator):
 
                     tt = next_time
 
-                for j in range(totalThreads):
+                for j in range(total_threads):
                     for k in range(self._speciesNumber):
                         ret_xt[j, 0, i, k] = y[j * self._speciesNumber + k]
 
@@ -256,7 +256,7 @@ class Lsoda(sim.Simulator):
 
         # loop over and check ret_istate
         # it will will be zero if there was problems
-        for j in range(totalThreads):
+        for j in range(total_threads):
             if ret_istate[j] == 0:
                 for i in range(0, self._resultNumber):
                     for k in range(self._speciesNumber):

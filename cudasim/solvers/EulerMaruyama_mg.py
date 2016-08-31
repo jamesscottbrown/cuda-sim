@@ -19,19 +19,19 @@ class EulerMaruyama(sim.Simulator_mg):
     def _compile(self, step_code):
 
         # determine if shared memory is enough to fit parameters 
-        # maxThreads = self._maxThreadsPerMP
-        # since maxThreads is set to 64, maximally 512 threads can be on one MP
-        maxThreads = 512
+        # max_threads = self._maxThreadsPerMP
+        # since max_threads is set to 64, maximally 512 threads can be on one MP
+        max_threads = 512
 
-        totalSharedMemory = driver.Device(self._device).max_shared_memory_per_block
+        total_shared_memory = driver.Device(self._device).max_shared_memory_per_block
 
         # 32 words/warp for RNG * maximum number of warps/block * 4 (bytes/word)
-        freeSharedMemory = totalSharedMemory - maxThreads / self._warp_size * self._state_words * 4
+        free_shared_memory = total_shared_memory - max_threads / self._warp_size * self._state_words * 4
 
         # assuming maximum number of threads (should be per MP)
-        maxParameters = freeSharedMemory / maxThreads / 4
+        max_parameters = free_shared_memory / max_threads / 4
 
-        if self._parameterNumber <= self._beta * maxParameters:
+        if self._parameterNumber <= self._beta * max_parameters:
             self._putIntoShared = True
 
         # print "cuda-sim: Euler-Maruyama : Using shared memory code: " + str(self._putIntoShared)
@@ -173,13 +173,13 @@ class EulerMaruyama(sim.Simulator_mg):
         f.close()
 
         # actual compiling step compile
-        completeCode = general_parameters_source + rng_ext + rng_source + neg_eq_zero_source + step_code + sde_source_rest
+        complete_code = general_parameters_source + rng_ext + rng_source + neg_eq_zero_source + step_code + sde_source_rest
 
         if self._dump:
             of = open("full_sde_code.cu", "w")
-            print >> of, completeCode
+            print >> of, complete_code
 
-        module = SourceModule(completeCode)
+        module = SourceModule(complete_code)
 
         if not self._putIntoShared:
             self._param_tex = module.get_texref("param_tex")
@@ -188,11 +188,11 @@ class EulerMaruyama(sim.Simulator_mg):
 
     def _runSimulation(self, parameters, initValues, blocks, threads):
 
-        totalThreads = blocks * threads
+        total_threads = blocks * threads
         experiments = len(parameters)
 
         # simulation specific parameters
-        param = np.zeros((totalThreads / self._beta + 1, self._parameterNumber), dtype=np.float32)
+        param = np.zeros((total_threads / self._beta + 1, self._parameterNumber), dtype=np.float32)
         try:
             for i in range(experiments):
                 for j in range(self._parameterNumber):
@@ -203,61 +203,61 @@ class EulerMaruyama(sim.Simulator_mg):
         if not self._putIntoShared:
             # parameter texture
             ary = sim.create_2D_array(param)
-            sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, totalThreads / self._beta + 1)
+            sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
             self._param_tex.set_array(ary)
-            sharedMemoryParameters = 0
+            shared_memory_parameters = 0
         else:
             # parameter shared Mem
-            sharedMemoryParameters = self._parameterNumber * (threads / self._beta + 2) * 4
+            shared_memory_parameters = self._parameterNumber * (threads / self._beta + 2) * 4
 
-        sharedMemoryPerBlockForRNG = threads / self._warp_size * self._state_words * 4
-        sharedTot = sharedMemoryPerBlockForRNG + sharedMemoryParameters
+        shared_memory_per_block_for_rng = threads / self._warp_size * self._state_words * 4
+        shared_tot = shared_memory_per_block_for_rng + shared_memory_parameters
 
         if self._putIntoShared:
-            parametersInput = np.zeros(self._parameterNumber * totalThreads / self._beta, dtype=np.float32)
-        speciesInput = np.zeros(self._speciesNumber * totalThreads, dtype=np.float32)
-        result = np.zeros(self._speciesNumber * totalThreads * self._resultNumber, dtype=np.float32)
+            parameters_input = np.zeros(self._parameterNumber * total_threads / self._beta, dtype=np.float32)
+        species_input = np.zeros(self._speciesNumber * total_threads, dtype=np.float32)
+        result = np.zeros(self._speciesNumber * total_threads * self._resultNumber, dtype=np.float32)
 
         # non coalesced
         try:
             for i in range(len(initValues)):
                 for j in range(self._speciesNumber):
-                    speciesInput[i * self._speciesNumber + j] = initValues[i][j]
+                    species_input[i * self._speciesNumber + j] = initValues[i][j]
         except IndexError:
             pass
         if self._putIntoShared:
             try:
                 for i in range(experiments):
                     for j in range(self._parameterNumber):
-                        parametersInput[i * self._parameterNumber + j] = parameters[i][j]
+                        parameters_input[i * self._parameterNumber + j] = parameters[i][j]
             except IndexError:
                 pass
 
         # set seeds using python rng
-        seeds = np.zeros(totalThreads / self._warp_size * self._state_words, dtype=np.uint32)
+        seeds = np.zeros(total_threads / self._warp_size * self._state_words, dtype=np.uint32)
         for i in range(len(seeds)):
             seeds[i] = np.uint32(4294967296 * np.random.uniform(0, 1))
             # seeds[i] =  np.random.random_integers(0,4294967295)
 
-        species_gpu = driver.mem_alloc(speciesInput.nbytes)
+        species_gpu = driver.mem_alloc(species_input.nbytes)
         if self._putIntoShared:
-            parameters_gpu = driver.mem_alloc(parametersInput.nbytes)
+            parameters_gpu = driver.mem_alloc(parameters_input.nbytes)
         seeds_gpu = driver.mem_alloc(seeds.nbytes)
         result_gpu = driver.mem_alloc(result.nbytes)
 
-        driver.memcpy_htod(species_gpu, speciesInput)
+        driver.memcpy_htod(species_gpu, species_input)
         if self._putIntoShared:
-            driver.memcpy_htod(parameters_gpu, parametersInput)
+            driver.memcpy_htod(parameters_gpu, parameters_input)
         driver.memcpy_htod(seeds_gpu, seeds)
         driver.memcpy_htod(result_gpu, result)
 
         # run code
         if self._putIntoShared:
             self._compiledRunMethod(species_gpu, parameters_gpu, seeds_gpu, result_gpu, block=(threads, 1, 1),
-                                    grid=(blocks, 1), shared=sharedTot)
+                                    grid=(blocks, 1), shared=shared_tot)
         else:
             self._compiledRunMethod(species_gpu, seeds_gpu, result_gpu, block=(threads, 1, 1), grid=(blocks, 1),
-                                    shared=sharedTot)
+                                    shared=shared_tot)
 
         # fetch from GPU memory
         driver.memcpy_dtoh(result, result_gpu)

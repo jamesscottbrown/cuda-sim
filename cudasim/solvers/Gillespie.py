@@ -175,7 +175,7 @@ class Gillespie(sim.Simulator):
         return m, m.get_function("GillespieMain")
 
     def _runSimulation(self, parameters, initValues, blocks, threads):
-        totalThreads = blocks * threads
+        total_threads = blocks * threads
         experiments = len(parameters)
 
         mt_data = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'MersenneTwister.dat')
@@ -183,7 +183,7 @@ class Gillespie(sim.Simulator):
         # initialize Mersenne Twister
         self._initialise_twisters(mt_data, self._completeCode, threads, blocks)
 
-        param = np.zeros((totalThreads / self._beta + 1, self._parameterNumber), dtype=np.float32)
+        param = np.zeros((total_threads / self._beta + 1, self._parameterNumber), dtype=np.float32)
         try:
             for i in range(len(parameters)):
                 for j in range(self._parameterNumber):
@@ -193,31 +193,31 @@ class Gillespie(sim.Simulator):
 
         # parameter texture
         ary = sim.create_2D_array(param)
-        sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, totalThreads / self._beta + 1)
+        sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
         self._param_tex.set_array(ary)
 
         # 2D species arrays
-        d_x, p_x = cuda.mem_alloc_pitch(width=self._speciesNumber * 4, height=totalThreads, access_size=4)
+        d_x, p_x = cuda.mem_alloc_pitch(width=self._speciesNumber * 4, height=total_threads, access_size=4)
 
         cuda.memcpy_htod(self._pvxp, np.array([p_x], dtype=np.int32))
 
         # initialize species
-        speciesInput = np.zeros((totalThreads, self._speciesNumber), dtype=np.int32)
+        species_input = np.zeros((total_threads, self._speciesNumber), dtype=np.int32)
         try:
             for i in range(len(initValues)):
                 for j in range(self._speciesNumber):
                     # if compartment corresponding to each species was specified, convert concentrations to counts
                     if self._speciesCompartment:
-                        speciesInput[i][j] = initValues[i][j] * (6.022E23 * param[i][self._speciesCompartment[j]])
+                        species_input[i][j] = initValues[i][j] * (6.022E23 * param[i][self._speciesCompartment[j]])
                     else:
-                        speciesInput[i][j] = initValues[i][j]
+                        species_input[i][j] = initValues[i][j]
         except IndexError:
             pass
-        sim.copy2D_host_to_device(d_x, speciesInput, self._speciesNumber * 4, p_x, self._speciesNumber * 4,
-                                  totalThreads)
+        sim.copy2D_host_to_device(d_x, species_input, self._speciesNumber * 4, p_x, self._speciesNumber * 4,
+                                  total_threads)
 
         # output array
-        result = np.zeros(totalThreads * self._resultNumber * self._speciesNumber, dtype=np.int32)
+        result = np.zeros(total_threads * self._resultNumber * self._speciesNumber, dtype=np.int32)
         d_result = cuda.mem_alloc(result.nbytes)
 
         # run code
@@ -246,19 +246,19 @@ class Gillespie(sim.Simulator):
 
     def _initialise_twisters(self, mt_data, mod, blockSize, gridSize):
 
-        pMT = int(mod.get_global("MT")[0])
-        MT_RNG_COUNT = 32768
+        p_mt = int(mod.get_global("MT")[0])
+        mt_rng_count = 32768
 
         f = open(mt_data, 'rb')
-        s = f.read(16 * MT_RNG_COUNT)
+        s = f.read(16 * mt_rng_count)
         # the file should contain 32768 x 4 integers
         tup = np.array(unpack('131072i', s)).astype(np.uint32)
 
-        for i in range(MT_RNG_COUNT):
+        for i in range(mt_rng_count):
             tup[i * 4 + 3] = np.uint32(4294967296 * np.random.uniform(0, 1))
 
         # Copy the offline MT parameters over to GPU
-        cuda.memcpy_htod(pMT, tup)
+        cuda.memcpy_htod(p_mt, tup)
 
         InitialiseAllMersenneTwisters = mod.get_function("InitialiseAllMersenneTwisters")
         InitialiseAllMersenneTwisters(block=(512, 1, 1), grid=(64, 1))

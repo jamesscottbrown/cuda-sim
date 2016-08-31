@@ -46,14 +46,14 @@ class GillespieCUDAWriter(Writer):
         p = re.compile('\s')
         # Open the outfile
     
-        numSpecies = len(self.parser.parsedModel.species)
+        num_species = len(self.parser.parsedModel.species)
     
-        numEvents = len(self.parser.parsedModel.listOfEvents)
-        numRules = len(self.parser.parsedModel.listOfRules)
-        num = numEvents + numRules
+        num_events = len(self.parser.parsedModel.listOfEvents)
+        num_rules = len(self.parser.parsedModel.listOfRules)
+        num = num_events + num_rules
     
         # Write number of parameters and species
-        self.out_file.write("#define NSPECIES " + str(numSpecies) + "\n")
+        self.out_file.write("#define NSPECIES " + str(num_species) + "\n")
         self.out_file.write("#define NPARAM " + str(len(self.parser.parsedModel.parameterId)) + "\n")
         self.out_file.write("#define NREACT " + str(self.parser.parsedModel.numReactions) + "\n")
         self.out_file.write("\n")
@@ -99,9 +99,9 @@ class GillespieCUDAWriter(Writer):
             // Calculate concentrations from molecule counts
             int y[NSPECIES];
             """)
-            for i in range(0, numSpecies):
-                volumeString = "tex2D(param_tex," + repr(self.parser.parsedModel.speciesCompartmentList[i]) + ",tid)"
-                self.out_file.write("y[%s] = yCounts[%s] / (6.022E23 * %s);\n" % (i, i, volumeString))
+            for i in range(0, num_species):
+                volume_string = "tex2D(param_tex," + repr(self.parser.parsedModel.speciesCompartmentList[i]) + ",tid)"
+                self.out_file.write("y[%s] = yCounts[%s] / (6.022E23 * %s);\n" % (i, i, volume_string))
     
         # write rules and events
         for i in range(0, len(self.parser.parsedModel.listOfRules)):
@@ -133,8 +133,8 @@ class GillespieCUDAWriter(Writer):
             self.out_file.write("    if( ")
             self.out_file.write(self.mathMLConditionParserCuda(self.parser.parsedModel.EventCondition[i]))
             self.out_file.write("){\n")
-            listOfAssignmentRules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
-            for j in range(0, len(listOfAssignmentRules)):
+            list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
+            for j in range(0, len(list_of_assignment_rules)):
                 self.out_file.write("        ")
                 if not (self.parser.parsedModel.eventVariable[i][j] in self.parser.parsedModel.speciesId):
                     self.out_file.write(self.parser.parsedModel.eventVariable[i][j])

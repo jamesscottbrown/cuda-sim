@@ -174,8 +174,8 @@ class GillespiePythonWriter(Writer):
             self.out_file.write("\tif ")
             self.out_file.write(mathMLConditionParser(self.parser.parsedModel.eventCondition[i]))
             self.out_file.write(":\n")
-            listOfAssignmentRules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
-            for j in range(len(listOfAssignmentRules)):
+            list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
+            for j in range(len(list_of_assignment_rules)):
                 self.out_file.write("\t\t")
                 self.out_file.write(self.parser.parsedModel.eventVariable[i][j])
                 self.out_file.write("=")

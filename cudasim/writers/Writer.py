@@ -21,7 +21,7 @@ class Writer:
 
         return string
 
-    def mathMLConditionParserCuda(self, mathMLstring):
+    def mathMLConditionParserCuda(self, mathml_string):
         """
         Replaces and and or with and_ and or_ in a MathML string.
         Returns the string with and and or replaced by and_ and or_
@@ -34,9 +34,9 @@ class Writer:
 
         """
 
-        andString = re.compile("and")
-        orString = re.compile("or")
-        mathMLstring = andString.sub("and_", mathMLstring)
-        mathMLstring = orString.sub("or_", mathMLstring)
+        and_string = re.compile("and")
+        or_string = re.compile("or")
+        mathml_string = and_string.sub("and_", mathml_string)
+        mathml_string = or_string.sub("or_", mathml_string)
 
-        return mathMLstring
+        return mathml_string

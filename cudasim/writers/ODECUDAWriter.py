@@ -44,20 +44,20 @@ class OdeCUDAWriter(Writer):
         Write the cuda file with ODE functions using the information taken by the parser
         """
     
-        numSpecies = len(self.parser.parsedModel.species)
+        num_species = len(self.parser.parsedModel.species)
     
         p = re.compile('\s')
     
         # Write number of parameters and species
-        self.out_file.write("#define NSPECIES " + str(numSpecies) + "\n")
+        self.out_file.write("#define NSPECIES " + str(num_species) + "\n")
         self.out_file.write("#define NPARAM " + str(len(self.parser.parsedModel.parameterId)) + "\n")
         self.out_file.write("#define NREACT " + str(self.parser.parsedModel.numReactions) + "\n")
         self.out_file.write("\n")
     
         # The user-defined functions used in the model must be written in the file
-        numEvents = len(self.parser.parsedModel.listOfEvents)
-        numRules = len(self.parser.parsedModel.listOfRules)
-        num = numEvents + numRules
+        num_events = len(self.parser.parsedModel.listOfEvents)
+        num_rules = len(self.parser.parsedModel.listOfRules)
+        num = num_events + num_rules
         if num > 0:
             self.out_file.write("#define leq(a,b) a<=b\n")
             self.out_file.write("#define neq(a,b) a!=b\n")
@@ -121,8 +121,8 @@ class OdeCUDAWriter(Writer):
             self.out_file.write("    if( ")
             self.out_file.write(self.mathMLConditionParserCuda(self.parser.parsedModel.EventCondition[i]))
             self.out_file.write("){\n")
-            listOfAssignmentRules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
-            for j in range(0, len(listOfAssignmentRules)):
+            list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
+            for j in range(0, len(list_of_assignment_rules)):
                 self.out_file.write("        ")
                 if not (self.parser.parsedModel.eventVariable[i][j] in self.parser.parsedModel.speciesId):
                     self.out_file.write(self.parser.parsedModel.eventVariable[i][j])
@@ -176,19 +176,19 @@ class OdeCUDAWriter(Writer):
         self.out_file.write("\n\n")
     
         # Write the derivatives
-        for i in range(0, numSpecies):
+        for i in range(0, num_species):
             if self.parser.parsedModel.species[i].getConstant() == False and self.parser.parsedModel.species[i].getBoundaryCondition() == False:
                 self.out_file.write("        ydot[" + repr(i) + "]=")
                 if self.parser.parsedModel.species[i].isSetCompartment():
                     self.out_file.write("(")
     
-                reactionWritten = False
+                reaction_written = False
                 for k in range(0, self.parser.parsedModel.numReactions):
                     if not self.parser.parsedModel.stoichiometricMatrix[i][k] == 0.0:
     
-                        if reactionWritten and self.parser.parsedModel.stoichiometricMatrix[i][k] > 0.0:
+                        if reaction_written and self.parser.parsedModel.stoichiometricMatrix[i][k] > 0.0:
                             self.out_file.write("+")
-                        reactionWritten = True
+                        reaction_written = True
                         self.out_file.write(repr(self.parser.parsedModel.stoichiometricMatrix[i][k]))
                         self.out_file.write("*(")
     
@@ -213,9 +213,9 @@ class OdeCUDAWriter(Writer):
     
                 if self.parser.parsedModel.species[i].isSetCompartment():
                     self.out_file.write(")/")
-                    mySpeciesCompartment = self.parser.parsedModel.species[i].getCompartment()
+                    my_species_compartment = self.parser.parsedModel.species[i].getCompartment()
                     for j in range(0, len(self.parser.parsedModel.listOfParameter)):
-                        if self.parser.parsedModel.listOfParameter[j].getId() == mySpeciesCompartment:
+                        if self.parser.parsedModel.listOfParameter[j].getId() == my_species_compartment:
                             if not (self.parser.parsedModel.parameterId[j] in self.parser.parsedModel.ruleVariable):
                                 flag = False
                                 for r in range(0, len(self.parser.parsedModel.eventVariable)):

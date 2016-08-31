@@ -99,24 +99,24 @@ class Simulator_mg(multiprocessing.Process):
             compiledRunMethod = self._compiledRunMethod
 
         # general parameters
-        maxThreadsPerBlock = self._context.get_device().max_threads_per_block
+        max_threads_per_block = self._context.get_device().max_threads_per_block
         warp_size = 32
 
         # calculate number of threads per block; assuming that registers are the limiting factor
-        # maxThreads = min(driver.Device(self._device).max_registers_per_block/compiledRunMethod.num_regs,maxThreadsPerBlock)
+        # max_threads = min(driver.Device(self._device).max_registers_per_block/compiledRunMethod.num_regs,max_threads_per_block)
 
         # assume smaller blocksize creates less overhead; ignore occupancy..
-        maxThreads = min(self._context.get_device().max_registers_per_block / compiledRunMethod.num_regs,
+        max_threads = min(self._context.get_device().max_registers_per_block / compiledRunMethod.num_regs,
                          self._MAXTHREADSPERBLOCK)
 
-        maxWarps = maxThreads / warp_size
+        max_warps = max_threads / warp_size
         # warp granularity up to compability 2.0 is 2. Therefore if maxWarps is uneven only maxWarps-1 warps
         # can be run
         # if(maxWarps % 2 == 1):
         # maxWarps -= 1
 
         # maximum number of threads per block
-        threads = maxWarps * warp_size
+        threads = max_warps * warp_size
 
         # assign number of blocks : len(self._parameters) is the number of threads
         if len(self._parameters) * self._beta % threads == 0:
@@ -170,12 +170,12 @@ class Simulator_mg(multiprocessing.Process):
             print "cuda-sim: threads/blocks:", threads, blocks
 
         # make multiples of initValues incase beta > 1
-        initNew = np.zeros((len(self._initValues) * self._beta, self._speciesNumber))
+        init_new = np.zeros((len(self._initValues) * self._beta, self._speciesNumber))
         for i in range(len(self._initValues)):
             for j in range(self._beta):
                 for k in range(self._speciesNumber):
-                    initNew[i * self._beta + j][k] = self._initValues[i][k]
-        self._initValues = copy.deepcopy(initNew)
+                    init_new[i * self._beta + j][k] = self._initValues[i][k]
+        self._initValues = copy.deepcopy(init_new)
 
         if self._info:
             print "cuda-sim: kernel mem local / shared / registers : ", self._compiledRunMethod.local_size_bytes, self._compiledRunMethod.shared_size_bytes, self._compiledRunMethod.num_regs
@@ -201,17 +201,17 @@ class Simulator_mg(multiprocessing.Process):
             if self._info:
                 print "cuda-sim: Run", runblocks, "blocks."
 
-            minIndex = self._MAXBLOCKSPERDEVICE * i * threads
-            maxIndex = minIndex + threads * runblocks
-            runParameters = self._parameters[minIndex / self._beta:maxIndex / self._beta]
-            runInitValues = self._initValues[minIndex:maxIndex]
+            min_index = self._MAXBLOCKSPERDEVICE * i * threads
+            max_index = min_index + threads * runblocks
+            run_parameters = self._parameters[min_index / self._beta:max_index / self._beta]
+            run_init_values = self._initValues[min_index:max_index]
 
             # first run store return Value
             if i == 0:
-                self._returnValue = self._runSimulation(runParameters, runInitValues, runblocks, threads)
+                self._returnValue = self._runSimulation(run_parameters, run_init_values, runblocks, threads)
             else:
                 self._returnValue = np.append(self._returnValue,
-                                              self._runSimulation(runParameters, runInitValues, runblocks, threads),
+                                              self._runSimulation(run_parameters, run_init_values, runblocks, threads),
                                               axis=0)
 
         self.output_cpu.put([self._card, self._returnValue])

@@ -73,13 +73,13 @@ class ODEPythonWriter(Writer):
 
         self.out_file.write("),time,parameter=(")
         for i in range(len(self.parser.parsedModel.parameterId)):
-            dontPrint = False
+            dont_print = False
             if not self.parser.parsedModel.listOfParameter[i].getConstant():
                 for k in range(len(self.parser.parsedModel.listOfRules)):
                     if self.parser.parsedModel.listOfRules[k].isRate() and self.parser.parsedModel.ruleVariable[k] == \
                             self.parser.parsedModel.parameterId[i]:
-                        dontPrint = True
-            if not dontPrint:
+                        dont_print = True
+            if not dont_print:
                 self.out_file.write(repr(self.parser.parsedModel.parameter[i]))
                 self.out_file.write(",")
 
@@ -87,12 +87,12 @@ class ODEPythonWriter(Writer):
 
         counter = 0
         for i in range(len(self.parser.parsedModel.parameterId)):
-            dontPrint = False
+            dont_print = False
             if not self.parser.parsedModel.listOfParameter[i].getConstant():
                 for k in range(len(self.parser.parsedModel.listOfRules)):
                     if self.parser.parsedModel.listOfRules[k].isRate() and self.parser.parsedModel.ruleVariable[k] == self.parser.parsedModel.parameterId[i]:
-                        dontPrint = True
-            if not dontPrint:
+                        dont_print = True
+            if not dont_print:
                 self.out_file.write("\t" + self.parser.parsedModel.parameterId[i] + "=parameter[" + repr(counter) + "]\n")
                 counter += 1
 
@@ -115,9 +115,9 @@ class ODEPythonWriter(Writer):
             self.out_file.write("0")
             if self.parser.parsedModel.species[i].isSetCompartment():
                 self.out_file.write(")/")
-                mySpeciesCompartment = self.parser.parsedModel.species[i].getCompartment()
+                my_species_compartment = self.parser.parsedModel.species[i].getCompartment()
                 for j in range(len(self.parser.parsedModel.listOfParameter)):
-                    if self.parser.parsedModel.listOfParameter[j].getId() == mySpeciesCompartment:
+                    if self.parser.parsedModel.listOfParameter[j].getId() == my_species_compartment:
                         self.out_file.write(self.parser.parsedModel.parameterId[j])
                         break
             self.out_file.write("\n")
@@ -161,13 +161,13 @@ class ODEPythonWriter(Writer):
                         self.out_file.write(",")
         self.out_file.write("),(")
         for i in range(len(self.parser.parsedModel.parameterId)):
-            dontPrint = False
+            dont_print = False
             if not self.parser.parsedModel.listOfParameter[i].getConstant():
                 for k in range(len(self.parser.parsedModel.listOfRules)):
                     if self.parser.parsedModel.listOfRules[k].isRate() and self.parser.parsedModel.ruleVariable[k] == \
                             self.parser.parsedModel.parameterId[i]:
-                        dontPrint = True
-            if not dontPrint:
+                        dont_print = True
+            if not dont_print:
                 self.out_file.write(self.parser.parsedModel.parameterId[i])
                 self.out_file.write(",")
 
@@ -179,8 +179,8 @@ class ODEPythonWriter(Writer):
             self.out_file.write("\tif ")
             self.out_file.write(mathMLConditionParser(self.parser.parsedModel.eventCondition[i]))
             self.out_file.write(":\n")
-            listOfAssignmentRules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
-            for j in range(len(listOfAssignmentRules)):
+            list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
+            for j in range(len(list_of_assignment_rules)):
                 self.out_file.write("\t\t")
                 self.out_file.write(self.parser.parsedModel.eventVariable[i][j])
                 self.out_file.write("=")
@@ -214,13 +214,13 @@ class ODEPythonWriter(Writer):
         self.out_file.write("),(")
 
         for i in range(len(self.parser.parsedModel.parameterId)):
-            dontPrint = False
+            dont_print = False
             if not self.parser.parsedModel.listOfParameter[i].getConstant():
                 for k in range(len(self.parser.parsedModel.listOfRules)):
                     if self.parser.parsedModel.listOfRules[k].isRate() and self.parser.parsedModel.ruleVariable[k] == \
                             self.parser.parsedModel.parameterId[i]:
-                        dontPrint = True
-            if not dontPrint:
+                        dont_print = True
+            if not dont_print:
                 self.out_file.write(self.parser.parsedModel.parameterId[i])
                 self.out_file.write(",")
         self.out_file.write("))\n\n")

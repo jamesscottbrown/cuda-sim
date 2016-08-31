@@ -217,9 +217,9 @@ class CWriter(Writer):
             string = re.sub("geq", " ", string)
             self.cppOutputFile.write(string)
             self.cppOutputFile.write("{\n")
-            listOfAssignmentRules = self.parsedModel.listOfEvents[i].getListOfEventAssignments()
+            list_of_assignment_rules = self.parsedModel.listOfEvents[i].getListOfEventAssignments()
 
-            for j in range(len(listOfAssignmentRules)):
+            for j in range(len(list_of_assignment_rules)):
                 self.cppOutputFile.write("\t\t\t")
 
                 string = self.parsedModel.eventVariable[i][j]

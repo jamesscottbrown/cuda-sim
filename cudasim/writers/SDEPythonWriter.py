@@ -12,7 +12,6 @@ class SDEPythonWriter(Writer):
         self.out_file = open(os.path.join(outputPath, self.parser.parsedModel.name + ".cu"), "w")
         self.rename()
 
-
     def rename(self):
         """
         This function renames parts of self.parser.parsedModel to meet the specific requirements of this writer.
@@ -86,13 +85,13 @@ class SDEPythonWriter(Writer):
         self.out_file.write("),dt=0,parameter=(")
 
         for i in range(len(self.parser.parsedModel.parameterId)):
-            dontPrint = False
+            dont_print = False
             if not self.parser.parsedModel.listOfParameter[i].getConstant():
                 for k in range(len(self.parser.parsedModel.listOfRules)):
                     if self.parser.parsedModel.listOfRules[k].isRate() and self.parser.parsedModel.ruleVariable[k] == \
                             self.parser.parsedModel.parameterId[i]:
-                        dontPrint = True
-            if not dontPrint:
+                        dont_print = True
+            if not dont_print:
                 self.out_file.write(repr(self.parser.parsedModel.parameter[i]))
                 self.out_file.write(",")
 
@@ -105,12 +104,12 @@ class SDEPythonWriter(Writer):
 
         counter = 0
         for i in range(len(self.parser.parsedModel.parameterId)):
-            dontPrint = False
+            dont_print = False
             if not self.parser.parsedModel.listOfParameter[i].getConstant():
                 for k in range(len(self.parser.parsedModel.listOfRules)):
                     if self.parser.parsedModel.listOfRules[k].isRate() and self.parser.parsedModel.ruleVariable[k] == \
-                            self.parser.parsedModel.parameterId[i]: dontPrint = True
-            if not dontPrint:
+                            self.parser.parsedModel.parameterId[i]: dont_print = True
+            if not dont_print:
                 self.out_file.write("\t" + self.parser.parsedModel.parameterId[i] + "=parameter[" + repr(counter) + "]\n")
                 counter += 1
 
@@ -139,9 +138,9 @@ class SDEPythonWriter(Writer):
             self.out_file.write("0")
             if self.parser.parsedModel.species[i].isSetCompartment():
                 self.out_file.write(")/")
-                mySpeciesCompartment = self.parser.parsedModel.species[i].getCompartment()
+                my_species_compartment = self.parser.parsedModel.species[i].getCompartment()
                 for j in range(len(self.parser.parsedModel.listOfParameter)):
-                    if self.parser.parsedModel.listOfParameter[j].getId() == mySpeciesCompartment:
+                    if self.parser.parsedModel.listOfParameter[j].getId() == my_species_compartment:
                         self.out_file.write(self.parser.parsedModel.parameterId[j])
                         break
             self.out_file.write("\n")
@@ -161,17 +160,17 @@ class SDEPythonWriter(Writer):
         self.out_file.write("\n")
 
         # check for columns of the stochiometry matrix with more than one entry
-        randomVariables = ["*random.normal(0.0,sqrt(dt))"] * self.parser.parsedModel.numReactions
+        random_variables = ["*random.normal(0.0,sqrt(dt))"] * self.parser.parsedModel.numReactions
         for k in range(self.parser.parsedModel.numReactions):
-            countEntries = 0
+            num_entries = 0
             for i in range(self.parser.parsedModel.numSpecies):
                 if self.parser.parsedModel.stoichiometricMatrix[i][k] != 0.0:
-                    countEntries += 1
+                    num_entries += 1
 
             # define specific randomVariable
-            if countEntries > 1:
+            if num_entries > 1:
                 self.out_file.write("\trand" + repr(k) + " = random.normal(0.0,sqrt(dt))\n")
-                randomVariables[k] = "*rand" + repr(k)
+                random_variables[k] = "*rand" + repr(k)
 
         if method == 1:
 
@@ -185,7 +184,7 @@ class SDEPythonWriter(Writer):
                         string = p.sub('', self.parser.parsedModel.kineticLaw[k])
                         self.out_file.write(string)
                         self.out_file.write(")")
-                        self.out_file.write(randomVariables[k])
+                        self.out_file.write(random_variables[k])
                         self.out_file.write("+")
                 self.out_file.write("0\n")
 
@@ -196,7 +195,7 @@ class SDEPythonWriter(Writer):
                     self.out_file.write("= trunc_sqrt(")
                     self.out_file.write(self.parser.parsedModel.ruleFormula[i])
                     self.out_file.write(")")
-                    self.out_file.write(randomVariables[k])
+                    self.out_file.write(random_variables[k])
                     self.out_file.write("\n")
 
         if method == 2:
@@ -284,13 +283,13 @@ class SDEPythonWriter(Writer):
                         self.out_file.write(",")
         self.out_file.write("),(")
         for i in range(len(self.parser.parsedModel.parameterId)):
-            dontPrint = False
+            dont_print = False
             if not self.parser.parsedModel.listOfParameter[i].getConstant():
                 for k in range(len(self.parser.parsedModel.listOfRules)):
                     if self.parser.parsedModel.listOfRules[k].isRate() and self.parser.parsedModel.ruleVariable[k] == \
                             self.parser.parsedModel.parameterId[i]:
-                        dontPrint = True
-            if not dontPrint:
+                        dont_print = True
+            if not dont_print:
                 self.out_file.write(self.parser.parsedModel.parameterId[i])
                 self.out_file.write(",")
 
@@ -307,8 +306,8 @@ class SDEPythonWriter(Writer):
             self.out_file.write("\tif ")
             self.out_file.write(mathMLConditionParser(self.parser.parsedModel.eventCondition[i]))
             self.out_file.write(":\n")
-            listOfAssignmentRules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
-            for j in range(len(listOfAssignmentRules)):
+            list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
+            for j in range(len(list_of_assignment_rules)):
                 self.out_file.write("\t\t")
                 self.out_file.write(self.parser.parsedModel.eventVariable[i][j])
                 self.out_file.write("=")
@@ -341,13 +340,13 @@ class SDEPythonWriter(Writer):
         self.out_file.write("),(")
 
         for i in range(len(self.parser.parsedModel.parameterId)):
-            dontPrint = False
+            dont_print = False
             if not self.parser.parsedModel.listOfParameter[i].getConstant():
                 for k in range(len(self.parser.parsedModel.listOfRules)):
                     if self.parser.parsedModel.listOfRules[k].isRate() and self.parser.parsedModel.ruleVariable[k] == \
                             self.parser.parsedModel.parameterId[i]:
-                        dontPrint = True
-            if not dontPrint:
+                        dont_print = True
+            if not dont_print:
                 self.out_file.write(self.parser.parsedModel.parameterId[i])
                 self.out_file.write(",")
 

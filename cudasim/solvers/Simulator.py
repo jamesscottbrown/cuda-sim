@@ -92,24 +92,24 @@ class Simulator:
             compiledRunMethod = self._compiledRunMethod
 
         # general parameters
-        maxThreadsPerBlock = driver.Device(self._device).max_threads_per_block
+        max_threads_per_block = driver.Device(self._device).max_threads_per_block
         warp_size = 32
 
         # calculate number of threads per block; assuming that registers are the limiting factor
-        # maxThreads = min(driver.Device(self._device).max_registers_per_block/compiledRunMethod.num_regs,maxThreadsPerBlock)
+        # maxThreads = min(driver.Device(self._device).max_registers_per_block/compiledRunMethod.num_regs,max_threads_per_block)
 
         # assume smaller blocksize creates less overhead; ignore occupancy..
-        maxThreads = min(driver.Device(self._device).max_registers_per_block / compiledRunMethod.num_regs,
+        max_threads = min(driver.Device(self._device).max_registers_per_block / compiledRunMethod.num_regs,
                          self._MAXTHREADSPERBLOCK)
 
-        maxWarps = maxThreads / warp_size
-        # warp granularity up to compability 2.0 is 2. Therefore if maxWarps is uneven only maxWarps-1 warps
+        max_warps = max_threads / warp_size
+        # warp granularity up to compability 2.0 is 2. Therefore if max_warps is uneven only max_warps-1 warps
         # can be run
-        # if(maxWarps % 2 == 1):
-        # maxWarps -= 1
+        # if(max_warps % 2 == 1):
+        # max_warps -= 1
 
         # maximum number of threads per block
-        threads = maxWarps * warp_size
+        threads = max_warps * warp_size
 
         # assign number of blocks
         if len(parameters) * self._beta % threads == 0:
@@ -137,7 +137,7 @@ class Simulator:
     ############ public methods ############
 
     # specify GPU specific variables and _runSimulation()
-    def run(self, parameters, initValues, timing=True, info=False):
+    def run(self, parameters, init_values, timing=True, info=False):
 
         # check parameters and initValues for compability with pre-defined parameterNumber and spieciesNumber
         if len(parameters[0]) != self._parameterNumber:
@@ -145,14 +145,14 @@ class Simulator:
                 self._parameterNumber) + ", including compartment volumes) does not match length of array of " +\
                 "parameter values  (" + str(len(parameters[0])) + ")!"
             exit()
-        elif len(initValues[0]) != self._speciesNumber:
+        elif len(init_values[0]) != self._speciesNumber:
             print "Error: Number of species specified (" + str(
                 self._speciesNumber) + ") and given in species array (" + str(
-                len(initValues[0])) + ") differ from each other!"
+                len(init_values[0])) + ") differ from each other!"
             exit()
-        elif len(parameters) != len(initValues):
+        elif len(parameters) != len(init_values):
             print "Error: Number of sets of parameters (" + str(len(parameters)) + ") and species (" + str(
-                len(initValues)) + ") do not match!"
+                len(init_values)) + ") do not match!"
             exit()
 
         if self._compiledRunMethod is None and self._runtimeCompile:
@@ -166,12 +166,12 @@ class Simulator:
         # real runtime compile
 
         # make multiples of initValues
-        initNew = np.zeros((len(initValues) * self._beta, self._speciesNumber))
-        for i in range(len(initValues)):
+        init_new = np.zeros((len(init_values) * self._beta, self._speciesNumber))
+        for i in range(len(init_values)):
             for j in range(self._beta):
                 for k in range(self._speciesNumber):
-                    initNew[i * self._beta + j][k] = initValues[i][k]
-        initValues = initNew
+                    init_new[i * self._beta + j][k] = init_values[i][k]
+        init_values = init_new
 
         if info:
             print "cuda-sim: kernel mem local / shared / registers : ", self._compiledRunMethod.local_size_bytes, self._compiledRunMethod.shared_size_bytes, self._compiledRunMethod.num_regs
@@ -197,17 +197,17 @@ class Simulator:
             if info:
                 print "cuda-sim: Run", runblocks, "blocks."
 
-            minIndex = self._MAXBLOCKSPERDEVICE * i * threads
-            maxIndex = minIndex + threads * runblocks
-            runParameters = parameters[minIndex / self._beta:maxIndex / self._beta]
-            runInitValues = initValues[minIndex:maxIndex]
+            min_index = self._MAXBLOCKSPERDEVICE * i * threads
+            max_index = min_index + threads * runblocks
+            run_parameters = parameters[min_index / self._beta:max_index / self._beta]
+            run_init_values = init_values[min_index:max_index]
 
             # first run store return Value
             if i == 0:
-                returnValue = self._runSimulation(runParameters, runInitValues, runblocks, threads)
+                return_value = self._runSimulation(run_parameters, run_init_values, runblocks, threads)
             else:
-                returnValue = np.append(returnValue,
-                                        self._runSimulation(runParameters, runInitValues, runblocks, threads), axis=0)
+                return_value = np.append(return_value,
+                                        self._runSimulation(run_parameters, run_init_values, runblocks, threads), axis=0)
 
         if timing:
             print "cuda-sim: GPU blocks / threads / running time:", threads, blocks, round((time.time() - start),
@@ -216,7 +216,7 @@ class Simulator:
         if info:
             print ""
 
-        return returnValue
+        return return_value
 
 
 # static non-class methods

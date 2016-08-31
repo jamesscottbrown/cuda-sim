@@ -10,7 +10,7 @@ setup(name='cuda-sim',
 
       url='http://sourceforge.net/projects/cuda-sim/',
 
-      packages=['cudasim'],
+      packages=['cudasim', 'cudasim.writers', 'cudasim.solvers'],
 
       scripts=[],
 

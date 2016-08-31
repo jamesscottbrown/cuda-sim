@@ -230,25 +230,25 @@ class Simulator_mg(multiprocessing.Process):
 
 # static non-class methods
 def copy2D_host_to_device(dev, host, src_pitch, dst_pitch, width, height):
-    copy = driver.Memcpy2D()
-    copy.set_src_host(host)
-    copy.set_dst_device(dev)
-    copy.src_pitch = src_pitch
-    copy.dst_pitch = dst_pitch
-    copy.width_in_bytes = width
-    copy.height = height
-    copy(aligned=True)
+    c = driver.Memcpy2D()
+    c.set_src_host(host)
+    c.set_dst_device(dev)
+    c.src_pitch = src_pitch
+    c.dst_pitch = dst_pitch
+    c.width_in_bytes = width
+    c.height = height
+    c(aligned=True)
 
 
 def copy2D_device_to_host(host, dev, src_pitch, dst_pitch, width, height):
-    copy = driver.Memcpy2D()
-    copy.set_src_device(dev)
-    copy.set_dst_host(host)
-    copy.src_pitch = src_pitch
-    copy.dst_pitch = dst_pitch
-    copy.width_in_bytes = width
-    copy.height = height
-    copy(aligned=True)
+    c = driver.Memcpy2D()
+    c.set_src_device(dev)
+    c.set_dst_host(host)
+    c.src_pitch = src_pitch
+    c.dst_pitch = dst_pitch
+    c.width_in_bytes = width
+    c.height = height
+    c(aligned=True)
 
 
 # Create a 2D GPU array (for assignment

@@ -4,39 +4,39 @@ from cudasim.writers.Writer import Writer
 
 
 class CWriter(Writer):
-    def __init__(self, parsedModel, outputPath=""):
+    def __init__(self, parser, output_path=""):
         Writer.__init__(self)
-        self.parsedModel = parsedModel
-        self.hppOutputFile = open(os.path.join(outputPath, self.parsedModel.name + ".hpp"), "w")
-        self.cppOutputFile = open(os.path.join(outputPath, self.parsedModel.name + ".cpp"), "w")
+        self.parser = parser
+        self.hppOutputFile = open(os.path.join(output_path, self.parser.parsedModel.name + ".hpp"), "w")
+        self.cppOutputFile = open(os.path.join(output_path, self.parser.parsedModel.name + ".cpp"), "w")
         self.rename()
 
     def rename(self):
         """
-        This function renames parts of self.parsedModel to meet the specific requirements of this writer.
+        This function renames parts of self.parser.parsedModel to meet the specific requirements of this writer.
         This behaviour replaces the previous approach of subclassing the parser to produce different results depending
         on the which writer was intended to be used.
         """
 
         # Remove any zero-padding from single-digit parameter names
         # This reverses any change applied by one of the CUDA writers
-        for i in range(self.comp-1, len(self.parsedModel.parameterId)):
-            old_name = self.parsedModel.parameterId[i]
+        for i in range(self.parser.comp-1, len(self.parser.parsedModel.parameterId)):
+            old_name = self.parser.parsedModel.parameterId[i]
             num = old_name[len('parameter'):]
             if len(num) > 1 and num[0] == '0':
                 new_name = 'parameter' + str(num[1:])
-                self.parsedModel.parameterId[i] = new_name
-                self.parsedModel.rename_everywhere(old_name, new_name)
+                self.parser.parsedModel.parameterId[i] = new_name
+                self.parser.parsedModel.rename_everywhere(old_name, new_name)
 
         # Remove any zero-padding from single-digit species names
         # This reverses any change applied by one of the CUDA writers
-        for i in range(0, len(self.parsedModel.speciesId)):
-            old_name = self.parsedModel.speciesId[i]
+        for i in range(0, len(self.parser.parsedModel.speciesId)):
+            old_name = self.parser.parsedModel.speciesId[i]
             num = old_name[len('species'):]
             if len(num) > 1 and num[0] == '0':
                 new_name = 'species' + str(num[1:])
-                self.parsedModel.speciesId[i] = new_name
-                self.parsedModel.rename_everywhere(old_name, new_name)
+                self.parser.parsedModel.speciesId[i] = new_name
+                self.parser.parsedModel.rename_everywhere(old_name, new_name)
 
     def write(self):
         self.write_c_header()
@@ -44,11 +44,11 @@ class CWriter(Writer):
 
     def write_c_header(self):
         self.hppOutputFile.write("#ifndef ")
-        self.hppOutputFile.write(self.parsedModel.name.upper())
+        self.hppOutputFile.write(self.parser.parsedModel.name.upper())
         self.hppOutputFile.write("_HPP_\n")
 
         self.hppOutputFile.write("#define ")
-        self.hppOutputFile.write(self.parsedModel.name.upper())
+        self.hppOutputFile.write(self.parser.parsedModel.name.upper())
         self.hppOutputFile.write("_HPP_\n")
 
         self.hppOutputFile.write("""
@@ -88,16 +88,19 @@ class CWriter(Writer):
               void getStoichiometricMatrix();
 
               /**
-               * Virtual method computing the hazards of the different reactions for a given concentration of species (yi) and some parameter values
+               * Virtual method computing the hazards of the different reactions for a given concentration of species
+               * (yi) and some parameter values
                *
-               * @param double concentrations[] Array of size NSPECIES containing the concentrations of the species for which we want to compute the hazards
-               * @param double parameters[] Array containing the parameter's values for which we want to compute the hazards (the number of parameters depend on the model and doesn't have to be the number of reactions)
+               * @param double concentrations[] Array of size NSPECIES containing the concentrations of the species for
+               *    which we want to compute the hazards
+               * @param double parameters[] Array containing the parameter's values for which we want to compute the
+               *     hazards (number of parameters depends on the model and doesn't have to be the number of reactions)
                */
               ColumnVector getHazards(const double concentrations[],
                             const double parameters[]);
 
               /**
-               * Virtual method modifying the concentrations and parameters depending on some criteria defined by the SBML
+               * Virtual method modifying the concentrations and parameters depending on criteria defined by the SBML
                *
                * @param double concentrations[] Array of size NSPECIES containing the concentrations of the species
                * @param double parameters[] Array containing the parameter's values
@@ -106,30 +109,30 @@ class CWriter(Writer):
                             double parameters[], double time);
             """)
 
-        for i in range(len(self.parsedModel.listOfFunctions)):
+        for i in range(len(self.parser.parsedModel.listOfFunctions)):
 
             self.hppOutputFile.write("double ")
-            string = self.parsedModel.listOfFunctions[i].getId()
+            string = self.parser.parsedModel.listOfFunctions[i].getId()
             string = re.sub('_', '', string)
             self.hppOutputFile.write(string)
             self.hppOutputFile.write("(")
-            self.hppOutputFile.write("\tdouble\t" + self.parsedModel.functionArgument[i][0])
+            self.hppOutputFile.write("\tdouble\t" + self.parser.parsedModel.functionArgument[i][0])
 
-            for j in range(1, self.parsedModel.listOfFunctions[i].getNumArguments()):
+            for j in range(1, self.parser.parsedModel.listOfFunctions[i].getNumArguments()):
                 self.hppOutputFile.write(", ")
-                self.hppOutputFile.write("double " + self.parsedModel.functionArgument[i][j])
+                self.hppOutputFile.write("double " + self.parser.parsedModel.functionArgument[i][j])
             self.hppOutputFile.write(");\n")
 
         self.hppOutputFile.write('\n};\n')
         self.hppOutputFile.write('#endif /*')
-        self.hppOutputFile.write(self.parsedModel.name.upper())
+        self.hppOutputFile.write(self.parser.parsedModel.name.upper())
         self.hppOutputFile.write('_HPP_ */\n')
 
     def write_c_source_code(self):
         p1 = re.compile('species(\d+)')
         p2 = re.compile('parameter(\d+)')
 
-        # self.cppOutputFile.write('#include "' + self.parsedModel.name + '.hpp"\n')
+        # self.cppOutputFile.write('#include "' + self.parser.parsedModel.name + '.hpp"\n')
         self.cppOutputFile.write('#include "ChildModel.hpp"\n')
         self.cppOutputFile.write('#include <cmath>\n')
         self.write_model_constructor()
@@ -141,8 +144,8 @@ class CWriter(Writer):
     def write_model_constructor(self):
 
         self.cppOutputFile.write("\nChildModel::ChildModel(int i){")
-        self.cppOutputFile.write("\n\tNSPECIES = " + str(self.parsedModel.numSpecies) + ";")
-        self.cppOutputFile.write("\n\tNREACTIONS = " + str(self.parsedModel.numReactions) + ";")
+        self.cppOutputFile.write("\n\tNSPECIES = " + str(self.parser.parsedModel.numSpecies) + ";")
+        self.cppOutputFile.write("\n\tNREACTIONS = " + str(self.parser.parsedModel.numReactions) + ";")
         self.cppOutputFile.write("\n\tpstoichiometricMatrix = new Matrix(NSPECIES,NREACTIONS);")
         self.cppOutputFile.write("\n\t(*pstoichiometricMatrix) = 0.0;")
         self.cppOutputFile.write("\n\tgetStoichiometricMatrix();")
@@ -152,38 +155,37 @@ class CWriter(Writer):
 
         # The user-defined functions used in the model must be written in the file
 
-        for i in range(len(self.parsedModel.listOfFunctions)):
+        for i in range(len(self.parser.parsedModel.listOfFunctions)):
             self.cppOutputFile.write("double ChildModel::")
-            string = self.parsedModel.listOfFunctions[i].getId()
+            string = self.parser.parsedModel.listOfFunctions[i].getId()
             string = re.sub('_', '', string)
             self.cppOutputFile.write(string)
             self.cppOutputFile.write("(")
 
-            self.cppOutputFile.write("double  " + self.parsedModel.functionArgument[i][0])
-            for j in range(1, self.parsedModel.listOfFunctions[i].getNumArguments()):
+            self.cppOutputFile.write("double  " + self.parser.parsedModel.functionArgument[i][0])
+            for j in range(1, self.parser.parsedModel.listOfFunctions[i].getNumArguments()):
                 self.cppOutputFile.write(",")
-                self.cppOutputFile.write(" double  " + self.parsedModel.functionArgument[i][j])
+                self.cppOutputFile.write(" double  " + self.parser.parsedModel.functionArgument[i][j])
             self.cppOutputFile.write("){\n\n\t\tdouble output=")
-            self.cppOutputFile.write(self.parsedModel.functionBody[i] + ";")
+            self.cppOutputFile.write(self.parser.parsedModel.functionBody[i] + ";")
             self.cppOutputFile.write("\n\n\t\treturn output;\n\t}\n")
 
     def write_stoichiometric_matrix(self):
 
         self.cppOutputFile.write("\n\n\tvoid ChildModel::getStoichiometricMatrix() {")
 
-        for i in range(self.parsedModel.numReactions):
-            for k in range(self.parsedModel.numSpecies):
-                ##if (self.parsedModel.species[k].getConstant() == False):
-                self.cppOutputFile.write("\n\t\t (*pstoichiometricMatrix)(" + repr(k) + "+1," + repr(i) + "+1)= " + str(
-                    self.parsedModel.stoichiometricMatrix[k][i]) + ";")
+        for i in range(self.parser.parsedModel.numReactions):
+            for k in range(self.parser.parsedModel.numSpecies):
+                self.cppOutputFile.write("\n\t\t (*pstoichiometricMatrix)(" + repr(k) + "+1," + repr(i) + "+1)= " +
+                                         str(self.parser.parsedModel.stoichiometricMatrix[k][i]) + ";")
         self.cppOutputFile.write("\n\t}")
 
     def write_get_hazard_function(self, p1, p2):
         self.cppOutputFile.write(
             "\n\n\tColumnVector ChildModel::getHazards(const double concentrations[],const double parameters[]) {")
         self.cppOutputFile.write("\n\t\tColumnVector hazards(NREACTIONS);\n")
-        for i in range(self.parsedModel.numReactions):
-            string = self.parsedModel.kineticLaw[i]
+        for i in range(self.parser.parsedModel.numReactions):
+            string = self.parser.parsedModel.kineticLaw[i]
             string = re.sub('_', '', string)
             string = p1.sub(r"concentrations[\g<1>-1]", string)
             string = p2.sub(r"parameters[\g<1>]", string)
@@ -207,19 +209,19 @@ class CWriter(Writer):
     def write_events(self, p1, p2):
         # Write the events
 
-        for i in range(len(self.parsedModel.listOfEvents)):
+        for i in range(len(self.parser.parsedModel.listOfEvents)):
             self.cppOutputFile.write("\t\tif ")
-            string = mathMLConditionParser(self.parsedModel.eventCondition[i])
+            string = mathMLConditionParser(self.parser.parsedModel.eventCondition[i])
             string = re.sub(',', '>=', string)
             string = re.sub("geq", " ", string)
             self.cppOutputFile.write(string)
             self.cppOutputFile.write("{\n")
-            list_of_assignment_rules = self.parsedModel.listOfEvents[i].getListOfEventAssignments()
+            list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
 
             for j in range(len(list_of_assignment_rules)):
                 self.cppOutputFile.write("\t\t\t")
 
-                string = self.parsedModel.eventVariable[i][j]
+                string = self.parser.parsedModel.eventVariable[i][j]
                 string = re.sub('_', '', string)
                 string = p1.sub(r"concentrations[\g<1>-1]", string)
                 string = p2.sub(r"parameters[\g<1>]", string)
@@ -228,7 +230,7 @@ class CWriter(Writer):
 
                 self.cppOutputFile.write("=")
 
-                string = self.parsedModel.eventFormula[i][j]
+                string = self.parser.parsedModel.eventFormula[i][j]
                 string = re.sub('_', '', string)
                 string = p1.sub(r"concentrations[\g<1>-1]", string)
                 string = p2.sub(r"parameters[\g<1>]", string)
@@ -243,10 +245,10 @@ class CWriter(Writer):
     def write_rules(self, p1, p2):
         # write the rules
 
-        for i in range(len(self.parsedModel.listOfRules)):
-            if self.parsedModel.listOfRules[i].isAssignment():
+        for i in range(len(self.parser.parsedModel.listOfRules)):
+            if self.parser.parsedModel.listOfRules[i].isAssignment():
                 self.cppOutputFile.write("\t\t")
-                string = self.parsedModel.ruleVariable[i]
+                string = self.parser.parsedModel.ruleVariable[i]
                 string = re.sub('_', '', string)
                 string = p1.sub(r"concentrations[\g<1>-1]", string)
                 string = p2.sub(r"parameters[\g<1>]", string)
@@ -255,7 +257,7 @@ class CWriter(Writer):
 
                 self.cppOutputFile.write("=")
 
-                string = mathMLConditionParser(self.parsedModel.ruleFormula[i])
+                string = mathMLConditionParser(self.parser.parsedModel.ruleFormula[i])
                 string = re.sub('_', '', string)
                 string = p1.sub(r"concentrations[\g<1>-1]", string)
                 string = p2.sub(r"parameters[\g<1>]", string)

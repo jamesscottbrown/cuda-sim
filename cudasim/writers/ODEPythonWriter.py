@@ -1,4 +1,5 @@
 import os
+import copy
 from cudasim.relations import *
 from Writer import Writer
 
@@ -52,68 +53,53 @@ class ODEPythonWriter(Writer):
         self.write_rules_function_signature()
         self.write_events()
         self.write_rules_function_body()
+        self.out_file.close()
 
     def write_functions(self):
         # Writes user-defined functions
         model = self.parser.parsedModel
         for i in range(len(model.listOfFunctions)):
-            self.out_file.write("def ")
-            self.out_file.write(model.listOfFunctions[i].getId())
-            self.out_file.write("(")
-            for j in range(model.listOfFunctions[i].getNumArguments()):
-                self.out_file.write(model.functionArgument[i][j])
-                self.out_file.write(",")
-            self.out_file.write("):\n\n\toutput=")
-            self.out_file.write(model.functionBody[i])
-            self.out_file.write("\n\n\treturn output\n\n")
+            arg_list = ','.join(model.functionArgument[i])
+
+            self.out_file.write("def %s (%s):\n\n" % (model.listOfFunctions[i].getId(), arg_list))
+            self.out_file.write("\toutput = %s\n\n" % model.functionBody[i])
+            self.out_file.write("\treturn output\n\n")
+
+    def categorise_variables(self):
+        # form a list of the species, and parameters which are set by rate rules
+        model = self.parser.parsedModel
+        species_list = copy.copy(model.speciesId)
+
+        rule_params = []
+        constant_params = []
+        for i in range(len(model.listOfParameter)):
+            is_constant = True
+            if not model.listOfParameter[i].getConstant():
+                for k in range(len(model.listOfRules)):
+                    if model.listOfRules[k].isRate() and model.ruleVariable[k] == model.parameterId[i]:
+                        rule_params.append(model.parameterId[i])
+                        is_constant = False
+            if is_constant:
+                constant_params.append(model.parameterId[i])
+
+        species_list.extend(rule_params)
+        return species_list, constant_params
 
     def write_modelfunction_signature(self):
         # Write the signature for a modelfunction, e.g.:
         # def modelfunction((species1,),time,parameter=(1.0,1.0,0.1,)):
 
-        model = self.parser.parsedModel
-        self.out_file.write("def modelfunction((")
-        for i in range(len(model.species)):
-            self.out_file.write(model.speciesId[i])
-            self.out_file.write(",")
-        for i in range(len(model.listOfParameter)):
-            if not model.listOfParameter[i].getConstant():
-                for k in range(len(model.listOfRules)):
-                    if model.listOfRules[k].isRate() and model.ruleVariable[k] == \
-                            model.parameterId[i]:
-                        self.out_file.write(model.parameterId[i])
-                        self.out_file.write(",")
-        self.out_file.write("),time,parameter=(")
-        for i in range(len(model.parameterId)):
-            dont_print = False
-            if not model.listOfParameter[i].getConstant():
-                for k in range(len(model.listOfRules)):
-                    if model.listOfRules[k].isRate() and model.ruleVariable[k] == \
-                            model.parameterId[i]:
-                        dont_print = True
-            if not dont_print:
-                self.out_file.write(repr(model.parameter[i]))
-                self.out_file.write(",")
-        self.out_file.write(")):\n\n")
+        (species_list, constant_params) = self.categorise_variables()
+        self.out_file.write("def modelfunction((%s), time, parameter=(%s)):\n\n" %
+                            (",".join(species_list), ",".join(constant_params)))
 
     def write_parameter_assignments(self):
         # Write paramter assignment statements, e.g.
         # compartment1=parameter[0]
-
-        model = self.parser.parsedModel
-        counter = 0
-        for i in range(len(model.parameterId)):
-            dont_print = False
-            if not model.listOfParameter[i].getConstant():
-                for k in range(len(model.listOfRules)):
-                    if model.listOfRules[k].isRate() and model.ruleVariable[k] == \
-                            model.parameterId[i]:
-                        dont_print = True
-            if not dont_print:
-                self.out_file.write(
-                    "\t" + model.parameterId[i] + "=parameter[" + repr(counter) + "]\n")
-                counter += 1
-        self.out_file.write("\n")
+        (species_list, constant_params) = self.categorise_variables()
+        for i, param in enumerate(constant_params):
+            self.out_file.write("\t%s = parameter[%s]\n" % (param, i))
+            pass
 
     def write_derivatives(self):
         p = re.compile('\s')
@@ -125,12 +111,9 @@ class ODEPythonWriter(Writer):
                 self.out_file.write("(")
             for k in range(model.numReactions):
                 if not model.stoichiometricMatrix[i][k] == 0.0:
-                    self.out_file.write("(")
-                    self.out_file.write(repr(model.stoichiometricMatrix[i][k]))
-                    self.out_file.write(")*(")
                     string = p.sub('', model.kineticLaw[k])
-                    self.out_file.write(string)
-                    self.out_file.write(")+")
+                    self.out_file.write("(%s)*(%s)+" % (repr(model.stoichiometricMatrix[i][k]), string))
+
             self.out_file.write("0")
             if model.species[i].isSetCompartment():
                 self.out_file.write(")/")
@@ -140,65 +123,27 @@ class ODEPythonWriter(Writer):
                         self.out_file.write(model.parameterId[j])
                         break
             self.out_file.write("\n")
+
         for i in range(len(model.listOfRules)):
             if model.listOfRules[i].isRate():
-                self.out_file.write("\td_")
-                self.out_file.write(model.ruleVariable[i])
-                self.out_file.write("=")
-                self.out_file.write(model.ruleFormula[i])
-                self.out_file.write("\n")
-        self.out_file.write("\n\treturn(")
-        for i in range(len(model.species)):
-            self.out_file.write("d_" + model.speciesId[i])
-            self.out_file.write(",")
-        for i in range(len(model.listOfParameter)):
-            if not model.listOfParameter[i].getConstant():
-                for k in range(len(model.listOfRules)):
-                    if model.listOfRules[k].isRate() and model.ruleVariable[k] == \
-                            model.parameterId[i]:
-                        self.out_file.write("d_" + model.parameterId[i])
-                        self.out_file.write(",")
-        self.out_file.write(")\n")
+                self.out_file.write("\td_%s = %s\n" % (model.ruleVariable[i], model.ruleFormula[i]))
+
+        # print return statement
+        (species_list, _) = self.categorise_variables()
+        species_string = ",".join(map(lambda x: "d_%s" % x, species_list))
+        self.out_file.write("\n\treturn(%s)\n" % species_string)
 
     def write_rules_function_signature(self):
-        model = self.parser.parsedModel
-        self.out_file.write("\ndef rules((")
-        for i in range(len(model.species)):
-            self.out_file.write(model.speciesId[i])
-            self.out_file.write(",")
-        for i in range(len(model.listOfParameter)):
-            if not model.listOfParameter[i].getConstant():
-                for k in range(len(model.listOfRules)):
-                    if model.listOfRules[k].isRate() and model.ruleVariable[k] == \
-                            model.parameterId[i]:
-                        self.out_file.write(model.parameterId[i])
-                        self.out_file.write(",")
-        self.out_file.write("),(")
-        for i in range(len(model.parameterId)):
-            dont_print = False
-            if not model.listOfParameter[i].getConstant():
-                for k in range(len(model.listOfRules)):
-                    if model.listOfRules[k].isRate() and model.ruleVariable[k] == \
-                            model.parameterId[i]:
-                        dont_print = True
-            if not dont_print:
-                self.out_file.write(model.parameterId[i])
-                self.out_file.write(",")
-        self.out_file.write("),time):\n\n")
+        (species_list, constant_params) = self.categorise_variables()
+        self.out_file.write("\ndef rules((%s), (%s), time):\n\n" % (",".join(species_list), ",".join(constant_params)))
 
     def write_events(self):
         model = self.parser.parsedModel
         for i in range(len(model.listOfEvents)):
-            self.out_file.write("\tif ")
-            self.out_file.write(mathml_condition_parser(model.eventCondition[i]))
-            self.out_file.write(":\n")
+            self.out_file.write("\tif %s:\n" % mathml_condition_parser(model.eventCondition[i]))
             list_of_assignment_rules = model.listOfEvents[i].getListOfEventAssignments()
             for j in range(len(list_of_assignment_rules)):
-                self.out_file.write("\t\t")
-                self.out_file.write(model.eventVariable[i][j])
-                self.out_file.write("=")
-                self.out_file.write(model.eventFormula[i][j])
-                self.out_file.write("\n")
+                self.out_file.write("\t\t%s = %s\n" % (model.eventVariable[i][j], model.eventFormula[i][j]))
             self.out_file.write("\n")
         self.out_file.write("\n")
 
@@ -206,32 +151,8 @@ class ODEPythonWriter(Writer):
         model = self.parser.parsedModel
         for i in range(len(model.listOfRules)):
             if model.listOfRules[i].isAssignment():
-                self.out_file.write("\t")
-                self.out_file.write(model.ruleVariable[i])
-                self.out_file.write("=")
-                self.out_file.write(mathml_condition_parser(model.ruleFormula[i]))
-                self.out_file.write("\n")
-        self.out_file.write("\n\treturn((")
-        for i in range(model.numSpecies):
-            self.out_file.write(model.speciesId[i])
-            self.out_file.write(",")
-        for i in range(len(model.listOfParameter)):
-            if not model.listOfParameter[i].getConstant():
-                for k in range(len(model.listOfRules)):
-                    if model.listOfRules[k].isRate() and model.ruleVariable[k] == \
-                            model.parameterId[i]:
-                        self.out_file.write(model.parameterId[i])
-                        self.out_file.write(",")
-        self.out_file.write("),(")
-        for i in range(len(model.parameterId)):
-            dont_print = False
-            if not model.listOfParameter[i].getConstant():
-                for k in range(len(model.listOfRules)):
-                    if model.listOfRules[k].isRate() and model.ruleVariable[k] == \
-                            model.parameterId[i]:
-                        dont_print = True
-            if not dont_print:
-                self.out_file.write(model.parameterId[i])
-                self.out_file.write(",")
-        self.out_file.write("))\n\n")
-        self.out_file.close()
+                self.out_file.write("\t%s = %s\n" %
+                                    (model.ruleVariable[i], mathml_condition_parser(model.ruleFormula[i])))
+
+        (species_list, constant_params) = self.categorise_variables()
+        self.out_file.write("\n\treturn((%s),(%s))\n\n" % (",".join(species_list), ",".join(constant_params)))

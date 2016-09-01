@@ -4,10 +4,10 @@ import numpy as np
 import pycuda
 import pycuda.driver as driver
 
-import cudasim.solvers.cuda.Simulator_mg as sim
+import cudasim.solvers.cuda.Simulator_mg as Sim
 
 
-class Lsoda(sim.Simulator_mg):
+class Lsoda(sim.SimulatorMG):
     _param_tex = None
 
     _step_code = None
@@ -87,7 +87,7 @@ class Lsoda(sim.Simulator_mg):
         lsoda_kernel = compiled.get_function("cuLsoda")
         return compiled, lsoda_kernel
 
-    def _runSimulation(self, parameters, initValues, blocks, threads, in_atol=1e-6, in_rtol=1e-6):
+    def _run_simulation(self, parameters, init_values, blocks, threads, in_atol=1e-6, in_rtol=1e-6):
 
         total_threads = threads * blocks
         experiments = len(parameters)
@@ -143,8 +143,8 @@ class Lsoda(sim.Simulator_mg):
                 # initial conditions
                 for j in range(self._speciesNumber):
                     # loop over species
-                    y[i * self._speciesNumber + j] = initValues[i][j]
-                    ret_xt[i, 0, 0, j] = initValues[i][j]
+                    y[i * self._speciesNumber + j] = init_values[i][j]
+                    ret_xt[i, 0, 0, j] = init_values[i][j]
             except IndexError:
                 pass
 
@@ -193,8 +193,8 @@ class Lsoda(sim.Simulator_mg):
             pass
 
         # parameter texture
-        ary = sim.create_2D_array(param)
-        sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads)
+        ary = Sim.create_2D_array(param)
+        Sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads)
         self._param_tex.set_array(ary)
 
         if self._dt <= 0:

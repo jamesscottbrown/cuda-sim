@@ -5,7 +5,7 @@ import numpy as np
 import pycuda
 import pycuda.driver as cuda
 
-import cudasim.solvers.cuda.Simulator as sim
+import cudasim.solvers.cuda.Simulator as Sim
 
 
 # total device global memory usage
@@ -36,9 +36,9 @@ class Gillespie(sim.Simulator):
     
     """
 
-    def __init__(self, timepoints, stepCode, speciesCompartment=None, beta=1, dt=0.01, dump=False):
-        self._speciesCompartment = speciesCompartment
-        sim.Simulator.__init__(self, timepoints, stepCode, beta=beta, dt=dt, dump=dump)
+    def __init__(self, timepoints, step_code, species_compartment=None, beta=1, dt=0.01, dump=False):
+        self._speciesCompartment = species_compartment
+        Sim.Simulator.__init__(self, timepoints, step_code, beta=beta, dt=dt, dump=dump)
 
     def _compile(self, application_code):
 
@@ -174,7 +174,7 @@ class Gillespie(sim.Simulator):
 
         return m, m.get_function("GillespieMain")
 
-    def _runSimulation(self, parameters, initValues, blocks, threads):
+    def _run_simulation(self, parameters, init_values, blocks, threads):
         total_threads = blocks * threads
         experiments = len(parameters)
 
@@ -192,8 +192,8 @@ class Gillespie(sim.Simulator):
             pass
 
         # parameter texture
-        ary = sim.create_2D_array(param)
-        sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
+        ary = Sim.create_2d_array(param)
+        Sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
         self._param_tex.set_array(ary)
 
         # 2D species arrays
@@ -204,17 +204,17 @@ class Gillespie(sim.Simulator):
         # initialize species
         species_input = np.zeros((total_threads, self._speciesNumber), dtype=np.int32)
         try:
-            for i in range(len(initValues)):
+            for i in range(len(init_values)):
                 for j in range(self._speciesNumber):
                     # if compartment corresponding to each species was specified, convert concentrations to counts
                     if self._speciesCompartment:
-                        species_input[i][j] = initValues[i][j] * (6.022E23 * param[i][self._speciesCompartment[j]])
+                        species_input[i][j] = init_values[i][j] * (6.022E23 * param[i][self._speciesCompartment[j]])
                     else:
-                        species_input[i][j] = initValues[i][j]
+                        species_input[i][j] = init_values[i][j]
         except IndexError:
             pass
-        sim.copy2D_host_to_device(d_x, species_input, self._speciesNumber * 4, p_x, self._speciesNumber * 4,
-                                  total_threads)
+        Sim.copy_2d_host_to_device(d_x, species_input, self._speciesNumber * 4, p_x, self._speciesNumber * 4,
+                                   total_threads)
 
         # output array
         result = np.zeros(total_threads * self._resultNumber * self._speciesNumber, dtype=np.int32)
@@ -247,7 +247,7 @@ class Gillespie(sim.Simulator):
         _code_ = f.read() + code
         return pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=options)
 
-    def _initialise_twisters(self, mt_data, mod, blockSize, gridSize):
+    def _initialise_twisters(self, mt_data, mod, block_size, grid_size):
 
         p_mt = int(mod.get_global("MT")[0])
         mt_rng_count = 32768
@@ -263,5 +263,5 @@ class Gillespie(sim.Simulator):
         # Copy the offline MT parameters over to GPU
         cuda.memcpy_htod(p_mt, tup)
 
-        InitialiseAllMersenneTwisters = mod.get_function("InitialiseAllMersenneTwisters")
-        InitialiseAllMersenneTwisters(block=(512, 1, 1), grid=(64, 1))
+        initialise_all_mersenne_twisters = mod.get_function("InitialiseAllMersenneTwisters")
+        initialise_all_mersenne_twisters(block=(512, 1, 1), grid=(64, 1))

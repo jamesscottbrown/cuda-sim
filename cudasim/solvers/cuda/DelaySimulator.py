@@ -2,20 +2,20 @@ import numpy as np
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
 
-import cudasim.solvers.cuda.Simulator as sim
+import cudasim.solvers.cuda.Simulator as Sim
 
 
 class DelaySimulator(sim.Simulator):
     _param_tex = None
     _putIntoShared = False
 
-    def __init__(self, timepoints, stepCode, delays, beta=1, dt=0.01, dump=False):
+    def __init__(self, timepoints, step_code, delays, beta=1, dt=0.01, dump=False):
         self._delays = delays
 
         self._maxDelay = 10
         self._histTimeSteps = int(1 + self._maxDelay / (dt / 2))  # TODO: calculate this correctly
 
-        sim.Simulator.__init__(self, timepoints, stepCode, beta=beta, dt=dt, dump=dump)
+        Sim.Simulator.__init__(self, timepoints, step_code, beta=beta, dt=dt, dump=dump)
 
     def _compile(self, step_code):
         # TODO: determine if shared memory is enough to fit parameters ???
@@ -188,7 +188,7 @@ class DelaySimulator(sim.Simulator):
 
         return module, module.get_function('myDDEsolver')
 
-    def _runSimulation(self, parameters, initValues, blocks, threads):
+    def _run_simulation(self, parameters, init_values, blocks, threads):
         print "In runSimulation"
         total_threads = blocks * threads
         experiments = len(parameters)
@@ -204,8 +204,8 @@ class DelaySimulator(sim.Simulator):
 
         if not self._putIntoShared:
             # parameter texture
-            ary = sim.create_2D_array(param)
-            sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
+            ary = Sim.create_2d_array(param)
+            Sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
             self._param_tex.set_array(ary)
             shared_memory_parameters = 0
         else:
@@ -221,9 +221,9 @@ class DelaySimulator(sim.Simulator):
 
         # non coalesced
         try:
-            for i in range(len(initValues)):
+            for i in range(len(init_values)):
                 for j in range(self._speciesNumber):
-                    species_input[i * self._speciesNumber + j] = initValues[i][j]
+                    species_input[i * self._speciesNumber + j] = init_values[i][j]
         except IndexError:
             pass
         if self._putIntoShared:

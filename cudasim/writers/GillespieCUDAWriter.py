@@ -42,7 +42,7 @@ class GillespieCUDAWriter(Writer):
 
         rename_math_functions(self.parser.parsedModel, 't')
 
-    def write(self, useMoleculeCounts=False):
+    def write(self, use_molecule_counts=False):
 
         p = re.compile('\s')
         model = self.parser.parsedModel
@@ -58,7 +58,7 @@ class GillespieCUDAWriter(Writer):
         self.write_functions()
         self.write_stoichiometry_matrix()
         
-        if useMoleculeCounts:
+        if use_molecule_counts:
             self.out_file.write("__device__ void hazards(int *y, float *h, float t, int tid){\n")
             self.out_file.write("        // Assume rate law expressed in terms of molecule counts \n")
         else:
@@ -75,7 +75,7 @@ class GillespieCUDAWriter(Writer):
         self.write_rate_rules()
         self.write_events()
         self.write_assignment_rules()
-        self.write_reaction_hazards(p, useMoleculeCounts)
+        self.write_reaction_hazards(p, use_molecule_counts)
         
         self.out_file.write("}\n\n")
 
@@ -216,10 +216,10 @@ class GillespieCUDAWriter(Writer):
                 self.out_file.write(";\n")
         self.out_file.write("\n")
 
-    def write_reaction_hazards(self, p, useMoleculeCounts):
+    def write_reaction_hazards(self, p, use_molecule_counts):
         model = self.parser.parsedModel
         for i in range(model.numReactions):
-            if useMoleculeCounts:
+            if use_molecule_counts:
                 self.out_file.write("    h[" + repr(i) + "] = ")
             else:
                 self.out_file.write("    h[" + repr(i) + "] = 6.022E23 * ")

@@ -5,10 +5,10 @@ import numpy as np
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
 
-import cudasim.solvers.cuda.Simulator_mg as sim
+import cudasim.solvers.cuda.Simulator_mg as Sim
 
 
-class EulerMaruyama(sim.Simulator_mg):
+class EulerMaruyama(sim.SimulatorMG):
     _param_tex = None
     _putIntoShared = False
 
@@ -35,7 +35,7 @@ class EulerMaruyama(sim.Simulator_mg):
             self._putIntoShared = True
 
         # print "cuda-sim: Euler-Maruyama : Using shared memory code: " + str(self._putIntoShared)
-        step_code = self._modifyStepCode(step_code, self._putIntoShared)
+        step_code = self._modify_step_code(step_code, self._putIntoShared)
 
         general_parameters_source = """
     const int NRESULTS = """ + str(self._resultNumber) + """;
@@ -186,7 +186,7 @@ class EulerMaruyama(sim.Simulator_mg):
 
         return module, module.get_function('sdeMain')
 
-    def _runSimulation(self, parameters, initValues, blocks, threads):
+    def _run_simulation(self, parameters, init_values, blocks, threads):
 
         total_threads = blocks * threads
         experiments = len(parameters)
@@ -202,8 +202,8 @@ class EulerMaruyama(sim.Simulator_mg):
 
         if not self._putIntoShared:
             # parameter texture
-            ary = sim.create_2D_array(param)
-            sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
+            ary = Sim.create_2D_array(param)
+            Sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
             self._param_tex.set_array(ary)
             shared_memory_parameters = 0
         else:
@@ -220,9 +220,9 @@ class EulerMaruyama(sim.Simulator_mg):
 
         # non coalesced
         try:
-            for i in range(len(initValues)):
+            for i in range(len(init_values)):
                 for j in range(self._speciesNumber):
-                    species_input[i * self._speciesNumber + j] = initValues[i][j]
+                    species_input[i * self._speciesNumber + j] = init_values[i][j]
         except IndexError:
             pass
         if self._putIntoShared:
@@ -269,19 +269,19 @@ class EulerMaruyama(sim.Simulator_mg):
         return result
 
     # comments out the part of the step code that is not used (either parameters in texture or shared memory)
-    def _modifyStepCode(self, stepCode, putIntoShared):
-        lines = str(stepCode).split("\n")
+    def _modify_step_code(self, step_code, put_into_shared):
+        lines = str(step_code).split("\n")
 
         comment = False
 
         for i in range(len(lines)):
             if lines[i].find("//Code for shared memory") != -1:
-                if putIntoShared:
+                if put_into_shared:
                     comment = False
                 else:
                     comment = True
             elif lines[i].find("//Code for texture memory") != -1:
-                if putIntoShared:
+                if put_into_shared:
                     comment = True
                 else:
                     comment = False

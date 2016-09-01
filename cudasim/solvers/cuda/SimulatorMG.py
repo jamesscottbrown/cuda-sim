@@ -11,7 +11,7 @@ import pycuda.driver as driver
 
 
 # class Simulator_mg(threading.Thread):
-class Simulator_mg(multiprocessing.Process):
+class SimulatorMG(multiprocessing.Process):
     # constant private variables
     _MAXBLOCKSPERDEVICE = 500
     _MAXTHREADSPERBLOCK = 64
@@ -28,7 +28,7 @@ class Simulator_mg(multiprocessing.Process):
 
     self._returnValue = None
 
-    def __init__(self, timepoints, stepCodeFile, parameters, initValues, output_cpu, card=-1, beta=1, dt=0.01,
+    def __init__(self, timepoints, step_code_file, parameters, init_values, output_cpu, card=-1, beta=1, dt=0.01,
                  timing=True, info=False, dump=False):
         # threading.Thread.__init__(self)
         multiprocessing.Process.__init__(self)
@@ -40,7 +40,7 @@ class Simulator_mg(multiprocessing.Process):
         self._beta = int(beta)
 
         self._parameters = copy.deepcopy(parameters)
-        self._initValues = copy.deepcopy(initValues)
+        self._initValues = copy.deepcopy(init_values)
 
         self.output_cpu = output_cpu
 
@@ -50,10 +50,10 @@ class Simulator_mg(multiprocessing.Process):
         self._timing = timing
 
         # read stepCode from file
-        self._stepCode = open(stepCodeFile, 'r').read()
+        self._stepCode = open(step_code_file, 'r').read()
 
         # Do some error checking
-        self._getKernelParams()
+        self._get_kernel_params()
         self._check_consistency()
 
         # only beta which are factors of _MAXBLOCKSPERDEVICE are accepted, 
@@ -66,7 +66,7 @@ class Simulator_mg(multiprocessing.Process):
     # private methods
 
     # method for extracting the number of species, variables and reactions from CUDA kernel
-    def _getKernelParams(self):
+    def _get_kernel_params(self):
         lines = str(self._stepCode).split("\n")
         for i in lines:
             if i.find("NSPECIES") != -1:
@@ -94,9 +94,9 @@ class Simulator_mg(multiprocessing.Process):
             exit()
 
     # method for calculating optimal number of blocks and threads per block
-    def _getOptimalGPUParam(self, compiledRunMethod=None):
-        if compiledRunMethod is None:
-            compiledRunMethod = self._compiledRunMethod
+    def _get_optimal_gpu_param(self, compiled_run_method=None):
+        if compiled_run_method is None:
+            compiled_run_method = self._compiledRunMethod
 
         # general parameters
         max_threads_per_block = self._context.get_device().max_threads_per_block
@@ -107,7 +107,7 @@ class Simulator_mg(multiprocessing.Process):
         # max_threads_per_block)
 
         # assume smaller blocksize creates less overhead; ignore occupancy..
-        max_threads = min(self._context.get_device().max_registers_per_block / compiledRunMethod.num_regs,
+        max_threads = min(self._context.get_device().max_registers_per_block / compiled_run_method.num_regs,
                           self._MAXTHREADSPERBLOCK)
 
         max_warps = max_threads / warp_size
@@ -134,7 +134,7 @@ class Simulator_mg(multiprocessing.Process):
 
     # ABSTRACT
     # method for running simulation
-    def _runSimulation(self, parameters, initValues, blocks, threads):
+    def _run_simulation(self, parameters, init_values, blocks, threads):
         return None
 
     # ABSTRACT
@@ -167,7 +167,7 @@ class Simulator_mg(multiprocessing.Process):
         # compile code
         self._completeCode, self._compiledRunMethod = self._compile(self._stepCode)
 
-        blocks, threads = self._getOptimalGPUParam()
+        blocks, threads = self._get_optimal_gpu_param()
         if self._info:
             print "cuda-sim: threads/blocks:", threads, blocks
 
@@ -211,10 +211,10 @@ class Simulator_mg(multiprocessing.Process):
 
             # first run store return Value
             if i == 0:
-                self._returnValue = self._runSimulation(run_parameters, run_init_values, runblocks, threads)
+                self._returnValue = self._run_simulation(run_parameters, run_init_values, runblocks, threads)
             else:
                 self._returnValue = np.append(self._returnValue,
-                                              self._runSimulation(run_parameters, run_init_values, runblocks, threads),
+                                              self._run_simulation(run_parameters, run_init_values, runblocks, threads),
                                               axis=0)
 
         self.output_cpu.put([self._card, self._returnValue])
@@ -234,7 +234,7 @@ class Simulator_mg(multiprocessing.Process):
 
 
 # static non-class methods
-def copy2D_host_to_device(dev, host, src_pitch, dst_pitch, width, height):
+def copy_2d_host_to_device(dev, host, src_pitch, dst_pitch, width, height):
     c = driver.Memcpy2D()
     c.set_src_host(host)
     c.set_dst_device(dev)
@@ -245,7 +245,7 @@ def copy2D_host_to_device(dev, host, src_pitch, dst_pitch, width, height):
     c(aligned=True)
 
 
-def copy2D_device_to_host(host, dev, src_pitch, dst_pitch, width, height):
+def copy_2d_device_to_host(host, dev, src_pitch, dst_pitch, width, height):
     c = driver.Memcpy2D()
     c.set_src_device(dev)
     c.set_dst_host(host)
@@ -258,7 +258,7 @@ def copy2D_device_to_host(host, dev, src_pitch, dst_pitch, width, height):
 
 # Create a 2D GPU array (for assignment
 # to texture) from a numpy 2D array
-def create_2D_array(mat):
+def create_2d_array(mat):
     descr = driver.ArrayDescriptor()
     descr.width = mat.shape[1]
     descr.height = mat.shape[0]
@@ -271,7 +271,7 @@ def create_2D_array(mat):
 
 # Copy 2D host numpy array to 2D
 # GPU array object
-def copy2D_host_to_array(arr, host, width, height):
+def copy_2d_host_to_array(arr, host, width, height):
     c = driver.Memcpy2D()
     c.set_src_host(host)
     c.set_dst_array(arr)
@@ -282,18 +282,18 @@ def copy2D_host_to_array(arr, host, width, height):
 
 
 # Determine maximum number of threads per MP
-def getMaxThreadsPerMP(compabilityTuple):
-    if compabilityTuple[0] == 1:
-        if compabilityTuple[1] == 0 or compabilityTuple[1] == 1:
+def get_max_threads_per_mp(compability_tuple):
+    if compability_tuple[0] == 1:
+        if compability_tuple[1] == 0 or compability_tuple[1] == 1:
             return 768
-        elif compabilityTuple[1] == 2 or compabilityTuple[1] == 3:
+        elif compability_tuple[1] == 2 or compability_tuple[1] == 3:
             return 1024
-    elif compabilityTuple[0] == 2:
-        if compabilityTuple[1] == 0:
+    elif compability_tuple[0] == 2:
+        if compability_tuple[1] == 0:
             return 1536
     return 768
 
 
 # Determine maximum number of blocks per MP
-def getMaxBlocksPerMP(compabilityTuple):
+def get_max_blocks_per_mp(compability_tuple):
     return 8

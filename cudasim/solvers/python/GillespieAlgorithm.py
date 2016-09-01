@@ -104,7 +104,7 @@ def gillespie_int(func, init_values, parameters, outputtimes):
     return concentrations
 
 
-def GillespieInt_onestep(func, current_concentrations, t1, t2, parameters, xmax):
+def gillespie_int_onestep(func, current_concentrations, t1, t2, parameters, xmax):
     # print current_concentrations, t1,  t2, parameters
 
     time = t1

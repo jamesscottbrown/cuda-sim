@@ -4,7 +4,7 @@ import numpy as np
 import pycuda
 import pycuda.driver as driver
 
-import cudasim.solvers.cuda.Simulator as sim
+import cudasim.solvers.cuda.Simulator as Sim
 
 
 class Lsoda(sim.Simulator):
@@ -48,7 +48,7 @@ class Lsoda(sim.Simulator):
     
     """
 
-    def _compileAtRuntime(self, step_code, parameters):
+    def _compile_at_runtime(self, step_code, parameters):
         # set beta to 1: repeats are pointless as simulation is deterministic
         self._beta = 1
 
@@ -69,7 +69,7 @@ class Lsoda(sim.Simulator):
         # dummy compile to determine optimal blockSize and gridSize
         compiled = pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
 
-        blocks, threads = self._getOptimalGPUParam(parameters, compiled.get_function("cuLsoda"))
+        blocks, threads = self._get_optimal_gpu_param(parameters, compiled.get_function("cuLsoda"))
         blocks = self._MAXBLOCKSPERDEVICE
 
         # real compile
@@ -87,7 +87,7 @@ class Lsoda(sim.Simulator):
         lsoda_kernel = compiled.get_function("cuLsoda")
         return compiled, lsoda_kernel
 
-    def _runSimulation(self, parameters, initValues, blocks, threads, in_atol=1e-6, in_rtol=1e-6):
+    def _run_simulation(self, parameters, init_values, blocks, threads, in_atol=1e-6, in_rtol=1e-6):
 
         total_threads = threads * blocks
         experiments = len(parameters)
@@ -143,8 +143,8 @@ class Lsoda(sim.Simulator):
                 # initial conditions
                 for j in range(self._speciesNumber):
                     # loop over species
-                    y[i * self._speciesNumber + j] = initValues[i][j]
-                    ret_xt[i, 0, 0, j] = initValues[i][j]
+                    y[i * self._speciesNumber + j] = init_values[i][j]
+                    ret_xt[i, 0, 0, j] = init_values[i][j]
             except IndexError:
                 pass
 
@@ -193,8 +193,8 @@ class Lsoda(sim.Simulator):
             pass
 
         # parameter texture
-        ary = sim.create_2D_array(param)
-        sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads)
+        ary = Sim.create_2d_array(param)
+        Sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads)
         self._param_tex.set_array(ary)
 
         if self._dt <= 0:

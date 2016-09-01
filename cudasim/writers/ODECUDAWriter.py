@@ -45,48 +45,10 @@ class OdeCUDAWriter(Writer):
         """
     
         num_species = len(self.parser.parsedModel.species)
-    
-        p = re.compile('\s')
-    
-        # Write number of parameters and species
-        self.out_file.write("#define NSPECIES " + str(num_species) + "\n")
-        self.out_file.write("#define NPARAM " + str(len(self.parser.parsedModel.parameterId)) + "\n")
-        self.out_file.write("#define NREACT " + str(self.parser.parsedModel.numReactions) + "\n")
-        self.out_file.write("\n")
-    
-        # The user-defined functions used in the model must be written in the file
-        num_events = len(self.parser.parsedModel.listOfEvents)
-        num_rules = len(self.parser.parsedModel.listOfRules)
-        num = num_events + num_rules
-        if num > 0:
-            self.out_file.write("#define leq(a,b) a<=b\n")
-            self.out_file.write("#define neq(a,b) a!=b\n")
-            self.out_file.write("#define geq(a,b) a>=b\n")
-            self.out_file.write("#define lt(a,b) a<b\n")
-            self.out_file.write("#define gt(a,b) a>b\n")
-            self.out_file.write("#define eq(a,b) a==b\n")
-            self.out_file.write("#define and_(a,b) a&&b\n")
-            self.out_file.write("#define or_(a,b) a||b\n")
 
-        # An expression of the form pow((function of state), (parameter), causes a function call with signature
-        # "pow(<double, float>)", an illegal call to the __host__ function std::pow from the __device__ function.
-        # To avoid this, we create wrapper functions  that cast the float to a double then call pow(<double>,<double>),
-        #  a __device__ function.
-    
-        self.out_file.write("float __device__ pow(double i, float j){ return pow(i, (double) j); }")
-        self.out_file.write("float __device__ pow(float i, double j){ return pow((double) i, j); }")
+        self.write_header(num_species)
+        self.write_functions()
 
-        for i in range(0, len(self.parser.parsedModel.listOfFunctions)):
-            self.out_file.write("__device__ double " + self.parser.parsedModel.listOfFunctions[i].getId() + "(")
-            for j in range(0, self.parser.parsedModel.listOfFunctions[i].getNumArguments()):
-                self.out_file.write("double " + self.parser.parsedModel.functionArgument[i][j])
-                if j < (self.parser.parsedModel.listOfFunctions[i].getNumArguments() - 1):
-                    self.out_file.write(",")
-            self.out_file.write("){\n    return ")
-            self.out_file.write(self.parser.parsedModel.functionBody[i])
-            self.out_file.write(";\n}\n")
-            self.out_file.write("\n")
-    
         self.out_file.write("""
 struct myFex{
     __device__ void operator()(int *neq, double *t, double *y, double *ydot/*, void *otherData*/)
@@ -94,159 +56,10 @@ struct myFex{
         int tid = blockDim.x * blockIdx.x + threadIdx.x;
         """)
 
-        # write rules and events
-        for i in range(0, len(self.parser.parsedModel.listOfRules)):
-            if self.parser.parsedModel.listOfRules[i].isRate():
-                self.out_file.write("        ")
-
-                rule_variable = self.parser.parsedModel.ruleVariable[i]
-                if not (rule_variable in self.parser.parsedModel.speciesId):
-                    self.out_file.write(rule_variable)
-                else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(rule_variable)) + "]"
-                    self.out_file.write(string)
-                self.out_file.write("=")
-    
-                string = self.parser.parsedModel.ruleFormula[i]
-                for q in range(0, len(self.parser.parsedModel.speciesId)):
-                    pq = re.compile(self.parser.parsedModel.speciesId[q])
-                    string = pq.sub('y[' + repr(q) + ']', string)
-                for q in range(0, len(self.parser.parsedModel.parameterId)):
-                    parameter_id = self.parser.parsedModel.parameterId[q]
-                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                        flag = False
-                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                flag = True
-                        if not flag:
-                            pq = re.compile(parameter_id)
-                            string = pq.sub('tex2D(param_tex,' + repr(q) + ',tid)', string)
-    
-                self.out_file.write(string)
-                self.out_file.write(";\n")
-    
-        for i in range(0, len(self.parser.parsedModel.listOfEvents)):
-            self.out_file.write("    if( ")
-            self.out_file.write(self.mathMLConditionParserCuda(self.parser.parsedModel.EventCondition[i]))
-            self.out_file.write("){\n")
-            list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
-            for j in range(0, len(list_of_assignment_rules)):
-                self.out_file.write("        ")
-                event_variable = self.parser.parsedModel.eventVariable[i][j]
-                if not (event_variable in self.parser.parsedModel.speciesId):
-                    self.out_file.write(event_variable)
-                else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(event_variable)) + "]"
-                    self.out_file.write(string)
-                self.out_file.write("=")
-    
-                string = self.parser.parsedModel.EventFormula[i][j]
-                for q in range(0, len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(self.parser.parsedModel.parameterId)):
-                    parameter_id = self.parser.parsedModel.parameterId[q]
-                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                        flag = False
-                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                flag = True
-                        if not flag:
-                            string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
-    
-                self.out_file.write(string)
-                self.out_file.write(";\n")
-            self.out_file.write("}\n")
-    
-        self.out_file.write("\n")
-    
-        for i in range(0, len(self.parser.parsedModel.listOfRules)):
-            if self.parser.parsedModel.listOfRules[i].isAssignment():
-                self.out_file.write("    ")
-                rule_variable = self.parser.parsedModel.ruleVariable[i]
-                if not (rule_variable in self.parser.parsedModel.speciesId):
-                    self.out_file.write("double ")
-                    self.out_file.write(rule_variable)
-                else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(rule_variable)) + "]"
-                    self.out_file.write(string)
-                self.out_file.write("=")
-    
-                string = self.mathMLConditionParserCuda(self.parser.parsedModel.ruleFormula[i])
-                for q in range(0, len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(self.parser.parsedModel.parameterId)):
-                    parameter_id = self.parser.parsedModel.parameterId[q]
-                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                        flag = False
-                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                flag = True
-                        if not flag:
-                            string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
-                self.out_file.write(string)
-                self.out_file.write(";\n")
-        self.out_file.write("\n\n")
-    
-        # Write the derivatives
-        for i in range(0, num_species):
-            species = self.parser.parsedModel.species[i]
-            if not (species.getConstant() or species.getBoundaryCondition()):
-                self.out_file.write("        ydot[" + repr(i) + "]=")
-                if species.isSetCompartment():
-                    self.out_file.write("(")
-    
-                reaction_written = False
-                for k in range(0, self.parser.parsedModel.numReactions):
-                    if not self.parser.parsedModel.stoichiometricMatrix[i][k] == 0.0:
-    
-                        if reaction_written and self.parser.parsedModel.stoichiometricMatrix[i][k] > 0.0:
-                            self.out_file.write("+")
-                        reaction_written = True
-                        self.out_file.write(repr(self.parser.parsedModel.stoichiometricMatrix[i][k]))
-                        self.out_file.write("*(")
-    
-                        string = self.parser.parsedModel.kineticLaw[k]
-                        for q in range(0, len(self.parser.parsedModel.speciesId)):
-                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-    
-                        for q in range(0, len(self.parser.parsedModel.parameterId)):
-                            parameter_id = self.parser.parsedModel.parameterId[q]
-                            if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                                flag = False
-                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                                    if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                        flag = True
-                                if not flag:
-                                    string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
-    
-                        string = p.sub('', string)
-    
-                        # print string
-                        self.out_file.write(string)
-                        self.out_file.write(")")
-    
-                if species.isSetCompartment():
-                    self.out_file.write(")/")
-                    my_species_compartment = species.getCompartment()
-                    for j in range(0, len(self.parser.parsedModel.listOfParameter)):
-                        if self.parser.parsedModel.listOfParameter[j].getId() == my_species_compartment:
-                            parameter_id = self.parser.parsedModel.parameterId[j]
-                            if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                                flag = False
-                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                                    if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                        flag = True
-                                if not flag:
-                                    self.out_file.write("tex2D(param_tex," + repr(j) + ",tid)" + ";")
-                                    break
-                                else:
-                                    self.out_file.write(parameter_id + ";")
-                                    break
-    
-                else:
-                    self.out_file.write(";")
-                self.out_file.write("\n")
-    
+        self.write_rate_rules()
+        self.write_events()
+        self.write_assignment_rules()
+        self.write_derivatives(num_species)
         self.out_file.write("\n    }")
         self.out_file.write("""
 };
@@ -259,3 +72,205 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
 }
 };
 """)
+
+    def write_header(self, num_species):
+        model = self.parser.parsedModel
+        self.out_file.write("#define NSPECIES " + str(num_species) + "\n")
+        self.out_file.write("#define NPARAM " + str(len(model.parameterId)) + "\n")
+        self.out_file.write("#define NREACT " + str(model.numReactions) + "\n")
+        self.out_file.write("\n")
+
+        # An expression of the form pow((function of state), (parameter), causes a function call with signature
+        # "pow(<double, float>)", an illegal call to the __host__ function std::pow from the __device__ function.
+        # To avoid this, we create wrapper functions  that cast the float to a double then call pow(<double>,<double>),
+        #  a __device__ function.
+        self.out_file.write("float __device__ pow(double i, float j){ return pow(i, (double) j); }")
+        self.out_file.write("float __device__ pow(float i, double j){ return pow((double) i, j); }")
+
+    def write_functions(self):
+        model = self.parser.parsedModel
+        num_events = len(model.listOfEvents)
+        num_rules = len(model.listOfRules)
+        num = num_events + num_rules
+
+        if num > 0:
+            self.out_file.write("#define leq(a,b) a<=b\n")
+            self.out_file.write("#define neq(a,b) a!=b\n")
+            self.out_file.write("#define geq(a,b) a>=b\n")
+            self.out_file.write("#define lt(a,b) a<b\n")
+            self.out_file.write("#define gt(a,b) a>b\n")
+            self.out_file.write("#define eq(a,b) a==b\n")
+            self.out_file.write("#define and_(a,b) a&&b\n")
+            self.out_file.write("#define or_(a,b) a||b\n")
+
+        functions = model.listOfFunctions
+        for i in range(0, len(functions)):
+            self.out_file.write("__device__ double " + functions[i].getId() + "(")
+            for j in range(0, functions[i].getNumArguments()):
+                self.out_file.write("double " + model.functionArgument[i][j])
+                if j < (functions[i].getNumArguments() - 1):
+                    self.out_file.write(",")
+            self.out_file.write("){\n    return ")
+            self.out_file.write(model.functionBody[i])
+            self.out_file.write(";\n}\n")
+            self.out_file.write("\n")
+
+    def write_rate_rules(self):
+        model = self.parser.parsedModel
+        for i in range(0, len(model.listOfRules)):
+            if model.listOfRules[i].isRate():
+                self.out_file.write("        ")
+
+                rule_variable = model.ruleVariable[i]
+                if not (rule_variable in model.speciesId):
+                    self.out_file.write(rule_variable)
+                else:
+                    string = "y[" + repr(model.speciesId.index(rule_variable)) + "]"
+                    self.out_file.write(string)
+                self.out_file.write("=")
+
+                string = model.ruleFormula[i]
+                for q in range(0, len(model.speciesId)):
+                    pq = re.compile(model.speciesId[q])
+                    string = pq.sub('y[' + repr(q) + ']', string)
+                for q in range(0, len(model.parameterId)):
+                    parameter_id = model.parameterId[q]
+                    if not (parameter_id in model.ruleVariable):
+                        flag = False
+                        for r in range(0, len(model.eventVariable)):
+                            if parameter_id in model.eventVariable[r]:
+                                flag = True
+                        if not flag:
+                            pq = re.compile(parameter_id)
+                            string = pq.sub('tex2D(param_tex,' + repr(q) + ',tid)', string)
+
+                self.out_file.write(string)
+                self.out_file.write(";\n")
+
+    def write_events(self):
+        model = self.parser.parsedModel
+        for i in range(0, len(model.listOfEvents)):
+            self.out_file.write("    if( ")
+            self.out_file.write(self.mathMLConditionParserCuda(model.EventCondition[i]))
+            self.out_file.write("){\n")
+            list_of_assignment_rules = model.listOfEvents[i].getListOfEventAssignments()
+            for j in range(0, len(list_of_assignment_rules)):
+                self.out_file.write("        ")
+                event_variable = model.eventVariable[i][j]
+                if not (event_variable in model.speciesId):
+                    self.out_file.write(event_variable)
+                else:
+                    string = "y[" + repr(model.speciesId.index(event_variable)) + "]"
+                    self.out_file.write(string)
+                self.out_file.write("=")
+
+                string = model.EventFormula[i][j]
+                for q in range(0, len(model.speciesId)):
+                    string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
+                for q in range(0, len(model.parameterId)):
+                    parameter_id = model.parameterId[q]
+                    if not (parameter_id in model.ruleVariable):
+                        flag = False
+                        for r in range(0, len(model.eventVariable)):
+                            if parameter_id in model.eventVariable[r]:
+                                flag = True
+                        if not flag:
+                            string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
+
+                self.out_file.write(string)
+                self.out_file.write(";\n")
+            self.out_file.write("}\n")
+        self.out_file.write("\n")
+
+    def write_assignment_rules(self):
+        model = self.parser.parsedModel
+        for i in range(0, len(model.listOfRules)):
+            if model.listOfRules[i].isAssignment():
+                self.out_file.write("    ")
+                rule_variable = model.ruleVariable[i]
+                if not (rule_variable in model.speciesId):
+                    self.out_file.write("double ")
+                    self.out_file.write(rule_variable)
+                else:
+                    string = "y[" + repr(model.speciesId.index(rule_variable)) + "]"
+                    self.out_file.write(string)
+                self.out_file.write("=")
+
+                string = self.mathMLConditionParserCuda(model.ruleFormula[i])
+                for q in range(0, len(model.speciesId)):
+                    string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
+                for q in range(0, len(model.parameterId)):
+                    parameter_id = model.parameterId[q]
+                    if not (parameter_id in model.ruleVariable):
+                        flag = False
+                        for r in range(0, len(model.eventVariable)):
+                            if parameter_id in model.eventVariable[r]:
+                                flag = True
+                        if not flag:
+                            string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
+                self.out_file.write(string)
+                self.out_file.write(";\n")
+        self.out_file.write("\n\n")
+
+    def write_derivatives(self, num_species):
+        p = re.compile('\s')
+        model = self.parser.parsedModel
+
+        for i in range(0, num_species):
+            species = model.species[i]
+            if not (species.getConstant() or species.getBoundaryCondition()):
+                self.out_file.write("        ydot[" + repr(i) + "]=")
+                if species.isSetCompartment():
+                    self.out_file.write("(")
+
+                reaction_written = False
+                for k in range(0, model.numReactions):
+                    if not model.stoichiometricMatrix[i][k] == 0.0:
+
+                        if reaction_written and model.stoichiometricMatrix[i][k] > 0.0:
+                            self.out_file.write("+")
+                        reaction_written = True
+                        self.out_file.write(repr(model.stoichiometricMatrix[i][k]))
+                        self.out_file.write("*(")
+
+                        string = model.kineticLaw[k]
+                        for q in range(0, len(model.speciesId)):
+                            string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
+
+                        for q in range(0, len(model.parameterId)):
+                            parameter_id = model.parameterId[q]
+                            if not (parameter_id in model.ruleVariable):
+                                flag = False
+                                for r in range(0, len(model.eventVariable)):
+                                    if parameter_id in model.eventVariable[r]:
+                                        flag = True
+                                if not flag:
+                                    string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
+
+                        string = p.sub('', string)
+
+                        # print string
+                        self.out_file.write(string)
+                        self.out_file.write(")")
+
+                if species.isSetCompartment():
+                    self.out_file.write(")/")
+                    my_species_compartment = species.getCompartment()
+                    for j in range(0, len(model.listOfParameter)):
+                        if model.listOfParameter[j].getId() == my_species_compartment:
+                            parameter_id = model.parameterId[j]
+                            if not (parameter_id in model.ruleVariable):
+                                flag = False
+                                for r in range(0, len(model.eventVariable)):
+                                    if parameter_id in model.eventVariable[r]:
+                                        flag = True
+                                if not flag:
+                                    self.out_file.write("tex2D(param_tex," + repr(j) + ",tid)" + ";")
+                                    break
+                                else:
+                                    self.out_file.write(parameter_id + ";")
+                                    break
+
+                else:
+                    self.out_file.write(";")
+                self.out_file.write("\n")

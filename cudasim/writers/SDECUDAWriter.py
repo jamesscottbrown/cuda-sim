@@ -572,7 +572,7 @@ class SdeCUDAWriter(Writer):
                     my_species_compartment = species.getCompartment()
                     for j in range(0, len(self.parser.parsedModel.listOfParameter)):
                         parameter_id = self.parser.parsedModel.parameterId[j]
-                        if parameter_id.getId() == my_species_compartment:
+                        if self.parser.parsedModel.listOfParameter[j].getId() == my_species_compartment:
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
                                 flag = False
                                 for r in range(0, len(self.parser.parsedModel.eventVariable)):

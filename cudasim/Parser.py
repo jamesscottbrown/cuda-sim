@@ -6,7 +6,7 @@ from ParsedModel import ParsedModel
 
 class Parser:
 
-    def __init__(self, sbmlFileName, modelName, inputPath=""):
+    def __init__(self, sbml_file_name, model_name, input_path=""):
 
         # regular expressions indicating solution language
         c = re.compile('C', re.IGNORECASE)
@@ -20,7 +20,7 @@ class Parser:
         dde = re.compile('DDE')
 
         reader = SBMLReader()
-        self.document = reader.readSBML(inputPath + sbmlFileName)
+        self.document = reader.readSBML(input_path + sbml_file_name)
         self.sbmlModel = self.document.getModel()
 
         self.parameterId = []
@@ -39,41 +39,41 @@ class Parser:
 
         self.comp = 0
 
-        self.name = modelName
+        self.name = model_name
 
         self.parsedModel = ParsedModel()
-        if not modelName:
+        if not model_name:
             self.parsedModel.name = "unnamedModel"
         else:
-            self.parsedModel.name = modelName
+            self.parsedModel.name = model_name
 
         self.parse()
 
     def parse(self):
-        self.getBasicModelProperties()
+        self.get_basic_model_properties()
         self.parsedModel.stoichiometricMatrix = empty(
             [self.parsedModel.numSpecies, self.parsedModel.numReactions])
-        self.getCompartmentVolume()
+        self.get_compartment_volume()
         self.get_delays()
 
         # TODO: check ordering of these is ok
-        self.getGlobalParameters()
-        self.getSpecies()
-        self.analyseModelStructure()
+        self.get_global_parameters()
+        self.get_species()
+        self.analyse_model_structure()
         self.get_species_compartments()
-        self.analyseFunctions()
-        self.analyseRules()
-        self.analyseEvents()
+        self.analyse_functions()
+        self.analyse_rules()
+        self.analyse_events()
         # self.renameMathFunctions()
-        self.renameEverything()
+        self.rename_everything()
         # self.writer.parsedModel.numGlobalParameters += 1 # in CUDA parer only, WTF?
 
-    def getBasicModelProperties(self):
+    def get_basic_model_properties(self):
         self.parsedModel.numSpecies = self.sbmlModel.getNumSpecies()
         self.parsedModel.numReactions = self.sbmlModel.getNumReactions()
         self.parsedModel.numGlobalParameters = self.sbmlModel.getNumParameters()
 
-    def getCompartmentVolume(self):
+    def get_compartment_volume(self):
         # Add compartment volumes to lists of parameters
         list_of_compartments = self.sbmlModel.getListOfCompartments()
 
@@ -84,7 +84,7 @@ class Parser:
             self.parsedModel.parameter.append(list_of_compartments[i].getVolume())
             self.parsedModel.listOfParameter.append(self.sbmlModel.getCompartment(i))
 
-    def getGlobalParameters(self):
+    def get_global_parameters(self):
         # The entries of parsedModel.parameterId are modified by the writers,
         # to add or remove padding zeros
         for i in range(self.parsedModel.numGlobalParameters):
@@ -93,7 +93,7 @@ class Parser:
             self.parsedModel.parameterId.append("parameter" + repr(i + 1))
             self.parsedModel.listOfParameter.append(self.sbmlModel.getParameter(i))
 
-    def getSpecies(self):
+    def get_species(self):
         # The entries of parsedModel.speciesId are modified by the writers,
         # to add or remove padding zeros
 
@@ -111,9 +111,9 @@ class Parser:
             self.product.append(0)
 
             # Only used by the python writer:
-            self.parsedModel.initValues.append(self.getSpeciesValue(self.listOfSpecies[k]))
+            self.parsedModel.initValues.append(self.get_species_value(self.listOfSpecies[k]))
 
-    def analyseModelStructure(self):
+    def analyse_model_structure(self):
         # Differs between CUDA and Python/C
         reaction = []
         num_reactants = []
@@ -140,7 +140,7 @@ class Parser:
                 self.reactant[j] = self.listOfReactions[i].getReactant(j)
 
                 for k in range(len(self.parsedModel.species)):
-                    if self.reactant[j].getSpecies() == self.parsedModel.species[k].getId():
+                    if self.reactant[j].get_species() == self.parsedModel.species[k].getId():
                         self.S1[k] = self.reactant[j].getStoichiometry()
 
             # Fill non-zero elements of S2, such that S2[k] is the number of molecules of species[k] *produced* when the
@@ -149,7 +149,7 @@ class Parser:
                 self.product[l] = self.listOfReactions[i].getProduct(l)
 
                 for k in range(len(self.parsedModel.species)):
-                    if self.product[l].getSpecies() == self.parsedModel.species[k].getId():
+                    if self.product[l].get_species() == self.parsedModel.species[k].getId():
                         self.S2[k] = self.product[l].getStoichiometry()
 
             # Construct the row of the stoichiometry matrix corresponding to this reaction by subtracting S1 from S2
@@ -178,7 +178,7 @@ class Parser:
                 new_node = self.rename(node, param_name, new_name)
                 self.parsedModel.kineticLaw[i] = formulaToString(new_node)
 
-    def analyseFunctions(self):
+    def analyse_functions(self):
         sbml_list_of_functions = self.sbmlModel.getListOfFunctionDefinitions()
 
         for fun in range(len(sbml_list_of_functions)):
@@ -196,13 +196,13 @@ class Parser:
                 self.parsedModel.functionBody[fun] = formulaToString(new_node)
                 self.parsedModel.functionArgument[fun][funArg] = "a" + repr(funArg + 1)
 
-    def analyseRules(self):
+    def analyse_rules(self):
         self.parsedModel.listOfRules = self.sbmlModel.getListOfRules()
         for rule in range(len(self.parsedModel.listOfRules)):
             self.parsedModel.ruleFormula.append(self.parsedModel.listOfRules[rule].getFormula())
             self.parsedModel.ruleVariable.append(self.parsedModel.listOfRules[rule].getVariable())
 
-    def analyseEvents(self):
+    def analyse_events(self):
         self.parsedModel.listOfEvents = self.sbmlModel.getListOfEvents()
         for event in range(len(self.parsedModel.listOfEvents)):
             self.parsedModel.eventCondition.append(
@@ -216,7 +216,7 @@ class Parser:
                 self.parsedModel.eventFormula[event].append(
                     formulaToString(self.listOfAssignmentRules[rule].getMath()))
 
-    def renameEverything(self):
+    def rename_everything(self):
 
         names = [[], []]
         names[0].append(self.parameterId)
@@ -270,7 +270,7 @@ class Parser:
             self.rename(node.getChild(n), old_name, new_name)
         return node
 
-    def getSpeciesValue(self, specie):
+    def get_species_value(self, specie):
         if specie.isSetInitialAmount() and specie.isSetInitialConcentration():
             return specie.getInitialConcentration()  # The initial values are only used in ODE and SDE solvers so we take the concentration (if it was used in gillespie we would have taken the value)
         if specie.isSetInitialAmount():

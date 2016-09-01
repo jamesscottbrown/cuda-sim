@@ -6,10 +6,10 @@ from Writer import Writer
 
 
 class GillespiePythonWriter(Writer):
-    def __init__(self, parser, outputPath=""):
+    def __init__(self, parser, output_path=""):
         Writer.__init__(self)
         self.parser = parser
-        self.out_file = open(os.path.join(outputPath, self.parser.parsedModel.name + ".py"), "w")
+        self.out_file = open(os.path.join(output_path, self.parser.parsedModel.name + ".py"), "w")
         self.rename()
 
     def rename(self):
@@ -42,8 +42,8 @@ class GillespiePythonWriter(Writer):
     def write(self):
         for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isRate():
-                print "\n Model '" + self.parser.parsedModel.name + "' contains at least one rate rule. This model can not be parsed and simmulated with the Gillespie algorithm! Please change the simmulation Type! \n"
-                sys.exit()
+                sys.exit("\n Model '" + self.parser.parsedModel.name + "' contains at least one rate rule, so " +\
+                         "cannot be simulated with the Gillespie algorithm! Please change the simmulation Type! \n")
 
         self.out_file.write("from cudasim.relations import *\n\n#Functions\n")
 
@@ -100,8 +100,8 @@ class GillespiePythonWriter(Writer):
             for k in range(self.parser.parsedModel.numSpecies):
                 # if (self.parser.parsedModel.species[k].getConstant() == False):
                 self.out_file.write(
-                    "\t" + self.parser.parsedModel.speciesId[k] + "_new=" + self.parser.parsedModel.speciesId[k] + "+(" + str(
-                        self.parser.parsedModel.stoichiometricMatrix[k][i]) + ")\n")
+                    "\t" + self.parser.parsedModel.speciesId[k] + "_new=" + self.parser.parsedModel.speciesId[k] +
+                    "+(" + str( self.parser.parsedModel.stoichiometricMatrix[k][i]) + ")\n")
 
             self.out_file.write("\n\treturn(")
             for k in range(self.parser.parsedModel.numSpecies):

@@ -5,10 +5,10 @@ from Writer import Writer
 
 
 class ODEPythonWriter(Writer):
-    def __init__(self, parser, outputPath=""):
+    def __init__(self, parser, output_path=""):
         Writer.__init__(self)
         self.parser = parser
-        self.out_file = open(os.path.join(outputPath, self.parser.parsedModel.name + ".py"), "w")
+        self.out_file = open(os.path.join(output_path, self.parser.parsedModel.name + ".py"), "w")
         self.rename()
 
     def rename(self):

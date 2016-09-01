@@ -7,10 +7,10 @@ from cudasim.cuda_helpers import rename_math_functions
 
 
 class GillespieCUDAWriter(Writer):
-    def __init__(self, parser, outputPath=""):
+    def __init__(self, parser, output_path=""):
         Writer.__init__(self)
         self.parser = parser
-        self.out_file = open(os.path.join(outputPath, self.parser.parsedModel.name + ".cu"), "w")
+        self.out_file = open(os.path.join(output_path, self.parser.parsedModel.name + ".cu"), "w")
         self.rename()
 
     def rename(self):
@@ -82,7 +82,8 @@ class GillespieCUDAWriter(Writer):
         for i in range(0, len(self.parser.parsedModel.stoichiometricMatrix[0])):
             for j in range(0, len(self.parser.parsedModel.stoichiometricMatrix)):
                 self.out_file.write("    " + repr(self.parser.parsedModel.stoichiometricMatrix[j][i]))
-                if not (i == (len(self.parser.parsedModel.stoichiometricMatrix) - 1) and (j == (len(self.parser.parsedModel.stoichiometricMatrix[0]) - 1))):
+                if not (i == (len(self.parser.parsedModel.stoichiometricMatrix) - 1) and
+                            (j == (len(self.parser.parsedModel.stoichiometricMatrix[0]) - 1))):
                     self.out_file.write(",")
             self.out_file.write("\n")
     
@@ -106,10 +107,12 @@ class GillespieCUDAWriter(Writer):
         for i in range(0, len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isRate():
                 self.out_file.write("    ")
-                if not (self.parser.parsedModel.ruleVariable[i] in self.parser.parsedModel.speciesId):
-                    self.out_file.write(self.parser.parsedModel.ruleVariable[i])
+
+                rule_variable = self.parser.parsedModel.ruleVariable[i]
+                if not (rule_variable in self.parser.parsedModel.speciesId):
+                    self.out_file.write(rule_variable)
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(self.parser.parsedModel.ruleVariable[i])) + "]"
+                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(rule_variable)) + "]"
                     self.out_file.write(string)
                 self.out_file.write("=")
     
@@ -117,13 +120,14 @@ class GillespieCUDAWriter(Writer):
                 for q in range(0, len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
                 for q in range(0, len(self.parser.parsedModel.parameterId)):
-                    if not (self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.ruleVariable):
+                    parameter_id = self.parser.parsedModel.parameterId[q]
+                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
                         flag = False
                         for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                            if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.eventVariable[r]:
+                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
-                            string = self.rep(string, self.parser.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+                            string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
     
                 self.out_file.write(string)
                 self.out_file.write(";\n")
@@ -135,10 +139,12 @@ class GillespieCUDAWriter(Writer):
             list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
             for j in range(0, len(list_of_assignment_rules)):
                 self.out_file.write("        ")
-                if not (self.parser.parsedModel.eventVariable[i][j] in self.parser.parsedModel.speciesId):
-                    self.out_file.write(self.parser.parsedModel.eventVariable[i][j])
+
+                event_variable = self.parser.parsedModel.eventVariable[i][j]
+                if not (event_variable in self.parser.parsedModel.speciesId):
+                    self.out_file.write(event_variable)
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(self.parser.parsedModel.eventVariable[i][j])) + "]"
+                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(event_variable)) + "]"
                     self.out_file.write(string)
                 self.out_file.write("=")
     
@@ -146,13 +152,14 @@ class GillespieCUDAWriter(Writer):
                 for q in range(0, len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
                 for q in range(0, len(self.parser.parsedModel.parameterId)):
-                    if not (self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.ruleVariable):
+                    parameter_id = self.parser.parsedModel.parameterId[q]
+                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
                         flag = False
                         for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                            if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.eventVariable[r]:
+                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
-                            string = self.rep(string, self.parser.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+                            string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
     
                 self.out_file.write(string)
                 self.out_file.write(";\n")
@@ -163,11 +170,13 @@ class GillespieCUDAWriter(Writer):
         for i in range(0, len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isAssignment():
                 self.out_file.write("    ")
-                if not (self.parser.parsedModel.ruleVariable[i] in self.parser.parsedModel.speciesId):
+
+                rule_variable = self.parser.parsedModel.ruleVariable[i]
+                if not (rule_variable in self.parser.parsedModel.speciesId):
                     self.out_file.write("float ")
-                    self.out_file.write(self.parser.parsedModel.ruleVariable[i])
+                    self.out_file.write(rule_variable)
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(self.parser.parsedModel.ruleVariable[i])) + "]"
+                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(rule_variable)) + "]"
                     self.out_file.write(string)
                 self.out_file.write("=")
     
@@ -175,13 +184,14 @@ class GillespieCUDAWriter(Writer):
                 for q in range(0, len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
                 for q in range(0, len(self.parser.parsedModel.parameterId)):
-                    if not (self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.ruleVariable):
+                    parameter_id = self.parser.parsedModel.parameterId[q]
+                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
                         flag = False
                         for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                            if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.eventVariable[r]:
+                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
-                            string = self.rep(string, self.parser.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+                            string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
                 self.out_file.write(string)
                 self.out_file.write(";\n")
         self.out_file.write("\n")
@@ -197,13 +207,14 @@ class GillespieCUDAWriter(Writer):
             for q in range(0, len(self.parser.parsedModel.speciesId)):
                 string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
             for q in range(0, len(self.parser.parsedModel.parameterId)):
-                if not (self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.ruleVariable):
+                parameter_id = self.parser.parsedModel.parameterId[q]
+                if not (parameter_id in self.parser.parsedModel.ruleVariable):
                     flag = False
                     for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                        if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.eventVariable[r]:
+                        if parameter_id in self.parser.parsedModel.eventVariable[r]:
                             flag = True
                     if not flag:
-                        string = self.rep(string, self.parser.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+                        string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
     
             string = p.sub('', string)
             self.out_file.write(string + ";\n")

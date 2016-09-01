@@ -6,10 +6,10 @@ from cudasim.cuda_helpers import rename_math_functions
 
 
 class DDECUDAWriter(Writer):
-    def __init__(self, parser, outputPath=""):
+    def __init__(self, parser, output_path=""):
         Writer.__init__(self)
         self.parser = parser
-        self.out_file = open(os.path.join(outputPath, self.parser.parsedModel.name + ".cu"), "w")
+        self.out_file = open(os.path.join(output_path, self.parser.parsedModel.name + ".cu"), "w")
         self.rename()
 
     def rename(self):
@@ -92,10 +92,12 @@ class DDECUDAWriter(Writer):
         for i in range(0, len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isRate():
                 self.out_file.write("        ")
-                if not (self.parser.parsedModel.ruleVariable[i] in self.parser.parsedModel.speciesId):
-                    self.out_file.write(self.parser.parsedModel.ruleVariable[i])
+
+                rule_variable = self.parser.parsedModel.ruleVariable[i]
+                if not (rule_variable in self.parser.parsedModel.speciesId):
+                    self.out_file.write(rule_variable)
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(self.parser.parsedModel.ruleVariable[i])) + "]"
+                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(rule_variable)) + "]"
                     self.out_file.write(string)
                 self.out_file.write("=")
 
@@ -123,10 +125,12 @@ class DDECUDAWriter(Writer):
             list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
             for j in range(0, len(list_of_assignment_rules)):
                 self.out_file.write("        ")
-                if not (self.parser.parsedModel.eventVariable[i][j] in self.parser.parsedModel.speciesId):
-                    self.out_file.write(self.parser.parsedModel.eventVariable[i][j])
+
+                event_variable = self.parser.parsedModel.eventVariable[i][j]
+                if not (event_variable in self.parser.parsedModel.speciesId):
+                    self.out_file.write(event_variable)
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(self.parser.parsedModel.eventVariable[i][j])) + "]"
+                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(event_variable)) + "]"
                     self.out_file.write(string)
                 self.out_file.write("=")
 
@@ -134,13 +138,15 @@ class DDECUDAWriter(Writer):
                 for q in range(0, len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
                 for q in range(0, len(self.parser.parsedModel.parameterId)):
-                    if not (self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.ruleVariable):
+
+                    param_id = self.parser.parsedModel.parameterId[q]
+                    if not (param_id in self.parser.parsedModel.ruleVariable):
                         flag = False
                         for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                            if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.eventVariable[r]:
+                            if param_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
-                            string = self.rep(string, self.parser.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+                            string = self.rep(string, param_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
 
                 self.out_file.write(string)
                 self.out_file.write(";\n")
@@ -151,11 +157,13 @@ class DDECUDAWriter(Writer):
         for i in range(0, len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isAssignment():
                 self.out_file.write("    ")
-                if not (self.parser.parsedModel.ruleVariable[i] in self.parser.parsedModel.speciesId):
+
+                rule_variable = self.parser.parsedModel.ruleVariable[i]
+                if not (rule_variable in self.parser.parsedModel.speciesId):
                     self.out_file.write("float ")
-                    self.out_file.write(self.parser.parsedModel.ruleVariable[i])
+                    self.out_file.write(rule_variable)
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(self.parser.parsedModel.ruleVariable[i])) + "]"
+                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(rule_variable)) + "]"
                     self.out_file.write(string)
                 self.out_file.write("=")
 
@@ -163,22 +171,24 @@ class DDECUDAWriter(Writer):
                 for q in range(0, len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
                 for q in range(0, len(self.parser.parsedModel.parameterId)):
-                    if not (self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.ruleVariable):
+                    param_id = self.parser.parsedModel.parameterId[q]
+                    if not (param_id in self.parser.parsedModel.ruleVariable):
                         flag = False
                         for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                            if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.eventVariable[r]:
+                            if param_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
-                            string = self.rep(string, self.parser.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+                            string = self.rep(string, param_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
                 self.out_file.write(string)
                 self.out_file.write(";\n")
         self.out_file.write("\n\n")
 
         # Write the derivatives
         for i in range(0, num_species):
-            if self.parser.parsedModel.species[i].getConstant() == False and self.parser.parsedModel.species[i].getBoundaryCondition() == False:
+            species = self.parser.parsedModel.species[i]
+            if not (species.getConstant() or species.getBoundaryCondition()):
                 self.out_file.write("        ydot[" + repr(i) + "]=")
-                if self.parser.parsedModel.species[i].isSetCompartment():
+                if species.isSetCompartment():
                     self.out_file.write("(")
 
                 reaction_written = False
@@ -196,13 +206,14 @@ class DDECUDAWriter(Writer):
                             string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
 
                         for q in range(0, len(self.parser.parsedModel.parameterId)):
-                            if not (self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.ruleVariable):
+                            param_id = self.parser.parsedModel.parameterId[q]
+                            if not (param_id in self.parser.parsedModel.ruleVariable):
                                 flag = False
                                 for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                                    if self.parser.parsedModel.parameterId[q] in self.parser.parsedModel.eventVariable[r]:
+                                    if param_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
-                                    string = self.rep(string, self.parser.parsedModel.parameterId[q], 'tex2D(param_tex,' + repr(q) + ',tid)')
+                                    string = self.rep(string, param_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
 
                         string = p.sub('', string)
 
@@ -218,21 +229,22 @@ class DDECUDAWriter(Writer):
                         self.out_file.write(string)
                         self.out_file.write(")")
 
-                if self.parser.parsedModel.species[i].isSetCompartment():
+                if species.isSetCompartment():
                     self.out_file.write(")/")
-                    my_species_compartment = self.parser.parsedModel.species[i].getCompartment()
+                    my_species_compartment = species.getCompartment()
                     for j in range(0, len(self.parser.parsedModel.listOfParameter)):
                         if self.parser.parsedModel.listOfParameter[j].getId() == my_species_compartment:
-                            if not (self.parser.parsedModel.parameterId[j] in self.parser.parsedModel.ruleVariable):
+                            param_id = self.parser.parsedModel.parameterId[j]
+                            if not (param_id in self.parser.parsedModel.ruleVariable):
                                 flag = False
                                 for r in range(0, len(self.parser.parsedModel.eventVariable)):
-                                    if self.parser.parsedModel.parameterId[j] in self.parser.parsedModel.eventVariable[r]:
+                                    if param_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
                                     self.out_file.write("tex2D(param_tex," + repr(j) + ",tid)" + ";")
                                     break
                                 else:
-                                    self.out_file.write(self.parser.parsedModel.parameterId[j] + ";")
+                                    self.out_file.write(param_id + ";")
                                     break
 
                 else:

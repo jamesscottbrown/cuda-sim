@@ -64,15 +64,10 @@ class GillespiePythonWriter(Writer):
         # Write one function per reaction, which will ajusst the state by adding the corresponding stoichiometric vector
         model = self.parser.parsedModel
         for i in range(len(model.listOfFunctions)):
-            self.out_file.write("def ")
-            self.out_file.write(model.listOfFunctions[i].getId())
-            self.out_file.write("(")
-            for j in range(model.listOfFunctions[i].getNumArguments()):
-                self.out_file.write(model.functionArgument[i][j])
-                self.out_file.write(",")
-            self.out_file.write("):\n\n\toutput=")
-            self.out_file.write(model.functionBody[i])
-            self.out_file.write("\n\n\treturn output\n\n")
+            arg_string = ",".join(model.functionArgument[i])
+            self.out_file.write("def %s (%s):\n\n" % (model.listOfFunctions[i].getId(), arg_string))
+            self.out_file.write("\toutput = %s\n\n" % model.functionBody[i])
+            self.out_file.write("\treturn output\n\n")
 
     def write_reaction_dictionary(self):
         # Writes a function that maps from reaction index to name of the corresponding stoichiometry function
@@ -94,97 +89,50 @@ class GillespiePythonWriter(Writer):
             self.out_file.write(")):\n\n")
 
             for k in range(model.numSpecies):
-                self.out_file.write(
-                    "\t" + model.speciesId[k] + "_new=" + model.speciesId[k] +
-                    "+(" + str(model.stoichiometricMatrix[k][i]) + ")\n")
+                self.out_file.write("\t%s_new= %s + (%s)\n" %
+                                    (model.speciesId[k], model.speciesId[k], model.stoichiometricMatrix[k][i]))
 
-            self.out_file.write("\n\treturn(")
-            for k in range(model.numSpecies):
-                self.out_file.write(model.speciesId[k] + "_new")
-                self.out_file.write(",")
-            self.out_file.write(")\n\n")
+            new_species = ",".join(map(lambda x: x + "_new", model.speciesId))
+            self.out_file.write("\n\treturn(%s)\n\n" % new_species)
 
     def write_hazards_function(self):
         model = self.parser.parsedModel
 
         self.out_file.write("\n#Gillespie Hazards\n\n")
-        self.out_file.write("def Hazards((")
-        for i in range(model.numSpecies):
-            self.out_file.write(model.speciesId[i])
-            self.out_file.write(",")
-        self.out_file.write("),parameter):\n\n")
+        self.out_file.write("def Hazards((%s),parameter):\n\n" % (",".join(model.speciesId)))
+
         for i in range(len(model.parameterId)):
-            self.out_file.write("\t" + model.parameterId[i] + "=parameter[" + repr(i) + "]\n")
+            self.out_file.write("\t%s = parameter[%s]\n" % (model.parameterId[i], repr(i)))
+
         self.out_file.write("\n")
+        hazard_list = []
         for i in range(model.numReactions):
-            self.out_file.write("\tHazard_" + repr(i) + " = " + model.kineticLaw[i])
-            self.out_file.write("\n")
-        self.out_file.write("\n\treturn(")
-        for i in range(model.numReactions):
-            self.out_file.write("Hazard_" + repr(i))
-            if not i == (model.numReactions - 1):
-                self.out_file.write(", ")
-        self.out_file.write(")\n\n")
+            self.out_file.write("\tHazard_%s = %s\n" % (repr(i), model.kineticLaw[i]))
+            hazard_list.append("Hazard_%s" % i)
+
+        self.out_file.write("\n\treturn(%s)\n\n" % ",".join(hazard_list))
 
     def write_rules_function(self):
         model = self.parser.parsedModel
 
-        self.out_file.write("def rules((")
-        for i in range(model.numSpecies):
-            self.out_file.write(model.speciesId[i])
-            self.out_file.write(",")
-        self.out_file.write("),(")
-        for i in range(len(model.parameterId)):
-            self.out_file.write(model.parameterId[i])
-            self.out_file.write(',')
-        self.out_file.write("),t):\n\n")
+        self.out_file.write("def rules((%s),(%s),t):\n\n" % (",".join(model.speciesId), ",".join(model.parameterId)))
+
         for i in range(len(model.listOfRules)):
             if model.listOfRules[i].isAssignment():
-                self.out_file.write("\t")
-                self.out_file.write(model.ruleVariable[i])
-                self.out_file.write("=")
-                self.out_file.write(model.ruleFormula[i])
-                self.out_file.write("\n")
-        self.out_file.write("\n\treturn((")
-        for i in range(model.numSpecies):
-            self.out_file.write(model.speciesId[i])
-            self.out_file.write(",")
-        self.out_file.write("),(")
-        for i in range(len(model.parameterId)):
-            self.out_file.write(model.parameterId[i])
-            self.out_file.write(',')
-        self.out_file.write("))\n\n")
+                self.out_file.write("\t%s = %s\n" % (model.ruleVariable[i], model.ruleFormula[i]))
+
+        self.out_file.write("\treturn((%s),(%s))\n\n" % (",".join(model.speciesId), ",".join(model.parameterId)))
 
     def write_events_function(self):
         model = self.parser.parsedModel
 
-        self.out_file.write("def events((")
-        for i in range(model.numSpecies):
-            self.out_file.write(model.speciesId[i])
-            self.out_file.write(",")
-        self.out_file.write("),(")
-        for i in range(len(model.parameterId)):
-            self.out_file.write(model.parameterId[i])
-            self.out_file.write(',')
-        self.out_file.write("),t):\n\n")
+        self.out_file.write("def events((%s),(%s),t):\n\n" % (",".join(model.speciesId), ",".join(model.parameterId)))
+
         for i in range(len(model.listOfEvents)):
-            self.out_file.write("\tif ")
-            self.out_file.write(mathml_condition_parser(model.eventCondition[i]))
-            self.out_file.write(":\n")
-            list_of_assignment_rules = model.listOfEvents[i].getListOfEventAssignments()
-            for j in range(len(list_of_assignment_rules)):
-                self.out_file.write("\t\t")
-                self.out_file.write(model.eventVariable[i][j])
-                self.out_file.write("=")
-                self.out_file.write(model.eventFormula[i][j])
-                self.out_file.write("\n")
-            self.out_file.write("\n")
-        self.out_file.write("\n\treturn((")
-        for i in range(model.numSpecies):
-            self.out_file.write(model.speciesId[i])
-            self.out_file.write(",")
-        self.out_file.write("),(")
-        for i in range(len(model.parameterId)):
-            self.out_file.write(model.parameterId[i])
-            self.out_file.write(',')
-        self.out_file.write("))\n\n")
+            self.out_file.write("\tif %s:\n" % mathml_condition_parser(model.eventCondition[i]))
+
+            for j in range(len(model.listOfEvents[i].getListOfEventAssignments())):
+                self.out_file.write("\t\t%s = model.eventFormula[i][j]\n" % (model.eventVariable[i][j]))
+            self.out_file.write("\n\n")
+
+        self.out_file.write("\treturn((%s),(%s))\n\n" % (",".join(model.speciesId), ",".join(model.parameterId)))

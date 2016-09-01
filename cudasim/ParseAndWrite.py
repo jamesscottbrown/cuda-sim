@@ -14,7 +14,7 @@ from cudasim.writers.ODECUDAWriter import OdeCUDAWriter
 from cudasim.writers.SDEPythonWriter import SDEPythonWriter
 
 
-def ParseAndWrite(source, integrationType, model_name=None, inputPath="", outputPath=""):
+def parse_and_write(source, integration_type, model_name=None, input_path="", output_path=""):
     """
     ***** args *****
     source:
@@ -55,7 +55,7 @@ def ParseAndWrite(source, integrationType, model_name=None, inputPath="", output
 
     # check that you have appropriate lengths of integration types and sources
     # (need equal lengths)
-    if not (len(source) == len(integrationType)):
+    if not (len(source) == len(integration_type)):
         sys.exit("\nError: Number of sources is not the same as number of integrationTypes!\n")
     # check that you have model names,
     # if not the models will be named model1, model2, etc
@@ -70,26 +70,26 @@ def ParseAndWrite(source, integrationType, model_name=None, inputPath="", output
 
     for model in range(len(source)):
 
-        parsed_model = Parser(source[model], model_name[model], inputPath)
+        parsed_model = Parser(source[model], model_name[model], input_path)
         writer = False
-        if cuda.search(integrationType[model]):
-            if sde.search(integrationType[model]):
-                writer = SdeCUDAWriter(parsed_model, outputPath)
-            elif gil.search(integrationType[model]):
-                writer = GillespieCUDAWriter(parsed_model, outputPath)
+        if cuda.search(integration_type[model]):
+            if sde.search(integration_type[model]):
+                writer = SdeCUDAWriter(parsed_model, output_path)
+            elif gil.search(integration_type[model]):
+                writer = GillespieCUDAWriter(parsed_model, output_path)
             else:
-                writer = OdeCUDAWriter(parsed_model, outputPath)
+                writer = OdeCUDAWriter(parsed_model, output_path)
 
-        elif c.search(integrationType[model]):
-                writer = CWriter(parsed_model, outputPath)
+        elif c.search(integration_type[model]):
+                writer = CWriter(parsed_model, output_path)
 
-        elif py.search(integrationType[model]):
-            if sde.search(integrationType[model]):
-                writer = SDEPythonWriter(parsed_model, outputPath)
-            elif gil.search(integrationType[model]):
-                writer = GillespiePythonWriter(parsed_model, outputPath)
+        elif py.search(integration_type[model]):
+            if sde.search(integration_type[model]):
+                writer = SDEPythonWriter(parsed_model, output_path)
+            elif gil.search(integration_type[model]):
+                writer = GillespiePythonWriter(parsed_model, output_path)
             else:
-                writer = ODEPythonWriter(parsed_model, outputPath)
+                writer = ODEPythonWriter(parsed_model, output_path)
 
         if writer:
             writer.write()

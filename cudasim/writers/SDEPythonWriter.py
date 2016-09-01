@@ -39,24 +39,44 @@ class SDEPythonWriter(Writer):
                 self.parser.rename_everywhere(old_name, new_name)
 
     def write(self, method=1):
-        p = re.compile('\s')
-        self.out_file.write("from math import sqrt\nfrom numpy import random\nfrom cudasim.relations import *\n\n")
 
+        self.out_file.write("from math import sqrt\nfrom numpy import random\nfrom cudasim.relations import *\n\n")
         self.out_file.write("def trunc_sqrt(x):\n\tif x < 0: return 0\n\telse: return sqrt(x)\n\n")
 
-        for i in range(len(self.parser.parsedModel.listOfFunctions)):
-            self.out_file.write("def ")
-            self.out_file.write(self.parser.parsedModel.listOfFunctions[i].getId())
-            self.out_file.write("(")
-            for j in range(self.parser.parsedModel.listOfFunctions[i].getNumArguments()):
-                self.out_file.write(self.parser.parsedModel.functionArgument[i][j])
-                self.out_file.write(",")
-            self.out_file.write("):\n\n\toutput=")
-            self.out_file.write(self.parser.parsedModel.functionBody[i])
-            self.out_file.write("\n\n\treturn output\n\n")
+        # write one function per rule
+        self.write_functions()
 
+        # write the 'methodfunction' function
+        self.write_methodfunction_signature()
+        self.write_parameter_assignments()
+        self.write_reaction_rates(method)
+        self.write_methodfunction_return_statement()
+
+        # Write the 'rules' function
+        self.write_rule_function_signature()
+        self.write_events()
+        self.write_assignment_rules()
+        self.write_rulesfunction_return_statement()
+
+        self.out_file.close()
+
+    def write_parameter_assignments(self):
+        counter = 0
+        for i in range(len(self.parser.parsedModel.parameterId)):
+            dont_print = False
+            if not self.parser.parsedModel.listOfParameter[i].getConstant():
+                for k in range(len(self.parser.parsedModel.listOfRules)):
+                    if self.parser.parsedModel.listOfRules[k].isRate() and self.parser.parsedModel.ruleVariable[k] == \
+                            self.parser.parsedModel.parameterId[i]:
+                        dont_print = True
+            if not dont_print:
+                self.out_file.write(
+                    "\t" + self.parser.parsedModel.parameterId[i] + "=parameter[" + repr(counter) + "]\n")
+                counter += 1
+        self.out_file.write("\n\n")
+
+    def write_methodfunction_signature(self):
         self.out_file.write("def modelfunction((")
-
         for i in range(len(self.parser.parsedModel.species)):
             self.out_file.write(self.parser.parsedModel.speciesId[i])
             self.out_file.write(",")
@@ -67,9 +87,7 @@ class SDEPythonWriter(Writer):
                             self.parser.parsedModel.parameterId[i]:
                         self.out_file.write(self.parser.parsedModel.parameterId[i])
                         self.out_file.write(",")
-
         self.out_file.write(")=(")
-
         for i in range(len(self.parser.parsedModel.species)):
             self.out_file.write(repr(self.parser.parsedModel.initValues[i]))
             self.out_file.write(",")
@@ -80,9 +98,7 @@ class SDEPythonWriter(Writer):
                             self.parser.parsedModel.parameterId[i]:
                         self.out_file.write(repr(self.parser.parsedModel.parameter[i]))
                         self.out_file.write(",")
-
         self.out_file.write("),dt=0,parameter=(")
-
         for i in range(len(self.parser.parsedModel.parameterId)):
             dont_print = False
             if not self.parser.parsedModel.listOfParameter[i].getConstant():
@@ -93,24 +109,10 @@ class SDEPythonWriter(Writer):
             if not dont_print:
                 self.out_file.write(repr(self.parser.parsedModel.parameter[i]))
                 self.out_file.write(",")
-
         self.out_file.write("),time=0):\n\n")
 
-        counter = 0
-        for i in range(len(self.parser.parsedModel.parameterId)):
-            dont_print = False
-            if not self.parser.parsedModel.listOfParameter[i].getConstant():
-                for k in range(len(self.parser.parsedModel.listOfRules)):
-                    if self.parser.parsedModel.listOfRules[k].isRate() and self.parser.parsedModel.ruleVariable[k] == \
-                            self.parser.parsedModel.parameterId[i]:
-                        dont_print = True
-            if not dont_print:
-                self.out_file.write("\t" + self.parser.parsedModel.parameterId[i] + "=parameter[" + repr(counter) + "]\n")
-                counter += 1
-
-        self.out_file.write("\n")
-
-        self.out_file.write("\n")
+    def write_reaction_rates(self, method):
+        p = re.compile('\s')
 
         for i in range(self.parser.parsedModel.numSpecies):
             self.out_file.write("\td_" + self.parser.parsedModel.speciesId[i] + "=")
@@ -133,7 +135,6 @@ class SDEPythonWriter(Writer):
                         self.out_file.write(self.parser.parsedModel.parameterId[j])
                         break
             self.out_file.write("\n")
-
         for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isRate():
                 self.out_file.write("\td_")
@@ -142,12 +143,10 @@ class SDEPythonWriter(Writer):
                 self.out_file.write(self.parser.parsedModel.ruleFormula[i])
                 self.out_file.write("\n")
 
-                ##################################################
-                # noise terms
-                ##################################################
-
+        ##################################################
+        # noise terms
+        ##################################################
         self.out_file.write("\n")
-
         # check for columns of the stochiometry matrix with more than one entry
         random_variables = ["*random.normal(0.0,sqrt(dt))"] * self.parser.parsedModel.numReactions
         for k in range(self.parser.parsedModel.numReactions):
@@ -198,7 +197,6 @@ class SDEPythonWriter(Writer):
                     self.out_file.write(self.parser.parsedModel.ruleVariable[i])
                     self.out_file.write("= ")
                     self.out_file.write("random.normal(0.0,sqrt(dt))\n")
-
         if method == 3:
 
             for i in range(self.parser.parsedModel.numSpecies):
@@ -224,8 +222,8 @@ class SDEPythonWriter(Writer):
                     self.out_file.write(" ) * random.normal(0.0,sqrt(dt))")
                     self.out_file.write("\n")
 
+    def write_methodfunction_return_statement(self):
         self.out_file.write("\n\treturn((")
-
         for i in range(len(self.parser.parsedModel.species)):
             self.out_file.write("d_" + self.parser.parsedModel.speciesId[i])
             self.out_file.write(",")
@@ -236,7 +234,6 @@ class SDEPythonWriter(Writer):
                             self.parser.parsedModel.parameterId[i]:
                         self.out_file.write("d_" + self.parser.parsedModel.parameterId[i])
                         self.out_file.write(",")
-
         self.out_file.write("),(")
         for i in range(self.parser.parsedModel.numSpecies):
             self.out_file.write("noise_" + self.parser.parsedModel.speciesId[i])
@@ -248,12 +245,22 @@ class SDEPythonWriter(Writer):
                             self.parser.parsedModel.parameterId[i]:
                         self.out_file.write("noise_" + self.parser.parsedModel.parameterId[i])
                         self.out_file.write(",")
-
         self.out_file.write("))\n\n")
 
-        # Write the assignment rules
-        self.out_file.write("\ndef rules((")
+    def write_functions(self):
+        for i in range(len(self.parser.parsedModel.listOfFunctions)):
+            self.out_file.write("def ")
+            self.out_file.write(self.parser.parsedModel.listOfFunctions[i].getId())
+            self.out_file.write("(")
+            for j in range(self.parser.parsedModel.listOfFunctions[i].getNumArguments()):
+                self.out_file.write(self.parser.parsedModel.functionArgument[i][j])
+                self.out_file.write(",")
+            self.out_file.write("):\n\n\toutput=")
+            self.out_file.write(self.parser.parsedModel.functionBody[i])
+            self.out_file.write("\n\n\treturn output\n\n")
 
+    def write_rule_function_signature(self):
+        self.out_file.write("\ndef rules((")
         for i in range(len(self.parser.parsedModel.species)):
             self.out_file.write(self.parser.parsedModel.speciesId[i])
             self.out_file.write(",")
@@ -275,11 +282,9 @@ class SDEPythonWriter(Writer):
             if not dont_print:
                 self.out_file.write(self.parser.parsedModel.parameterId[i])
                 self.out_file.write(",")
-
         self.out_file.write("),time):\n\n")
 
-        # Write the events
-
+    def write_events(self):
         for i in range(len(self.parser.parsedModel.listOfEvents)):
             self.out_file.write("\tif ")
             self.out_file.write(mathml_condition_parser(self.parser.parsedModel.eventCondition[i]))
@@ -292,9 +297,9 @@ class SDEPythonWriter(Writer):
                 self.out_file.write(self.parser.parsedModel.eventFormula[i][j])
                 self.out_file.write("\n")
             self.out_file.write("\n")
-
         self.out_file.write("\n")
 
+    def write_assignment_rules(self):
         for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isAssignment():
                 self.out_file.write("\t")
@@ -303,6 +308,7 @@ class SDEPythonWriter(Writer):
                 self.out_file.write(self.parser.parsedModel.ruleFormula[i])
                 self.out_file.write("\n")
 
+    def write_rulesfunction_return_statement(self):
         self.out_file.write("\n\treturn((")
         for i in range(self.parser.parsedModel.numSpecies):
             self.out_file.write(self.parser.parsedModel.speciesId[i])
@@ -315,7 +321,6 @@ class SDEPythonWriter(Writer):
                         self.out_file.write(self.parser.parsedModel.parameterId[i])
                         self.out_file.write(",")
         self.out_file.write("),(")
-
         for i in range(len(self.parser.parsedModel.parameterId)):
             dont_print = False
             if not self.parser.parsedModel.listOfParameter[i].getConstant():
@@ -326,6 +331,4 @@ class SDEPythonWriter(Writer):
             if not dont_print:
                 self.out_file.write(self.parser.parsedModel.parameterId[i])
                 self.out_file.write(",")
-
         self.out_file.write("))\n\n")
-        self.out_file.close()

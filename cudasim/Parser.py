@@ -140,7 +140,7 @@ class Parser:
                 self.reactant[j] = self.listOfReactions[i].getReactant(j)
 
                 for k in range(len(self.parsedModel.species)):
-                    if self.reactant[j].get_species() == self.parsedModel.species[k].getId():
+                    if self.reactant[j].getSpecies() == self.parsedModel.species[k].getId():
                         self.S1[k] = self.reactant[j].getStoichiometry()
 
             # Fill non-zero elements of S2, such that S2[k] is the number of molecules of species[k] *produced* when the
@@ -149,7 +149,7 @@ class Parser:
                 self.product[l] = self.listOfReactions[i].getProduct(l)
 
                 for k in range(len(self.parsedModel.species)):
-                    if self.product[l].get_species() == self.parsedModel.species[k].getId():
+                    if self.product[l].getSpecies() == self.parsedModel.species[k].getId():
                         self.S2[k] = self.product[l].getStoichiometry()
 
             # Construct the row of the stoichiometry matrix corresponding to this reaction by subtracting S1 from S2

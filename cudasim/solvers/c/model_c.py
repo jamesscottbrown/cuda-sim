@@ -5,7 +5,7 @@ from ctypes import *
 
 
 # compilation step to create share object for a correct solver and model
-def compile(name, integration):
+def compile_c(name, integration):
     integ = integration + "Solver"
     libname = "./lib" + name + ".so.1.0"
 
@@ -77,7 +77,7 @@ class Model:
         self.absoluteError = absolute_error
         self.logp = logp
 
-        self.lib = compile(self.name, self.integration)
+        self.lib = compile_c(self.name, self.integration)
 
         if self.integration == 'ODE':
             self.simulate = self.simulate_ode

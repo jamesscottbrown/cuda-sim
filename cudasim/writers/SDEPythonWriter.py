@@ -9,7 +9,7 @@ class SDEPythonWriter(Writer):
     def __init__(self, parser, output_path=""):
         Writer.__init__(self)
         self.parser = parser
-        self.out_file = open(os.path.join(output_path, self.parser.parsedModel.name + ".cu"), "w")
+        self.out_file = open(os.path.join(output_path, self.parser.parsedModel.name + ".py"), "w")
         self.rename()
 
     def rename(self):
@@ -76,16 +76,16 @@ class SDEPythonWriter(Writer):
                 for k in range(len(model.listOfRules)):
                     if model.listOfRules[k].isRate() and model.ruleVariable[k] == model.parameterId[i]:
                         rule_params.append(model.parameterId[i])
-                        rule_values.append(model.parameter[i])
+                        rule_values.append(str(model.parameter[i]))
                         is_constant = False
             if is_constant:
                 constant_params.append(model.parameterId[i])
-                constant_values.append(model.parameter[i])
+                constant_values.append(str(model.parameter[i]))
 
         species_list = copy.copy(model.speciesId)
         species_list.extend(rule_params)
 
-        species_values = copy.copy(model.initValues)
+        species_values = map(lambda x: str(x), model.initValues)
         species_values.extend(rule_values)
 
         return species_list, constant_params, species_values, constant_values
@@ -224,4 +224,4 @@ class SDEPythonWriter(Writer):
 
     def write_rulesfunction_return_statement(self):
         (species_list, constant_params, _, _) = self.categorise_variables()
-        self.out_file.write("\n\treturn((%s),(%s))\n\n" % (",".join(species_list),",".join(constant_params)))
+        self.out_file.write("\n\treturn((%s),(%s))\n\n" % (",".join(species_list), ",".join(constant_params)))

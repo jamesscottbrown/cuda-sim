@@ -106,15 +106,11 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
 
         functions = model.listOfFunctions
         for i in range(len(functions)):
-            self.out_file.write("__device__ double " + functions[i].getId() + "(")
-            for j in range(functions[i].getNumArguments()):
-                self.out_file.write("double " + model.functionArgument[i][j])
-                if j < (functions[i].getNumArguments() - 1):
-                    self.out_file.write(",")
-            self.out_file.write("){\n    return ")
-            self.out_file.write(model.functionBody[i])
-            self.out_file.write(";\n}\n")
-            self.out_file.write("\n")
+            args_list = ",".join(map(lambda x: "double %s" % x, model.functionArgument[i]))
+
+            self.out_file.write("__device__ double %s(%s){\n" % (functions[i].getId(), args_list))
+            self.out_file.write("    return %s; \n" % model.functionBody[i])
+            self.out_file.write("}\n")
 
     def write_rate_rules(self):
         model = self.parser.parsedModel
@@ -151,9 +147,7 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
     def write_events(self):
         model = self.parser.parsedModel
         for i in range(len(model.listOfEvents)):
-            self.out_file.write("    if( ")
-            self.out_file.write(mathml_condition_parser(model.EventCondition[i]))
-            self.out_file.write("){\n")
+            self.out_file.write("    if(%s){\n " % mathml_condition_parser(model.EventCondition[i]))
             list_of_assignment_rules = model.listOfEvents[i].getListOfEventAssignments()
             for j in range(len(list_of_assignment_rules)):
                 self.out_file.write("        ")
@@ -161,8 +155,7 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
                 if not (event_variable in model.speciesId):
                     self.out_file.write(event_variable)
                 else:
-                    string = "y[" + repr(model.speciesId.index(event_variable)) + "]"
-                    self.out_file.write(string)
+                    self.out_file.write("y[%s]" % repr(model.speciesId.index(event_variable)))
                 self.out_file.write("=")
 
                 string = model.EventFormula[i][j]
@@ -190,12 +183,9 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
                 self.out_file.write("    ")
                 rule_variable = model.ruleVariable[i]
                 if not (rule_variable in model.speciesId):
-                    self.out_file.write("double ")
-                    self.out_file.write(rule_variable)
+                    self.out_file.write("double %s = " % rule_variable)
                 else:
-                    string = "y[" + repr(model.speciesId.index(rule_variable)) + "]"
-                    self.out_file.write(string)
-                self.out_file.write("=")
+                    self.out_file.write("y[%s] = " % repr(model.speciesId.index(rule_variable)))
 
                 string = mathml_condition_parser(model.ruleFormula[i])
                 for q in range(len(model.speciesId)):

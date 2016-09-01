@@ -99,7 +99,6 @@ class ODEPythonWriter(Writer):
         (species_list, constant_params) = self.categorise_variables()
         for i, param in enumerate(constant_params):
             self.out_file.write("\t%s = parameter[%s]\n" % (param, i))
-            pass
 
     def write_derivatives(self):
         p = re.compile('\s')

@@ -211,7 +211,7 @@ class CWriter(Writer):
 
         for i in range(len(self.parser.parsedModel.listOfEvents)):
             self.cppOutputFile.write("\t\tif ")
-            string = mathMLConditionParser(self.parser.parsedModel.eventCondition[i])
+            string = mathml_condition_parser(self.parser.parsedModel.eventCondition[i])
             string = re.sub(',', '>=', string)
             string = re.sub("geq", " ", string)
             self.cppOutputFile.write(string)
@@ -257,7 +257,7 @@ class CWriter(Writer):
 
                 self.cppOutputFile.write("=")
 
-                string = mathMLConditionParser(self.parser.parsedModel.ruleFormula[i])
+                string = mathml_condition_parser(self.parser.parsedModel.ruleFormula[i])
                 string = re.sub('_', '', string)
                 string = p1.sub(r"concentrations[\g<1>-1]", string)
                 string = p2.sub(r"parameters[\g<1>]", string)

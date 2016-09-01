@@ -1,4 +1,3 @@
-from libsbml import *
 from cudasim.relations import *
 import os
 import re
@@ -283,7 +282,7 @@ class SDEPythonWriter(Writer):
 
         for i in range(len(self.parser.parsedModel.listOfEvents)):
             self.out_file.write("\tif ")
-            self.out_file.write(mathMLConditionParser(self.parser.parsedModel.eventCondition[i]))
+            self.out_file.write(mathml_condition_parser(self.parser.parsedModel.eventCondition[i]))
             self.out_file.write(":\n")
             list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
             for j in range(len(list_of_assignment_rules)):

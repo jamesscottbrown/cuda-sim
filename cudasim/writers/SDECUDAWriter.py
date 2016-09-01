@@ -3,7 +3,7 @@ import re
 
 from cudasim.writers.Writer import Writer
 from cudasim.cuda_helpers import rename_math_functions
-
+from cudasim.relations import mathml_condition_parser
 
 class SdeCUDAWriter(Writer):
     def __init__(self, parser, output_path=""):
@@ -117,7 +117,7 @@ class SdeCUDAWriter(Writer):
     
         for i in range(len(self.parser.parsedModel.listOfEvents)):
             self.out_file.write("    if( ")
-            self.out_file.write(self.mathMLConditionParserCuda(self.parser.parsedModel.EventCondition[i]))
+            self.out_file.write(mathml_condition_parser(self.parser.parsedModel.EventCondition[i]))
             self.out_file.write("){\n")
             list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
             for j in range(len(list_of_assignment_rules)):
@@ -162,7 +162,7 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write(string)
                 self.out_file.write("=")
     
-                string = self.mathMLConditionParserCuda(self.parser.parsedModel.ruleFormula[i])
+                string = mathml_condition_parser(self.parser.parsedModel.ruleFormula[i])
                 for q in range(len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
                 for q in range(len(self.parser.parsedModel.parameterId)):
@@ -389,7 +389,7 @@ class SdeCUDAWriter(Writer):
     
         for i in range(len(self.parser.parsedModel.listOfEvents)):
             self.out_file.write("    if( ")
-            self.out_file.write(self.mathMLConditionParserCuda(self.parser.parsedModel.EventCondition[i]))
+            self.out_file.write(mathml_condition_parser(self.parser.parsedModel.EventCondition[i]))
             self.out_file.write("){\n")
             list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
             for j in range(len(list_of_assignment_rules)):
@@ -434,7 +434,7 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write(string)
                 self.out_file.write("=")
     
-                string = self.mathMLConditionParserCuda(self.parser.parsedModel.ruleFormula[i])
+                string = mathml_condition_parser(self.parser.parsedModel.ruleFormula[i])
                 for q in range(len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
                 for q in range(len(self.parser.parsedModel.parameterId)):

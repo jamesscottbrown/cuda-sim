@@ -3,7 +3,7 @@ import re
 
 from cudasim.writers.Writer import Writer
 from cudasim.cuda_helpers import rename_math_functions
-
+from cudasim.relations import mathml_condition_parser
 
 class OdeCUDAWriter(Writer):
     def __init__(self, parser, output_path=""):
@@ -151,7 +151,7 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
         model = self.parser.parsedModel
         for i in range(len(model.listOfEvents)):
             self.out_file.write("    if( ")
-            self.out_file.write(self.mathMLConditionParserCuda(model.EventCondition[i]))
+            self.out_file.write(mathml_condition_parser(model.EventCondition[i]))
             self.out_file.write("){\n")
             list_of_assignment_rules = model.listOfEvents[i].getListOfEventAssignments()
             for j in range(len(list_of_assignment_rules)):
@@ -196,7 +196,7 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
                     self.out_file.write(string)
                 self.out_file.write("=")
 
-                string = self.mathMLConditionParserCuda(model.ruleFormula[i])
+                string = mathml_condition_parser(model.ruleFormula[i])
                 for q in range(len(model.speciesId)):
                     string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
                 for q in range(len(model.parameterId)):

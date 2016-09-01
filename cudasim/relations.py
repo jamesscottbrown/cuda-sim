@@ -1,7 +1,7 @@
 import re
 
 
-def mathMLConditionParser(string):
+def mathml_condition_parser(string):
     """
     Replaces and and or with and_ and or_ in a string and returns the result.
     """

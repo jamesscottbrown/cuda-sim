@@ -190,7 +190,7 @@ class ODEPythonWriter(Writer):
         model = self.parser.parsedModel
         for i in range(len(model.listOfEvents)):
             self.out_file.write("\tif ")
-            self.out_file.write(mathMLConditionParser(model.eventCondition[i]))
+            self.out_file.write(mathml_condition_parser(model.eventCondition[i]))
             self.out_file.write(":\n")
             list_of_assignment_rules = model.listOfEvents[i].getListOfEventAssignments()
             for j in range(len(list_of_assignment_rules)):
@@ -209,7 +209,7 @@ class ODEPythonWriter(Writer):
                 self.out_file.write("\t")
                 self.out_file.write(model.ruleVariable[i])
                 self.out_file.write("=")
-                self.out_file.write(mathMLConditionParser(model.ruleFormula[i]))
+                self.out_file.write(mathml_condition_parser(model.ruleFormula[i]))
                 self.out_file.write("\n")
         self.out_file.write("\n\treturn((")
         for i in range(model.numSpecies):

@@ -67,8 +67,8 @@ class Model:
                 else:
                     par = numpy.power(10, p[i][0:self.kparameters])
 
-                dat = sdeint.sdeint(func=self.module, init_values=p[i][self.kparameters:self.nparameters], parameter=par,
-                                    timepoints=t, dt=self.dt)
+                dat = sdeint.sdeint(func=self.module, init_values=p[i][self.kparameters:self.nparameters],
+                                    parameter=par, timepoints=t, dt=self.dt)
                 for k in range(len(t)):
                     for l in range(self.nspecies):
                         ret[i, j, k, l] = dat[k, l]

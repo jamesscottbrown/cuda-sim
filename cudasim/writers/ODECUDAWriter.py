@@ -5,6 +5,7 @@ from cudasim.writers.Writer import Writer
 from cudasim.cuda_helpers import rename_math_functions
 from cudasim.relations import mathml_condition_parser
 
+
 class OdeCUDAWriter(Writer):
     def __init__(self, parser, output_path=""):
         Writer.__init__(self)

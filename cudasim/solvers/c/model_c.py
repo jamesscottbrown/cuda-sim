@@ -144,7 +144,8 @@ class Model:
 
     def simulate_sde(self, p, t, n, beta):
         # must return a structure of the form [n][ntimepoints][nspecies]
-        # where p is an 2D array of parameters, t is a list of timepoints, n is the number of models and beta is number of model
+        # where p is an 2D array of parameters, t is a list of timepoints, n is the number of models
+        # and beta is number of model
         ntimepoints = len(t)
         ret = numpy.zeros([n, beta, ntimepoints, self.nspecies])
         # set output from cpp file to python
@@ -181,7 +182,8 @@ class Model:
                 cinit[j] = p[ni][i]
                 j += 1
 
-            # double* initialValues, double* parameters, int beta, double* timepoints, int ntimepoints, double dt, NPARAMETERS, NSPECIES
+            # double* initialValues, double* parameters, int beta, double* timepoints, int ntimepoints, double dt,
+            # NPARAMETERS, NSPECIES
             dat = self.lib.MainC(byref(cinit), byref(cparam), c_beta, byref(c_time), c_dt, c_ntimepoints, c_nparameters,
                                  c_npsecies, byref(output))
 

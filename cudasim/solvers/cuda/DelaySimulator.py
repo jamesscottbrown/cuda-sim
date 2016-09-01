@@ -107,20 +107,20 @@ class DelaySimulator(sim.Simulator):
                         // loop over each variable
                         for (int dimension = 0; dimension < NSPECIES; dimension++) {
 
-                            int kR = kRs[delayNum];
-                            int s = maxDelay - tau[delayNum];
+                          int kR = kRs[delayNum];
+                          int s = maxDelay - tau[delayNum];
 
-                            if ((t / DT) < (kR)) {
-                                gam[1][dimension][delayNum] = yHist[(int) ( s + (t) / (DT / 2.0))][dimension];
-                                gam[2][dimension][delayNum] = yHist[(int) ( s + (t + (DT / 2.0)) / (DT / 2.0))][dimension];
-                                gam[3][dimension][delayNum] = yHist[(int) ( s + (t + (DT / 2.0)) / (DT / 2.0))][dimension];
-                                gam[4][dimension][delayNum] = yHist[(int) ( s + (t + DT) / DT)][dimension];
-                            } else {
-                                gam[1][dimension][delayNum] = kOld[kR - 1][1][dimension];
-                                gam[2][dimension][delayNum] = kOld[kR - 1][2][dimension];
-                                gam[3][dimension][delayNum] = kOld[kR - 1][3][dimension];
-                                gam[4][dimension][delayNum] = kOld[kR - 1][4][dimension];
-                            }
+                          if ((t / DT) < (kR)) {
+                            gam[1][dimension][delayNum] = yHist[(int) ( s + (t) / (DT / 2.0))][dimension];
+                            gam[2][dimension][delayNum] = yHist[(int) ( s + (t + (DT / 2.0)) / (DT / 2.0))][dimension];
+                            gam[3][dimension][delayNum] = yHist[(int) ( s + (t + (DT / 2.0)) / (DT / 2.0))][dimension];
+                            gam[4][dimension][delayNum] = yHist[(int) ( s + (t + DT) / DT)][dimension];
+                          } else {
+                            gam[1][dimension][delayNum] = kOld[kR - 1][1][dimension];
+                            gam[2][dimension][delayNum] = kOld[kR - 1][2][dimension];
+                            gam[3][dimension][delayNum] = kOld[kR - 1][3][dimension];
+                            gam[4][dimension][delayNum] = kOld[kR - 1][4][dimension];
+                          }
                         }
                     }
 
@@ -129,13 +129,13 @@ class DelaySimulator(sim.Simulator):
                     }
 
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
-                        g[2][dimension] = yOld[dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[1], gam[1], dimension);
+                      g[2][dimension] = yOld[dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[1], gam[1], dimension);
                     }
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
-                        g[3][dimension] = yOld[dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[2],  gam[2], dimension);
+                      g[3][dimension] = yOld[dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[2],  gam[2], dimension);
                     }
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
-                        g[4][dimension] = yOld[dimension] + DT * f(t + DT, (float *) &g[3], gam[3], dimension);
+                      g[4][dimension] = yOld[dimension] + DT * f(t + DT, (float *) &g[3], gam[3], dimension);
                     }
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
                         float a = f(t, (float *) &g[1], gam[1], dimension);

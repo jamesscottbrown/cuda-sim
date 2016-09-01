@@ -4,6 +4,7 @@ import cudasim.solvers.cuda.Lsoda as Lsoda
 import cudasim.solvers.cuda.EulerMaruyama as EulerMaruyama
 import cudasim.solvers.cuda.Gillespie as Gillespie
 
+
 class CudaModel:
     # instantiation
     def __init__(self, name, nspecies, nparameters, prior, x0prior, source, integration, fit, dt, beta, timepoints,

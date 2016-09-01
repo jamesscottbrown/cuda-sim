@@ -63,7 +63,7 @@ class Simulator_mg(multiprocessing.Process):
             print "Beta must be a factor of", self._MAXBLOCKSPERDEVICE
             print "_MAXBLOCKSPERDEVICE reduced to", self._MAXBLOCKSPERDEVICE
 
-    ############ private methods ############
+    # private methods
 
     # method for extracting the number of species, variables and reactions from CUDA kernel
     def _getKernelParams(self):
@@ -103,7 +103,8 @@ class Simulator_mg(multiprocessing.Process):
         warp_size = 32
 
         # calculate number of threads per block; assuming that registers are the limiting factor
-        # max_threads = min(driver.Device(self._device).max_registers_per_block/compiledRunMethod.num_regs,max_threads_per_block)
+        # max_threads = min(driver.Device(self._device).max_registers_per_block/compiledRunMethod.num_regs, \
+        # max_threads_per_block)
 
         # assume smaller blocksize creates less overhead; ignore occupancy..
         max_threads = min(self._context.get_device().max_registers_per_block / compiledRunMethod.num_regs,
@@ -139,7 +140,7 @@ class Simulator_mg(multiprocessing.Process):
     # ABSTRACT
     # method for object deletion
 
-    ############ public methods ############
+    # public methods
 
     def join(self):
         # self._context.detach()
@@ -157,7 +158,8 @@ class Simulator_mg(multiprocessing.Process):
             self._context = driver.Device(self._card).make_context()
 
         if self._info:
-            print "cuda-sim: running on device ", self._card, self._context.get_device().name(), self._context.get_device().pci_bus_id()
+            print "cuda-sim: running on device ", self._card, self._context.get_device().name(), \
+                self._context.get_device().pci_bus_id()
 
         # hack for SDE code
         self._device = 0
@@ -178,7 +180,8 @@ class Simulator_mg(multiprocessing.Process):
         self._initValues = copy.deepcopy(init_new)
 
         if self._info:
-            print "cuda-sim: kernel mem local / shared / registers : ", self._compiledRunMethod.local_size_bytes, self._compiledRunMethod.shared_size_bytes, self._compiledRunMethod.num_regs
+            print "cuda-sim: kernel mem local / shared / registers : ", self._compiledRunMethod.local_size_bytes, \
+                self._compiledRunMethod.shared_size_bytes, self._compiledRunMethod.num_regs
             occ = tools.OccupancyRecord(tools.DeviceData(), threads=threads,
                                         shared_mem=self._compiledRunMethod.shared_size_bytes,
                                         registers=self._compiledRunMethod.num_regs)

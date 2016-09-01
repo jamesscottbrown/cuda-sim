@@ -91,13 +91,13 @@ class EulerMaruyama(sim.Simulator_mg):
     """
 
         if self._putIntoShared:
-            sde_source_rest = """
+            sde_src_rest = """
     __global__ void sdeMain(float *species, float *parameters, unsigned *seed, float *result){"""
         else:
-            sde_source_rest = """
+            sde_src_rest = """
     __global__ void sdeMain(float *species, unsigned *seed, float *result){"""
 
-        sde_source_rest += """
+        sde_src_rest += """
         //initialize RNG
         unsigned rngRegs[WarpStandard_REG_COUNT];
         WarpStandard_LoadState(seed, rngRegs);
@@ -118,7 +118,7 @@ class EulerMaruyama(sim.Simulator_mg):
         """
 
         if self._putIntoShared:
-            sde_source_rest += """
+            sde_src_rest += """
         //offset for RNG (= number of threads)
         // beta = # of multiple use of the same parameters
         // blockDim.x is the shared memory occupied by the RNG
@@ -132,10 +132,10 @@ class EulerMaruyama(sim.Simulator_mg):
         }"""
 
         else:
-            sde_source_rest += """
+            sde_src_rest += """
         int texMemIndex = tid/BETA;"""
 
-        sde_source_rest += """
+        sde_src_rest += """
         float t = 0;
         
         //repeat number of dt dts
@@ -152,17 +152,17 @@ class EulerMaruyama(sim.Simulator_mg):
             """
 
         if self._putIntoShared:
-            sde_source_rest += "step(parameter, y, t, rngRegs);"
+            sde_src_rest += "step(parameter, y, t, rngRegs);"
         else:
-            sde_source_rest += "step(y, t, rngRegs, texMemIndex);"
+            sde_src_rest += "step(y, t, rngRegs, texMemIndex);"
 
-        sde_source_rest += """
+        sde_src_rest += """
             //set values to zero if they are negative"""
 
         for i in range(self._speciesNumber):
-            sde_source_rest += """
+            sde_src_rest += """
             y[""" + str(i) + """] = negEqZero(y[""" + str(i) + """]);"""
-        sde_source_rest += """
+        sde_src_rest += """
             }
         }"""
 
@@ -173,7 +173,7 @@ class EulerMaruyama(sim.Simulator_mg):
         f.close()
 
         # actual compiling step compile
-        complete_code = general_parameters_source + rng_ext + rng_source + neg_eq_zero_source + step_code + sde_source_rest
+        complete_code = general_parameters_source + rng_ext + rng_source + neg_eq_zero_source + step_code + sde_src_rest
 
         if self._dump:
             of = open("full_sde_code.cu", "w")

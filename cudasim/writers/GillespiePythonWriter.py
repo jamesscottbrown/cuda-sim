@@ -43,7 +43,7 @@ class GillespiePythonWriter(Writer):
 
         for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isRate():
-                sys.exit("\n Model '" + self.parser.parsedModel.name + "' contains at least one rate rule, so " +\
+                sys.exit("\n Model '" + self.parser.parsedModel.name + "' contains at least one rate rule, so " +
                          "cannot be simulated with the Gillespie algorithm! Please change the simmulation Type! \n")
 
         self.out_file.write("from cudasim.relations import *\n\n#Functions\n")

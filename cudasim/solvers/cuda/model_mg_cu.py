@@ -1,4 +1,5 @@
-import numpy, multiprocessing
+import numpy
+import multiprocessing
 
 import cudasim.solvers.cuda.Lsoda_mg as Lsoda_mg
 import cudasim.solvers.cuda.EulerMaruyama_mg as EulerMaruyama_mg

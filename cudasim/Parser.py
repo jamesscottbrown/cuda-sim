@@ -272,7 +272,9 @@ class Parser:
 
     def get_species_value(self, specie):
         if specie.isSetInitialAmount() and specie.isSetInitialConcentration():
-            return specie.getInitialConcentration()  # The initial values are only used in ODE and SDE solvers so we take the concentration (if it was used in gillespie we would have taken the value)
+            # The initial values are only used in ODE and SDE solvers so we take the concentration
+            # (if it was used in gillespie we would have taken the value)
+            return specie.getInitialConcentration()
         if specie.isSetInitialAmount():
             return specie.getInitialAmount()
         else:

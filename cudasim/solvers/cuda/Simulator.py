@@ -73,7 +73,7 @@ class Simulator:
         else:
             self._stepCode = stepCode
 
-    ############ private methods ############
+    # private methods
 
     # method for extracting the number of species, variables and reactions from CUDA kernel
     def _getKernelParams(self, stepCode):
@@ -96,7 +96,8 @@ class Simulator:
         warp_size = 32
 
         # calculate number of threads per block; assuming that registers are the limiting factor
-        # maxThreads = min(driver.Device(self._device).max_registers_per_block/compiledRunMethod.num_regs,max_threads_per_block)
+        # maxThreads = min(driver.Device(self._device).max_registers_per_block/compiledRunMethod.num_regs,\
+        # max_threads_per_block)
 
         # assume smaller blocksize creates less overhead; ignore occupancy..
         max_threads = min(driver.Device(self._device).max_registers_per_block / compiledRunMethod.num_regs,
@@ -134,7 +135,7 @@ class Simulator:
     def _runSimulation(self, parameters, initValues, blocks, threads):
         return None
 
-    ############ public methods ############
+    #  public methods
 
     # specify GPU specific variables and _runSimulation()
     def run(self, parameters, init_values, timing=True, info=False):
@@ -174,7 +175,8 @@ class Simulator:
         init_values = init_new
 
         if info:
-            print "cuda-sim: kernel mem local / shared / registers : ", self._compiledRunMethod.local_size_bytes, self._compiledRunMethod.shared_size_bytes, self._compiledRunMethod.num_regs
+            print "cuda-sim: kernel mem local / shared / registers : ", self._compiledRunMethod.local_size_bytes, \
+                self._compiledRunMethod.shared_size_bytes, self._compiledRunMethod.num_regs
             occ = tools.OccupancyRecord(tools.DeviceData(), threads=threads,
                                         shared_mem=self._compiledRunMethod.shared_size_bytes,
                                         registers=self._compiledRunMethod.num_regs)
@@ -199,15 +201,15 @@ class Simulator:
 
             min_index = self._MAXBLOCKSPERDEVICE * i * threads
             max_index = min_index + threads * runblocks
-            run_parameters = parameters[min_index / self._beta:max_index / self._beta]
+            run_params = parameters[min_index / self._beta:max_index / self._beta]
             run_init_values = init_values[min_index:max_index]
 
             # first run store return Value
             if i == 0:
-                return_value = self._runSimulation(run_parameters, run_init_values, runblocks, threads)
+                return_value = self._runSimulation(run_params, run_init_values, runblocks, threads)
             else:
                 return_value = np.append(return_value,
-                                        self._runSimulation(run_parameters, run_init_values, runblocks, threads), axis=0)
+                                         self._runSimulation(run_params, run_init_values, runblocks, threads), axis=0)
 
         if timing:
             print "cuda-sim: GPU blocks / threads / running time:", threads, blocks, round((time.time() - start),

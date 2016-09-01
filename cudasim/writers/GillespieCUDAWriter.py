@@ -7,6 +7,7 @@ from cudasim.writers.Writer import Writer
 from cudasim.cuda_helpers import rename_math_functions
 from cudasim.relations import mathml_condition_parser
 
+
 class GillespieCUDAWriter(Writer):
     def __init__(self, parser, output_path=""):
         Writer.__init__(self)
@@ -113,8 +114,7 @@ class GillespieCUDAWriter(Writer):
         for i in range(len(model.stoichiometricMatrix[0])):
             for j in range(len(model.stoichiometricMatrix)):
                 self.out_file.write("    " + repr(model.stoichiometricMatrix[j][i]))
-                if not (i == (len(model.stoichiometricMatrix) - 1) and
-                            (j == (len(model.stoichiometricMatrix[0]) - 1))):
+                if not (i == (len(model.stoichiometricMatrix) - 1) and (j == (len(model.stoichiometricMatrix[0]) - 1))):
                     self.out_file.write(",")
             self.out_file.write("\n")
         self.out_file.write("};\n\n\n")

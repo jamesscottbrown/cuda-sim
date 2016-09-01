@@ -8,7 +8,8 @@ class Writer:
         pass
 
     # replace the species and parameters recursively
-    def rep(self, string, find, replace):
+    @staticmethod
+    def rep(string, find, replace):
         ex = find + "[^0-9]"
         while re.search(ex, string) is not None:
             res = re.search(ex, string)

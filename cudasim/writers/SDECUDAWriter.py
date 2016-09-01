@@ -29,7 +29,7 @@ class SdeCUDAWriter(Writer):
                 self.parser.rename_everywhere(old_name, new_name)
 
         # Pad single-digit species names with a leading zero
-        for i in range(0, len(self.parser.parsedModel.speciesId)):
+        for i in range(len(self.parser.parsedModel.speciesId)):
             old_name = self.parser.parsedModel.speciesId[i]
             num = old_name[len('species'):]
             if len(num) < 2:
@@ -70,9 +70,9 @@ class SdeCUDAWriter(Writer):
             self.out_file.write("#define and_(a,b) a&&b\n")
             self.out_file.write("#define or_(a,b) a||b\n")
     
-        for i in range(0, len(self.parser.parsedModel.listOfFunctions)):
+        for i in range(len(self.parser.parsedModel.listOfFunctions)):
             self.out_file.write("__device__ float " + self.parser.parsedModel.listOfFunctions[i].getId() + "(")
-            for j in range(0, self.parser.parsedModel.listOfFunctions[i].getNumArguments()):
+            for j in range(self.parser.parsedModel.listOfFunctions[i].getNumArguments()):
                 self.out_file.write("float " + self.parser.parsedModel.functionArgument[i][j])
                 if j < (self.parser.parsedModel.listOfFunctions[i].getNumArguments() - 1):
                     self.out_file.write(",")
@@ -88,7 +88,7 @@ class SdeCUDAWriter(Writer):
         num_species = len(self.parser.parsedModel.species)
     
         # write rules and events
-        for i in range(0, len(self.parser.parsedModel.listOfRules)):
+        for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isRate():
                 self.out_file.write("    ")
                 rule_variable = self.parser.parsedModel.ruleVariable[i]
@@ -100,13 +100,13 @@ class SdeCUDAWriter(Writer):
                 self.out_file.write("=")
     
                 string = self.parser.parsedModel.ruleFormula[i]
-                for q in range(0, len(self.parser.parsedModel.speciesId)):
+                for q in range(len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(self.parser.parsedModel.parameterId)):
+                for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
                         flag = False
-                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                        for r in range(len(self.parser.parsedModel.eventVariable)):
                             if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -115,12 +115,12 @@ class SdeCUDAWriter(Writer):
                 self.out_file.write(string)
                 self.out_file.write(";\n")
     
-        for i in range(0, len(self.parser.parsedModel.listOfEvents)):
+        for i in range(len(self.parser.parsedModel.listOfEvents)):
             self.out_file.write("    if( ")
             self.out_file.write(self.mathMLConditionParserCuda(self.parser.parsedModel.EventCondition[i]))
             self.out_file.write("){\n")
             list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
-            for j in range(0, len(list_of_assignment_rules)):
+            for j in range(len(list_of_assignment_rules)):
                 self.out_file.write("        ")
 
                 event_variable = self.parser.parsedModel.eventVariable[i][j]
@@ -132,13 +132,13 @@ class SdeCUDAWriter(Writer):
                 self.out_file.write("=")
     
                 string = self.parser.parsedModel.EventFormula[i][j]
-                for q in range(0, len(self.parser.parsedModel.speciesId)):
+                for q in range(len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(self.parser.parsedModel.parameterId)):
+                for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
                         flag = False
-                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                        for r in range(len(self.parser.parsedModel.eventVariable)):
                             if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -150,7 +150,7 @@ class SdeCUDAWriter(Writer):
     
         self.out_file.write("\n")
     
-        for i in range(0, len(self.parser.parsedModel.listOfRules)):
+        for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isAssignment():
                 self.out_file.write("    ")
                 rule_variable = self.parser.parsedModel.ruleVariable[i]
@@ -163,13 +163,13 @@ class SdeCUDAWriter(Writer):
                 self.out_file.write("=")
     
                 string = self.mathMLConditionParserCuda(self.parser.parsedModel.ruleFormula[i])
-                for q in range(0, len(self.parser.parsedModel.speciesId)):
+                for q in range(len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(self.parser.parsedModel.parameterId)):
+                for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
                         flag = False
-                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                        for r in range(len(self.parser.parsedModel.eventVariable)):
                             if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -179,7 +179,7 @@ class SdeCUDAWriter(Writer):
         self.out_file.write("")
     
         # Write the derivatives
-        for i in range(0, num_species):
+        for i in range(num_species):
             species_id = self.parser.parsedModel.species[i]
             if species_id.getConstant() == False and species_id.getBoundaryCondition() == False:
                 self.out_file.write("    float d_y" + repr(i) + "= DT * (")
@@ -187,7 +187,7 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write("(")
     
                 reaction_written = False
-                for k in range(0, self.parser.parsedModel.numReactions):
+                for k in range(self.parser.parsedModel.numReactions):
                     if not self.parser.parsedModel.stoichiometricMatrix[i][k] == 0.0:
     
                         if reaction_written and self.parser.parsedModel.stoichiometricMatrix[i][k] > 0.0:
@@ -197,13 +197,13 @@ class SdeCUDAWriter(Writer):
                         self.out_file.write("*(")
     
                         string = self.parser.parsedModel.kineticLaw[k]
-                        for q in range(0, len(self.parser.parsedModel.speciesId)):
+                        for q in range(len(self.parser.parsedModel.speciesId)):
                             string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                        for q in range(0, len(self.parser.parsedModel.parameterId)):
+                        for q in range(len(self.parser.parsedModel.parameterId)):
                             parameter_id = self.parser.parsedModel.parameterId[q]
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
                                 flag = False
-                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                                for r in range(len(self.parser.parsedModel.eventVariable)):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
@@ -217,12 +217,12 @@ class SdeCUDAWriter(Writer):
                 if species_id.isSetCompartment():
                     self.out_file.write(")/")
                     my_species_compartment = species_id.getCompartment()
-                    for j in range(0, len(self.parser.parsedModel.listOfParameter)):
+                    for j in range(len(self.parser.parsedModel.listOfParameter)):
                         if self.parser.parsedModel.listOfParameter[j].getId() == my_species_compartment:
                             parameter_id = self.parser.parsedModel.parameterId[j]
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
                                 flag = False
-                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                                for r in range(len(self.parser.parsedModel.eventVariable)):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
@@ -239,9 +239,9 @@ class SdeCUDAWriter(Writer):
     
         # check for columns of the stochiometry matrix with more than one entry
         random_variables = ["*randNormal(rngRegs,sqrt(DT))"] * self.parser.parsedModel.numReactions
-        for k in range(0, self.parser.parsedModel.numReactions):
+        for k in range(self.parser.parsedModel.numReactions):
             num_entries = 0
-            for i in range(0, num_species):
+            for i in range(num_species):
                 if self.parser.parsedModel.stoichiometricMatrix[i][k] != 0.0:
                     num_entries += 1
     
@@ -253,7 +253,7 @@ class SdeCUDAWriter(Writer):
         self.out_file.write("\n")
     
         # write noise terms
-        for i in range(0, num_species):
+        for i in range(num_species):
             species = self.parser.parsedModel.species[i]
             if not (species.getConstant() or species.getBoundaryCondition()):
                 self.out_file.write("    d_y" + repr(i) + " += (")
@@ -261,7 +261,7 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write("(")
     
                 reaction_written = False
-                for k in range(0, self.parser.parsedModel.numReactions):
+                for k in range(self.parser.parsedModel.numReactions):
                     if not self.parser.parsedModel.stoichiometricMatrix[i][k] == 0.0:
     
                         if reaction_written and self.parser.parsedModel.stoichiometricMatrix[i][k] > 0.0:
@@ -271,15 +271,15 @@ class SdeCUDAWriter(Writer):
                         self.out_file.write("*sqrt(")
     
                         string = self.parser.parsedModel.kineticLaw[k]
-                        for q in range(0, len(self.parser.parsedModel.speciesId)):
+                        for q in range(len(self.parser.parsedModel.speciesId)):
                             # pq = re.compile(self.parser.parsedModel.speciesId[q])
                             # string=pq.sub('y['+repr(q)+']' ,string)
                             string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                        for q in range(0, len(self.parser.parsedModel.parameterId)):
+                        for q in range(len(self.parser.parsedModel.parameterId)):
                             parameter_id = self.parser.parsedModel.parameterId[q]
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
                                 flag = False
-                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                                for r in range(len(self.parser.parsedModel.eventVariable)):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
@@ -295,12 +295,12 @@ class SdeCUDAWriter(Writer):
                 if species.isSetCompartment():
                     self.out_file.write(")/")
                     my_species_compartment = species.getCompartment()
-                    for j in range(0, len(self.parser.parsedModel.listOfParameter)):
+                    for j in range(len(self.parser.parsedModel.listOfParameter)):
                         if self.parser.parsedModel.listOfParameter[j].getId() == my_species_compartment:
                             parameter_id = self.parser.parsedModel.parameterId[j]
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
                                 flag = False
-                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                                for r in range(len(self.parser.parsedModel.eventVariable)):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
@@ -315,7 +315,7 @@ class SdeCUDAWriter(Writer):
     
         self.out_file.write("\n")
         # add terms
-        for i in range(0, num_species):
+        for i in range(num_species):
             species = self.parser.parsedModel.species[i]
             if species.getConstant() == False and species.getBoundaryCondition() == False:
                 self.out_file.write("    y[" + repr(i) + "] += d_y" + repr(i) + ";\n")
@@ -341,10 +341,10 @@ class SdeCUDAWriter(Writer):
             self.out_file.write("#define and_(a,b) a&&b\n")
             self.out_file.write("#define or_(a,b) a||b\n")
     
-        for i in range(0, len(self.parser.parsedModel.listOfFunctions)):
+        for i in range(len(self.parser.parsedModel.listOfFunctions)):
             function = self.parser.parsedModel.listOfFunctions[i]
             self.out_file.write("__device__ float " + function.getId() + "(")
-            for j in range(0, function.getNumArguments()):
+            for j in range(function.getNumArguments()):
                 self.out_file.write("float " + self.parser.parsedModel.functionArgument[i][j])
                 if j < (function.getNumArguments() - 1):
                     self.out_file.write(",")
@@ -359,7 +359,7 @@ class SdeCUDAWriter(Writer):
         num_species = len(self.parser.parsedModel.species)
     
         # write rules and events
-        for i in range(0, len(self.parser.parsedModel.listOfRules)):
+        for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isRate():
                 self.out_file.write("    ")
                 rule_variable = self.parser.parsedModel.ruleVariable[i]
@@ -371,13 +371,13 @@ class SdeCUDAWriter(Writer):
                 self.out_file.write("=")
     
                 string = self.parser.parsedModel.ruleFormula[i]
-                for q in range(0, len(self.parser.parsedModel.speciesId)):
+                for q in range(len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(self.parser.parsedModel.parameterId)):
+                for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
                         flag = False
-                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                        for r in range(len(self.parser.parsedModel.eventVariable)):
                             if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -387,12 +387,12 @@ class SdeCUDAWriter(Writer):
                 self.out_file.write(string)
                 self.out_file.write(";\n")
     
-        for i in range(0, len(self.parser.parsedModel.listOfEvents)):
+        for i in range(len(self.parser.parsedModel.listOfEvents)):
             self.out_file.write("    if( ")
             self.out_file.write(self.mathMLConditionParserCuda(self.parser.parsedModel.EventCondition[i]))
             self.out_file.write("){\n")
             list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
-            for j in range(0, len(list_of_assignment_rules)):
+            for j in range(len(list_of_assignment_rules)):
                 self.out_file.write("        ")
                 event_variable = self.parser.parsedModel.eventVariable[i][j]
                 if not (event_variable in self.parser.parsedModel.speciesId):
@@ -403,13 +403,13 @@ class SdeCUDAWriter(Writer):
                 self.out_file.write("=")
     
                 string = self.parser.parsedModel.EventFormula[i][j]
-                for q in range(0, len(self.parser.parsedModel.speciesId)):
+                for q in range(len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(self.parser.parsedModel.parameterId)):
+                for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
                         flag = False
-                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                        for r in range(len(self.parser.parsedModel.eventVariable)):
                             if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -422,7 +422,7 @@ class SdeCUDAWriter(Writer):
     
         self.out_file.write("\n")
     
-        for i in range(0, len(self.parser.parsedModel.listOfRules)):
+        for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isAssignment():
                 self.out_file.write("    ")
                 rule_variable = self.parser.parsedModel.ruleVariable[i]
@@ -435,13 +435,13 @@ class SdeCUDAWriter(Writer):
                 self.out_file.write("=")
     
                 string = self.mathMLConditionParserCuda(self.parser.parsedModel.ruleFormula[i])
-                for q in range(0, len(self.parser.parsedModel.speciesId)):
+                for q in range(len(self.parser.parsedModel.speciesId)):
                     string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(self.parser.parsedModel.parameterId)):
+                for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
                         flag = False
-                        for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                        for r in range(len(self.parser.parsedModel.eventVariable)):
                             if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -452,7 +452,7 @@ class SdeCUDAWriter(Writer):
                 self.out_file.write(";\n")
     
         # Write the derivatives
-        for i in range(0, num_species):
+        for i in range(num_species):
             species = self.parser.parsedModel.species[i]
             if species.getConstant() == False and species.getBoundaryCondition() == False:
                 self.out_file.write("    float d_y" + repr(i) + "= DT * (")
@@ -460,7 +460,7 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write("(")
     
                 reaction_written = False
-                for k in range(0, self.parser.parsedModel.numReactions):
+                for k in range(self.parser.parsedModel.numReactions):
                     if not self.parser.parsedModel.stoichiometricMatrix[i][k] == 0.0:
     
                         if reaction_written and self.parser.parsedModel.stoichiometricMatrix[i][k] > 0.0:
@@ -470,13 +470,13 @@ class SdeCUDAWriter(Writer):
                         self.out_file.write("*(")
     
                         string = self.parser.parsedModel.kineticLaw[k]
-                        for q in range(0, len(self.parser.parsedModel.speciesId)):
+                        for q in range(len(self.parser.parsedModel.speciesId)):
                             string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                        for q in range(0, len(self.parser.parsedModel.parameterId)):
+                        for q in range(len(self.parser.parsedModel.parameterId)):
                             parameter_id = self.parser.parsedModel.parameterId[q]
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
                                 flag = False
-                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                                for r in range(len(self.parser.parsedModel.eventVariable)):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
@@ -491,12 +491,12 @@ class SdeCUDAWriter(Writer):
                 if species.isSetCompartment():
                     self.out_file.write(")/")
                     my_species_compartment = species.getCompartment()
-                    for j in range(0, len(self.parser.parsedModel.listOfParameter)):
+                    for j in range(len(self.parser.parsedModel.listOfParameter)):
                         parameter_id = self.parser.parsedModel.parameterId[j]
                         if self.parser.parsedModel.listOfParameter[j].getId() == my_species_compartment:
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
                                 flag = False
-                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                                for r in range(len(self.parser.parsedModel.eventVariable)):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
@@ -513,9 +513,9 @@ class SdeCUDAWriter(Writer):
     
         # check for columns of the stochiometry matrix with more than one entry
         random_variables = ["*randNormal(rngRegs,sqrt(DT))"] * self.parser.parsedModel.numReactions
-        for k in range(0, self.parser.parsedModel.numReactions):
+        for k in range(self.parser.parsedModel.numReactions):
             num_entries = 0
-            for i in range(0, num_species):
+            for i in range(num_species):
                 if self.parser.parsedModel.stoichiometricMatrix[i][k] != 0.0:
                     num_entries += 1
     
@@ -527,7 +527,7 @@ class SdeCUDAWriter(Writer):
         self.out_file.write("\n")
     
         # write noise terms
-        for i in range(0, num_species):
+        for i in range(num_species):
             species = self.parser.parsedModel.species[i]
             if species.getConstant() == False and species.getBoundaryCondition() == False:
                 self.out_file.write("    d_y" + repr(i) + "+= (")
@@ -535,7 +535,7 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write("(")
     
                 reaction_written = False
-                for k in range(0, self.parser.parsedModel.numReactions):
+                for k in range(self.parser.parsedModel.numReactions):
                     if not self.parser.parsedModel.stoichiometricMatrix[i][k] == 0.0:
     
                         if reaction_written and self.parser.parsedModel.stoichiometricMatrix[i][k] > 0.0:
@@ -545,15 +545,15 @@ class SdeCUDAWriter(Writer):
                         self.out_file.write("*sqrt(")
     
                         string = self.parser.parsedModel.kineticLaw[k]
-                        for q in range(0, len(self.parser.parsedModel.speciesId)):
+                        for q in range(len(self.parser.parsedModel.speciesId)):
                             # pq = re.compile(self.parser.parsedModel.speciesId[q])
                             # string=pq.sub('y['+repr(q)+']' ,string)
                             string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
-                        for q in range(0, len(self.parser.parsedModel.parameterId)):
+                        for q in range(len(self.parser.parsedModel.parameterId)):
                             parameter_id = self.parser.parsedModel.parameterId[q]
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
                                 flag = False
-                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                                for r in range(len(self.parser.parsedModel.eventVariable)):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
@@ -570,12 +570,12 @@ class SdeCUDAWriter(Writer):
                 if species.isSetCompartment():
                     self.out_file.write(")/")
                     my_species_compartment = species.getCompartment()
-                    for j in range(0, len(self.parser.parsedModel.listOfParameter)):
+                    for j in range(len(self.parser.parsedModel.listOfParameter)):
                         parameter_id = self.parser.parsedModel.parameterId[j]
                         if self.parser.parsedModel.listOfParameter[j].getId() == my_species_compartment:
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
                                 flag = False
-                                for r in range(0, len(self.parser.parsedModel.eventVariable)):
+                                for r in range(len(self.parser.parsedModel.eventVariable)):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
@@ -591,7 +591,7 @@ class SdeCUDAWriter(Writer):
     
         self.out_file.write("\n")
         # add terms
-        for i in range(0, num_species):
+        for i in range(num_species):
             species = self.parser.parsedModel.species[i]
             if species.getConstant() == False and species.getBoundaryCondition() == False:
                 self.out_file.write("    y[" + repr(i) + "] += d_y" + repr(i) + ";\n")

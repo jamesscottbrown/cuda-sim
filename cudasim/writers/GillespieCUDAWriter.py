@@ -31,7 +31,7 @@ class GillespieCUDAWriter(Writer):
                 self.parser.rename_everywhere(old_name, new_name)
 
         # Pad single-digit species names with a leading zero
-        for i in range(0, len(self.parser.parsedModel.speciesId)):
+        for i in range(len(self.parser.parsedModel.speciesId)):
             old_name = self.parser.parsedModel.speciesId[i]
             num = old_name[len('species'):]
             if len(num) < 2:
@@ -67,7 +67,7 @@ class GillespieCUDAWriter(Writer):
             // Calculate concentrations from molecule counts
             int y[NSPECIES];
             """)
-            for i in range(0, num_species):
+            for i in range(num_species):
                 volume_string = "tex2D(param_tex," + repr(model.speciesCompartmentList[i]) + ",tid)"
                 self.out_file.write("y[%s] = yCounts[%s] / (6.022E23 * %s);\n" % (i, i, volume_string))
 
@@ -96,9 +96,9 @@ class GillespieCUDAWriter(Writer):
 
     def write_functions(self):
         model = self.parser.parsedModel
-        for i in range(0, len(model.listOfFunctions)):
+        for i in range(len(model.listOfFunctions)):
             self.out_file.write("__device__ float " + model.listOfFunctions[i].getId() + "(")
-            for j in range(0, model.listOfFunctions[i].getNumArguments()):
+            for j in range(model.listOfFunctions[i].getNumArguments()):
                 self.out_file.write("float " + model.functionArgument[i][j])
                 if j < (model.listOfFunctions[i].getNumArguments() - 1):
                     self.out_file.write(",")
@@ -110,8 +110,8 @@ class GillespieCUDAWriter(Writer):
     def write_stoichiometry_matrix(self):
         model = self.parser.parsedModel
         self.out_file.write("\n\n__constant__ int smatrix[]={\n")
-        for i in range(0, len(model.stoichiometricMatrix[0])):
-            for j in range(0, len(model.stoichiometricMatrix)):
+        for i in range(len(model.stoichiometricMatrix[0])):
+            for j in range(len(model.stoichiometricMatrix)):
                 self.out_file.write("    " + repr(model.stoichiometricMatrix[j][i]))
                 if not (i == (len(model.stoichiometricMatrix) - 1) and
                             (j == (len(model.stoichiometricMatrix[0]) - 1))):
@@ -121,7 +121,7 @@ class GillespieCUDAWriter(Writer):
 
     def write_rate_rules(self):
         model = self.parser.parsedModel
-        for i in range(0, len(model.listOfRules)):
+        for i in range(len(model.listOfRules)):
             if model.listOfRules[i].isRate():
                 self.out_file.write("    ")
 
@@ -134,13 +134,13 @@ class GillespieCUDAWriter(Writer):
                 self.out_file.write("=")
 
                 string = model.ruleFormula[i]
-                for q in range(0, len(model.speciesId)):
+                for q in range(len(model.speciesId)):
                     string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(model.parameterId)):
+                for q in range(len(model.parameterId)):
                     parameter_id = model.parameterId[q]
                     if not (parameter_id in model.ruleVariable):
                         flag = False
-                        for r in range(0, len(model.eventVariable)):
+                        for r in range(len(model.eventVariable)):
                             if parameter_id in model.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -151,12 +151,12 @@ class GillespieCUDAWriter(Writer):
 
     def write_events(self):
         model = self.parser.parsedModel
-        for i in range(0, len(model.listOfEvents)):
+        for i in range(len(model.listOfEvents)):
             self.out_file.write("    if( ")
             self.out_file.write(self.mathMLConditionParserCuda(model.EventCondition[i]))
             self.out_file.write("){\n")
             list_of_assignment_rules = model.listOfEvents[i].getListOfEventAssignments()
-            for j in range(0, len(list_of_assignment_rules)):
+            for j in range(len(list_of_assignment_rules)):
                 self.out_file.write("        ")
 
                 event_variable = model.eventVariable[i][j]
@@ -168,13 +168,13 @@ class GillespieCUDAWriter(Writer):
                 self.out_file.write("=")
 
                 string = model.EventFormula[i][j]
-                for q in range(0, len(model.speciesId)):
+                for q in range(len(model.speciesId)):
                     string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(model.parameterId)):
+                for q in range(len(model.parameterId)):
                     parameter_id = model.parameterId[q]
                     if not (parameter_id in model.ruleVariable):
                         flag = False
-                        for r in range(0, len(model.eventVariable)):
+                        for r in range(len(model.eventVariable)):
                             if parameter_id in model.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -187,7 +187,7 @@ class GillespieCUDAWriter(Writer):
 
     def write_assignment_rules(self):
         model = self.parser.parsedModel
-        for i in range(0, len(model.listOfRules)):
+        for i in range(len(model.listOfRules)):
             if model.listOfRules[i].isAssignment():
                 self.out_file.write("    ")
 
@@ -201,13 +201,13 @@ class GillespieCUDAWriter(Writer):
                 self.out_file.write("=")
 
                 string = self.mathMLConditionParserCuda(model.ruleFormula[i])
-                for q in range(0, len(model.speciesId)):
+                for q in range(len(model.speciesId)):
                     string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(model.parameterId)):
+                for q in range(len(model.parameterId)):
                     parameter_id = model.parameterId[q]
                     if not (parameter_id in model.ruleVariable):
                         flag = False
-                        for r in range(0, len(model.eventVariable)):
+                        for r in range(len(model.eventVariable)):
                             if parameter_id in model.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -218,20 +218,20 @@ class GillespieCUDAWriter(Writer):
 
     def write_reaction_hazards(self, p, useMoleculeCounts):
         model = self.parser.parsedModel
-        for i in range(0, model.numReactions):
+        for i in range(model.numReactions):
             if useMoleculeCounts:
                 self.out_file.write("    h[" + repr(i) + "] = ")
             else:
                 self.out_file.write("    h[" + repr(i) + "] = 6.022E23 * ")
 
             string = model.kineticLaw[i]
-            for q in range(0, len(model.speciesId)):
+            for q in range(len(model.speciesId)):
                 string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
-            for q in range(0, len(model.parameterId)):
+            for q in range(len(model.parameterId)):
                 parameter_id = model.parameterId[q]
                 if not (parameter_id in model.ruleVariable):
                     flag = False
-                    for r in range(0, len(model.eventVariable)):
+                    for r in range(len(model.eventVariable)):
                         if parameter_id in model.eventVariable[r]:
                             flag = True
                     if not flag:

@@ -29,7 +29,7 @@ class OdeCUDAWriter(Writer):
                 self.parser.rename_everywhere(old_name, new_name)
 
         # Pad single-digit species names with a leading zero
-        for i in range(0, len(self.parser.parsedModel.speciesId)):
+        for i in range(len(self.parser.parsedModel.speciesId)):
             old_name = self.parser.parsedModel.speciesId[i]
             num = old_name[len('species'):]
             if len(num) < 2:
@@ -104,9 +104,9 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
             self.out_file.write("#define or_(a,b) a||b\n")
 
         functions = model.listOfFunctions
-        for i in range(0, len(functions)):
+        for i in range(len(functions)):
             self.out_file.write("__device__ double " + functions[i].getId() + "(")
-            for j in range(0, functions[i].getNumArguments()):
+            for j in range(functions[i].getNumArguments()):
                 self.out_file.write("double " + model.functionArgument[i][j])
                 if j < (functions[i].getNumArguments() - 1):
                     self.out_file.write(",")
@@ -117,7 +117,7 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
 
     def write_rate_rules(self):
         model = self.parser.parsedModel
-        for i in range(0, len(model.listOfRules)):
+        for i in range(len(model.listOfRules)):
             if model.listOfRules[i].isRate():
                 self.out_file.write("        ")
 
@@ -130,14 +130,14 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
                 self.out_file.write("=")
 
                 string = model.ruleFormula[i]
-                for q in range(0, len(model.speciesId)):
+                for q in range(len(model.speciesId)):
                     pq = re.compile(model.speciesId[q])
                     string = pq.sub('y[' + repr(q) + ']', string)
-                for q in range(0, len(model.parameterId)):
+                for q in range(len(model.parameterId)):
                     parameter_id = model.parameterId[q]
                     if not (parameter_id in model.ruleVariable):
                         flag = False
-                        for r in range(0, len(model.eventVariable)):
+                        for r in range(len(model.eventVariable)):
                             if parameter_id in model.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -149,12 +149,12 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
 
     def write_events(self):
         model = self.parser.parsedModel
-        for i in range(0, len(model.listOfEvents)):
+        for i in range(len(model.listOfEvents)):
             self.out_file.write("    if( ")
             self.out_file.write(self.mathMLConditionParserCuda(model.EventCondition[i]))
             self.out_file.write("){\n")
             list_of_assignment_rules = model.listOfEvents[i].getListOfEventAssignments()
-            for j in range(0, len(list_of_assignment_rules)):
+            for j in range(len(list_of_assignment_rules)):
                 self.out_file.write("        ")
                 event_variable = model.eventVariable[i][j]
                 if not (event_variable in model.speciesId):
@@ -165,13 +165,13 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
                 self.out_file.write("=")
 
                 string = model.EventFormula[i][j]
-                for q in range(0, len(model.speciesId)):
+                for q in range(len(model.speciesId)):
                     string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(model.parameterId)):
+                for q in range(len(model.parameterId)):
                     parameter_id = model.parameterId[q]
                     if not (parameter_id in model.ruleVariable):
                         flag = False
-                        for r in range(0, len(model.eventVariable)):
+                        for r in range(len(model.eventVariable)):
                             if parameter_id in model.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -184,7 +184,7 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
 
     def write_assignment_rules(self):
         model = self.parser.parsedModel
-        for i in range(0, len(model.listOfRules)):
+        for i in range(len(model.listOfRules)):
             if model.listOfRules[i].isAssignment():
                 self.out_file.write("    ")
                 rule_variable = model.ruleVariable[i]
@@ -197,13 +197,13 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
                 self.out_file.write("=")
 
                 string = self.mathMLConditionParserCuda(model.ruleFormula[i])
-                for q in range(0, len(model.speciesId)):
+                for q in range(len(model.speciesId)):
                     string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
-                for q in range(0, len(model.parameterId)):
+                for q in range(len(model.parameterId)):
                     parameter_id = model.parameterId[q]
                     if not (parameter_id in model.ruleVariable):
                         flag = False
-                        for r in range(0, len(model.eventVariable)):
+                        for r in range(len(model.eventVariable)):
                             if parameter_id in model.eventVariable[r]:
                                 flag = True
                         if not flag:
@@ -216,7 +216,7 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
         p = re.compile('\s')
         model = self.parser.parsedModel
 
-        for i in range(0, num_species):
+        for i in range(num_species):
             species = model.species[i]
             if not (species.getConstant() or species.getBoundaryCondition()):
                 self.out_file.write("        ydot[" + repr(i) + "]=")
@@ -224,7 +224,7 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
                     self.out_file.write("(")
 
                 reaction_written = False
-                for k in range(0, model.numReactions):
+                for k in range(model.numReactions):
                     if not model.stoichiometricMatrix[i][k] == 0.0:
 
                         if reaction_written and model.stoichiometricMatrix[i][k] > 0.0:
@@ -234,14 +234,14 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
                         self.out_file.write("*(")
 
                         string = model.kineticLaw[k]
-                        for q in range(0, len(model.speciesId)):
+                        for q in range(len(model.speciesId)):
                             string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
 
-                        for q in range(0, len(model.parameterId)):
+                        for q in range(len(model.parameterId)):
                             parameter_id = model.parameterId[q]
                             if not (parameter_id in model.ruleVariable):
                                 flag = False
-                                for r in range(0, len(model.eventVariable)):
+                                for r in range(len(model.eventVariable)):
                                     if parameter_id in model.eventVariable[r]:
                                         flag = True
                                 if not flag:
@@ -256,12 +256,12 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
                 if species.isSetCompartment():
                     self.out_file.write(")/")
                     my_species_compartment = species.getCompartment()
-                    for j in range(0, len(model.listOfParameter)):
+                    for j in range(len(model.listOfParameter)):
                         if model.listOfParameter[j].getId() == my_species_compartment:
                             parameter_id = model.parameterId[j]
                             if not (parameter_id in model.ruleVariable):
                                 flag = False
-                                for r in range(0, len(model.eventVariable)):
+                                for r in range(len(model.eventVariable)):
                                     if parameter_id in model.eventVariable[r]:
                                         flag = True
                                 if not flag:

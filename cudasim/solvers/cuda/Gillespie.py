@@ -230,10 +230,10 @@ class Gillespie(sim.Simulator):
 
         # if compartment corresponding to each species was specified, convert counts back to concentrations
         if self._speciesCompartment:
-            for i in range(0, experiments):
-                for j in range(0, self._beta):
-                    for k in range(0, self._resultNumber):
-                        for l in range(0, self._speciesNumber):
+            for i in range(experiments):
+                for j in range(self._beta):
+                    for k in range(self._resultNumber):
+                        for l in range(self._speciesNumber):
                             result[i][j][k][l] /= (6.022E23 * param[i][self._speciesCompartment[l]])
 
         return result

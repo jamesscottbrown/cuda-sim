@@ -29,7 +29,7 @@ class ODEPythonWriter(Writer):
 
         # Remove any zero-padding from single-digit species names
         # This reverses any change applied by one of the CUDA writers
-        for i in range(0, len(self.parser.parsedModel.speciesId)):
+        for i in range(len(self.parser.parsedModel.speciesId)):
             old_name = self.parser.parsedModel.speciesId[i]
             num = old_name[len('species'):]
             if len(num) > 1 and num[0] == '0':

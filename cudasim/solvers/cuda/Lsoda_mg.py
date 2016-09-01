@@ -198,7 +198,7 @@ class Lsoda(sim.Simulator_mg):
         self._param_tex.set_array(ary)
 
         if self._dt <= 0:
-            for i in range(0, self._resultNumber):
+            for i in range(self._resultNumber):
 
                 for j in range(total_threads):
                     tout[j] = self._timepoints[i]
@@ -224,7 +224,7 @@ class Lsoda(sim.Simulator_mg):
         else:
             tt = self._timepoints[0]
 
-            for i in range(0, self._resultNumber):
+            for i in range(self._resultNumber):
                 while 1:
 
                     next_time = min(tt + self._dt, self._timepoints[i])
@@ -258,7 +258,7 @@ class Lsoda(sim.Simulator_mg):
         # it will will be zero if there was problems
         for j in range(total_threads):
             if ret_istate[j] == 0:
-                for i in range(0, self._resultNumber):
+                for i in range(self._resultNumber):
                     for k in range(self._speciesNumber):
                         ret_xt[j, 0, i, k] = float('NaN')
 

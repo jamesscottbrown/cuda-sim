@@ -283,7 +283,7 @@ class Parser:
         delays = set()
 
         print "Looking for delay"
-        for n in range(0, self.sbmlModel.getNumReactions()):
+        for n in range(self.sbmlModel.getNumReactions()):
             r = self.sbmlModel.getReaction(n)
             if r.isSetKineticLaw():
                 kl = r.getKineticLaw()
@@ -305,11 +305,11 @@ class Parser:
     def get_species_compartments(self):
         # Find compartment corresponding to each species
         self.parsedModel.speciesCompartmentList = []
-        for i in range(0, self.parsedModel.numSpecies):
+        for i in range(self.parsedModel.numSpecies):
 
             if self.parsedModel.species[i].isSetCompartment():
                 my_species_compartment = self.parsedModel.species[i].getCompartment()
-                for j in range(0, len(self.parsedModel.listOfParameter)):
+                for j in range(len(self.parsedModel.listOfParameter)):
                     if self.parsedModel.listOfParameter[j].getId() == my_species_compartment:
                         self.parsedModel.speciesCompartmentList.append(j)
 

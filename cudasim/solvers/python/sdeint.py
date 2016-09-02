@@ -1,5 +1,4 @@
-from numpy import *
-
+import numpy as np
 
 def sdeint(func, init_values, parameter, timepoints, dt=0.01):
     """
@@ -30,12 +29,12 @@ def sdeint(func, init_values, parameter, timepoints, dt=0.01):
     """
 
     max_t = timepoints[len(timepoints) - 1]
-    times = arange(0.0, max_t + dt, dt)
+    times = np.arange(0.0, max_t + dt, dt)
     length = len(times)
 
     dim = len(init_values)
-    solutions = zeros([length, dim])
-    solutions_out = zeros([len(timepoints), dim])
+    solutions = np.zeros([length, dim])
+    solutions_out = np.zeros([len(timepoints), dim])
     init_values, parameter = func.rules(init_values, parameter, 0)  # change this to t=0
     solutions[0] = init_values
 
@@ -65,7 +64,7 @@ def sdeint(func, init_values, parameter, timepoints, dt=0.01):
 
 def sdeint_onestep(func, current_concentrations, t1, t2, parameters, dt=0.01):
     dim = len(current_concentrations)
-    x = zeros([1, dim])
+    x = np.zeros([1, dim])
 
     time = t1
     next_time = min([time + dt, t2])

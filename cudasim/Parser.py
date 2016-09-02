@@ -1,4 +1,4 @@
-from numpy import *
+import numpy as np
 from libsbml import *
 from cudasim.relations import *
 from ParsedModel import ParsedModel
@@ -51,7 +51,7 @@ class Parser:
 
     def parse(self):
         self.get_basic_model_properties()
-        self.parsedModel.stoichiometricMatrix = empty(
+        self.parsedModel.stoichiometricMatrix = np.empty(
             [self.parsedModel.numSpecies, self.parsedModel.numReactions])
         self.get_compartment_volume()
         self.get_delays()

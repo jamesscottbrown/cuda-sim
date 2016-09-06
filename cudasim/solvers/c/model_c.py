@@ -95,6 +95,7 @@ class Model:
         # n is the number of models
         ntimepoints = len(t)
         ret = numpy.zeros([n, beta, ntimepoints, self.nspecies])
+
         # set output from cpp file to python
         output_arr_type = beta * (self.nspecies + 1) * ntimepoints * c_double
         output = output_arr_type()

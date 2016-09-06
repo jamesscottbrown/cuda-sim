@@ -1,7 +1,6 @@
 from cudasim.relations import *
 import os
 import re
-import copy
 from Writer import Writer
 
 
@@ -60,35 +59,6 @@ class SDEPythonWriter(Writer):
         self.write_rulesfunction_return_statement()
 
         self.out_file.close()
-
-    def categorise_variables(self):
-        # form a list of the species, and parameters which are set by rate rules
-        model = self.parser.parsedModel
-
-        rule_params = []
-        rule_values = []
-        constant_params = []
-        constant_values = []
-
-        for i in range(len(model.listOfParameter)):
-            is_constant = True
-            if not model.listOfParameter[i].getConstant():
-                for k in range(len(model.listOfRules)):
-                    if model.listOfRules[k].isRate() and model.ruleVariable[k] == model.parameterId[i]:
-                        rule_params.append(model.parameterId[i])
-                        rule_values.append(str(model.parameter[i]))
-                        is_constant = False
-            if is_constant:
-                constant_params.append(model.parameterId[i])
-                constant_values.append(str(model.parameter[i]))
-
-        species_list = copy.copy(model.speciesId)
-        species_list.extend(rule_params)
-
-        species_values = map(lambda x: str(x), model.initValues)
-        species_values.extend(rule_values)
-
-        return species_list, constant_params, species_values, constant_values
 
     def write_parameter_assignments(self):
         (species_list, constant_params, _, _) = self.categorise_variables()
@@ -194,12 +164,10 @@ class SDEPythonWriter(Writer):
     def write_functions(self):
         model = self.parser.parsedModel
         for i in range(len(model.listOfFunctions)):
-            self.out_file.write("def %s(" % model.listOfFunctions[i].getId())
-            for j in range(model.listOfFunctions[i].getNumArguments()):
-                self.out_file.write(model.functionArgument[i][j])
-                self.out_file.write(",")
-            self.out_file.write("):\n\n\toutput=%s" % model.functionBody[i])
-            self.out_file.write("\n\n\treturn output\n\n")
+            self.out_file.write("def %s(%s)\n\n:" %
+                                (model.listOfFunctions[i].getId(), ",".join(model.functionArgument[i])))
+            self.out_file.write("\toutput = %s\n\n" % model.functionBody[i])
+            self.out_file.write("\treturn output\n\n")
 
     def write_rule_function_signature(self):
         (species_list, constant_params, _, _) = self.categorise_variables()

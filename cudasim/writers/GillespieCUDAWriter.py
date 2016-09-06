@@ -1,8 +1,6 @@
 import os
 import re
 
-from numpy import *
-
 from cudasim.writers.Writer import Writer
 from cudasim.cuda_helpers import rename_math_functions
 from cudasim.relations import mathml_condition_parser

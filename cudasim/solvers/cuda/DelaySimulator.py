@@ -1,21 +1,21 @@
 import numpy as np
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
-import pycuda.autoinit
 
-import Simulator as sim
+import cudasim.solvers.cuda.Simulator as Sim
+
 
 class DelaySimulator(sim.Simulator):
     _param_tex = None
     _putIntoShared = False
 
-    def __init__(self, timepoints, stepCode, delays, beta=1, dt=0.01, dump=False):
+    def __init__(self, timepoints, step_code, delays, beta=1, dt=0.01, dump=False):
         self._delays = delays
 
         self._maxDelay = 10
         self._histTimeSteps = int(1 + self._maxDelay / (dt / 2))  # TODO: calculate this correctly
 
-        sim.Simulator.__init__(self, timepoints, stepCode, beta=beta, dt=dt, dump=dump)
+        Sim.Simulator.__init__(self, timepoints, step_code, beta=beta, dt=dt, dump=dump)
 
     def _compile(self, step_code):
         # TODO: determine if shared memory is enough to fit parameters ???
@@ -46,7 +46,7 @@ class DelaySimulator(sim.Simulator):
 
         general_parameters_source += '};'
 
-        tMax = self._timepoints[-1]
+        t_max = self._timepoints[-1]
 
         if not self._putIntoShared:
             general_parameters_source += """
@@ -66,7 +66,7 @@ class DelaySimulator(sim.Simulator):
                     }
                 }
 
-                float tMax = """ + str(tMax) + """;
+                float tMax = """ + str(t_max) + """;
 
 
                 // populate initial conditions
@@ -107,20 +107,20 @@ class DelaySimulator(sim.Simulator):
                         // loop over each variable
                         for (int dimension = 0; dimension < NSPECIES; dimension++) {
 
-                            int kR = kRs[delayNum];
-                            int s = maxDelay - tau[delayNum];
+                          int kR = kRs[delayNum];
+                          int s = maxDelay - tau[delayNum];
 
-                            if ((t / DT) < (kR)) {
-                                gam[1][dimension][delayNum] = yHist[(int) ( s + (t) / (DT / 2.0))][dimension];
-                                gam[2][dimension][delayNum] = yHist[(int) ( s + (t + (DT / 2.0)) / (DT / 2.0))][dimension];
-                                gam[3][dimension][delayNum] = yHist[(int) ( s + (t + (DT / 2.0)) / (DT / 2.0))][dimension];
-                                gam[4][dimension][delayNum] = yHist[(int) ( s + (t + DT) / DT)][dimension];
-                            } else {
-                                gam[1][dimension][delayNum] = kOld[kR - 1][1][dimension];
-                                gam[2][dimension][delayNum] = kOld[kR - 1][2][dimension];
-                                gam[3][dimension][delayNum] = kOld[kR - 1][3][dimension];
-                                gam[4][dimension][delayNum] = kOld[kR - 1][4][dimension];
-                            }
+                          if ((t / DT) < (kR)) {
+                            gam[1][dimension][delayNum] = yHist[(int) ( s + (t) / (DT / 2.0))][dimension];
+                            gam[2][dimension][delayNum] = yHist[(int) ( s + (t + (DT / 2.0)) / (DT / 2.0))][dimension];
+                            gam[3][dimension][delayNum] = yHist[(int) ( s + (t + (DT / 2.0)) / (DT / 2.0))][dimension];
+                            gam[4][dimension][delayNum] = yHist[(int) ( s + (t + DT) / DT)][dimension];
+                          } else {
+                            gam[1][dimension][delayNum] = kOld[kR - 1][1][dimension];
+                            gam[2][dimension][delayNum] = kOld[kR - 1][2][dimension];
+                            gam[3][dimension][delayNum] = kOld[kR - 1][3][dimension];
+                            gam[4][dimension][delayNum] = kOld[kR - 1][4][dimension];
+                          }
                         }
                     }
 
@@ -129,13 +129,13 @@ class DelaySimulator(sim.Simulator):
                     }
 
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
-                        g[2][dimension] = yOld[dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[1], gam[1], dimension);
+                      g[2][dimension] = yOld[dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[1], gam[1], dimension);
                     }
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
-                        g[3][dimension] = yOld[dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[2],  gam[2], dimension);
+                      g[3][dimension] = yOld[dimension] + (DT / 2) * f(t + DT / 2, (float *) &g[2],  gam[2], dimension);
                     }
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
-                        g[4][dimension] = yOld[dimension] + DT * f(t + DT, (float *) &g[3], gam[3], dimension);
+                      g[4][dimension] = yOld[dimension] + DT * f(t + DT, (float *) &g[3], gam[3], dimension);
                     }
                     for (int dimension = 0; dimension < NSPECIES; dimension++) {
                         float a = f(t, (float *) &g[1], gam[1], dimension);
@@ -175,26 +175,26 @@ class DelaySimulator(sim.Simulator):
             """
 
         # actual compiling step compile
-        completeCode = general_parameters_source + delay_macro + step_code + solver_source
+        complete_code = general_parameters_source + delay_macro + step_code + solver_source
 
         if self._dump:
             of = open("full_delay_code.cu", "w")
-            print >> of, completeCode
+            print >> of, complete_code
 
-        module = SourceModule(completeCode)
+        module = SourceModule(complete_code)
 
         if not self._putIntoShared:
             self._param_tex = module.get_texref("param_tex")
 
         return module, module.get_function('myDDEsolver')
 
-    def _runSimulation(self, parameters, initValues, blocks, threads):
+    def _run_simulation(self, parameters, init_values, blocks, threads):
         print "In runSimulation"
-        totalThreads = blocks * threads
+        total_threads = blocks * threads
         experiments = len(parameters)
 
         # simulation specific parameters
-        param = np.zeros((totalThreads / self._beta + 1, self._parameterNumber), dtype=np.float32)
+        param = np.zeros((total_threads / self._beta + 1, self._parameterNumber), dtype=np.float32)
         try:
             for i in range(experiments):
                 for j in range(self._parameterNumber):
@@ -204,57 +204,57 @@ class DelaySimulator(sim.Simulator):
 
         if not self._putIntoShared:
             # parameter texture
-            ary = sim.create_2D_array(param)
-            sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, totalThreads / self._beta + 1)
+            ary = Sim.create_2d_array(param)
+            Sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
             self._param_tex.set_array(ary)
-            sharedMemoryParameters = 0
+            shared_memory_parameters = 0
         else:
             # parameter shared Mem
-            sharedMemoryParameters = self._parameterNumber * (threads / self._beta + 2) * 4
+            shared_memory_parameters = self._parameterNumber * (threads / self._beta + 2) * 4
 
-        sharedTot = sharedMemoryParameters
+        shared_tot = shared_memory_parameters
 
         if self._putIntoShared:
-            parametersInput = np.zeros(self._parameterNumber * totalThreads / self._beta, dtype=np.float32)
-        speciesInput = np.zeros(self._speciesNumber * totalThreads, dtype=np.float32)
-        result = np.zeros(self._speciesNumber * totalThreads * self._resultNumber, dtype=np.float32)
+            parameters_input = np.zeros(self._parameterNumber * total_threads / self._beta, dtype=np.float32)
+        species_input = np.zeros(self._speciesNumber * total_threads, dtype=np.float32)
+        result = np.zeros(self._speciesNumber * total_threads * self._resultNumber, dtype=np.float32)
 
         # non coalesced
         try:
-            for i in range(len(initValues)):
+            for i in range(len(init_values)):
                 for j in range(self._speciesNumber):
-                    speciesInput[i * self._speciesNumber + j] = initValues[i][j]
+                    species_input[i * self._speciesNumber + j] = init_values[i][j]
         except IndexError:
             pass
         if self._putIntoShared:
             try:
                 for i in range(experiments):
                     for j in range(self._parameterNumber):
-                        parametersInput[i * self._parameterNumber + j] = parameters[i][j]
+                        parameters_input[i * self._parameterNumber + j] = parameters[i][j]
             except IndexError:
                 pass
 
-        species_gpu = driver.mem_alloc(speciesInput.nbytes)
+        species_gpu = driver.mem_alloc(species_input.nbytes)
         if self._putIntoShared:
-            parameters_gpu = driver.mem_alloc(parametersInput.nbytes)
+            parameters_gpu = driver.mem_alloc(parameters_input.nbytes)
         result_gpu = driver.mem_alloc(result.nbytes)
 
-        driver.memcpy_htod(species_gpu, speciesInput)
+        driver.memcpy_htod(species_gpu, species_input)
         if self._putIntoShared:
-            driver.memcpy_htod(parameters_gpu, parametersInput)
+            driver.memcpy_htod(parameters_gpu, parameters_input)
         driver.memcpy_htod(result_gpu, result)
 
         # run code
         if self._putIntoShared:
             print "Putting in shared"
             self._compiledRunMethod(species_gpu, parameters_gpu, result_gpu, block=(threads, 1, 1),
-                                    grid=(blocks, 1), shared=sharedTot)
+                                    grid=(blocks, 1), shared=shared_tot)
         else:
             print "About to run", threads, blocks
-            print "Number of threads is", totalThreads
+            print "Number of threads is", total_threads
 
             self._compiledRunMethod(species_gpu, result_gpu, block=(threads, 1, 1), grid=(blocks, 1),
-                                    shared=sharedTot)
+                                    shared=shared_tot)
 
         # fetch from GPU memory
         driver.memcpy_dtoh(result, result_gpu)

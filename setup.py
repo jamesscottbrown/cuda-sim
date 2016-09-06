@@ -1,4 +1,17 @@
+import os, sys
 from distutils.core import setup
+from distutils.command.install import install as _install
+
+
+# extend the install class
+class Install(_install):
+    def run(self):
+        _install.run(self)
+        src_dir = self.install_lib + "cudasim/src"
+        print "src_dir", src_dir
+        comm = "cd " + src_dir + "; chmod +x install_nm.sh; ./install_nm.sh"
+        os.system(comm)
+
 
 setup(name='cuda-sim',
       version='0.08',
@@ -10,11 +23,14 @@ setup(name='cuda-sim',
 
       url='http://sourceforge.net/projects/cuda-sim/',
 
-      packages=['cudasim'],
+      packages=['cudasim', 'cudasim.writers', 'cudasim.solvers',
+                'cudasim.solvers.python', 'cudasim.solvers.cuda', 'cudasim.solvers.c'],
 
       scripts=[],
 
-      package_data={'cudasim': ['MersenneTwister.dat', 'MersenneTwister.cu', 'cuLsoda_all.cu', 'WarpStandard.cu']},
+      package_data={'cudasim': ['MersenneTwister.dat', 'MersenneTwister.cu', 'cuLsoda_all.cu', 'WarpStandard.cu', 'src/*']},
+
+      cmdclass={"install": Install},
 
       requires=['libSBML',
                 'Numpy',

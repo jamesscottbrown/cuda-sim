@@ -5,10 +5,10 @@ import numpy as np
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
 
-import Simulator_mg as sim
+import cudasim.solvers.cuda.Simulator_mg as Sim
 
 
-class EulerMaruyama(sim.Simulator_mg):
+class EulerMaruyama(sim.SimulatorMG):
     _param_tex = None
     _putIntoShared = False
 
@@ -19,23 +19,23 @@ class EulerMaruyama(sim.Simulator_mg):
     def _compile(self, step_code):
 
         # determine if shared memory is enough to fit parameters 
-        # maxThreads = self._maxThreadsPerMP
-        # since maxThreads is set to 64, maximally 512 threads can be on one MP
-        maxThreads = 512
+        # max_threads = self._maxThreadsPerMP
+        # since max_threads is set to 64, maximally 512 threads can be on one MP
+        max_threads = 512
 
-        totalSharedMemory = driver.Device(self._device).max_shared_memory_per_block
+        total_shared_memory = driver.Device(self._device).max_shared_memory_per_block
 
         # 32 words/warp for RNG * maximum number of warps/block * 4 (bytes/word)
-        freeSharedMemory = totalSharedMemory - maxThreads / self._warp_size * self._state_words * 4
+        free_shared_memory = total_shared_memory - max_threads / self._warp_size * self._state_words * 4
 
         # assuming maximum number of threads (should be per MP)
-        maxParameters = freeSharedMemory / maxThreads / 4
+        max_parameters = free_shared_memory / max_threads / 4
 
-        if self._parameterNumber <= self._beta * maxParameters:
+        if self._parameterNumber <= self._beta * max_parameters:
             self._putIntoShared = True
 
         # print "cuda-sim: Euler-Maruyama : Using shared memory code: " + str(self._putIntoShared)
-        step_code = self._modifyStepCode(step_code, self._putIntoShared)
+        step_code = self._modify_step_code(step_code, self._putIntoShared)
 
         general_parameters_source = """
     const int NRESULTS = """ + str(self._resultNumber) + """;
@@ -91,13 +91,13 @@ class EulerMaruyama(sim.Simulator_mg):
     """
 
         if self._putIntoShared:
-            sde_source_rest = """
+            sde_src_rest = """
     __global__ void sdeMain(float *species, float *parameters, unsigned *seed, float *result){"""
         else:
-            sde_source_rest = """
+            sde_src_rest = """
     __global__ void sdeMain(float *species, unsigned *seed, float *result){"""
 
-        sde_source_rest += """
+        sde_src_rest += """
         //initialize RNG
         unsigned rngRegs[WarpStandard_REG_COUNT];
         WarpStandard_LoadState(seed, rngRegs);
@@ -118,7 +118,7 @@ class EulerMaruyama(sim.Simulator_mg):
         """
 
         if self._putIntoShared:
-            sde_source_rest += """
+            sde_src_rest += """
         //offset for RNG (= number of threads)
         // beta = # of multiple use of the same parameters
         // blockDim.x is the shared memory occupied by the RNG
@@ -132,10 +132,10 @@ class EulerMaruyama(sim.Simulator_mg):
         }"""
 
         else:
-            sde_source_rest += """
+            sde_src_rest += """
         int texMemIndex = tid/BETA;"""
 
-        sde_source_rest += """
+        sde_src_rest += """
         float t = 0;
         
         //repeat number of dt dts
@@ -152,17 +152,17 @@ class EulerMaruyama(sim.Simulator_mg):
             """
 
         if self._putIntoShared:
-            sde_source_rest += "step(parameter, y, t, rngRegs);"
+            sde_src_rest += "step(parameter, y, t, rngRegs);"
         else:
-            sde_source_rest += "step(y, t, rngRegs, texMemIndex);"
+            sde_src_rest += "step(y, t, rngRegs, texMemIndex);"
 
-        sde_source_rest += """
+        sde_src_rest += """
             //set values to zero if they are negative"""
 
         for i in range(self._speciesNumber):
-            sde_source_rest += """
+            sde_src_rest += """
             y[""" + str(i) + """] = negEqZero(y[""" + str(i) + """]);"""
-        sde_source_rest += """
+        sde_src_rest += """
             }
         }"""
 
@@ -173,26 +173,26 @@ class EulerMaruyama(sim.Simulator_mg):
         f.close()
 
         # actual compiling step compile
-        completeCode = general_parameters_source + rng_ext + rng_source + neg_eq_zero_source + step_code + sde_source_rest
+        complete_code = general_parameters_source + rng_ext + rng_source + neg_eq_zero_source + step_code + sde_src_rest
 
         if self._dump:
             of = open("full_sde_code.cu", "w")
-            print >> of, completeCode
+            print >> of, complete_code
 
-        module = SourceModule(completeCode)
+        module = SourceModule(complete_code)
 
         if not self._putIntoShared:
             self._param_tex = module.get_texref("param_tex")
 
         return module, module.get_function('sdeMain')
 
-    def _runSimulation(self, parameters, initValues, blocks, threads):
+    def _run_simulation(self, parameters, init_values, blocks, threads):
 
-        totalThreads = blocks * threads
+        total_threads = blocks * threads
         experiments = len(parameters)
 
         # simulation specific parameters
-        param = np.zeros((totalThreads / self._beta + 1, self._parameterNumber), dtype=np.float32)
+        param = np.zeros((total_threads / self._beta + 1, self._parameterNumber), dtype=np.float32)
         try:
             for i in range(experiments):
                 for j in range(self._parameterNumber):
@@ -202,62 +202,62 @@ class EulerMaruyama(sim.Simulator_mg):
 
         if not self._putIntoShared:
             # parameter texture
-            ary = sim.create_2D_array(param)
-            sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, totalThreads / self._beta + 1)
+            ary = Sim.create_2D_array(param)
+            Sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
             self._param_tex.set_array(ary)
-            sharedMemoryParameters = 0
+            shared_memory_parameters = 0
         else:
             # parameter shared Mem
-            sharedMemoryParameters = self._parameterNumber * (threads / self._beta + 2) * 4
+            shared_memory_parameters = self._parameterNumber * (threads / self._beta + 2) * 4
 
-        sharedMemoryPerBlockForRNG = threads / self._warp_size * self._state_words * 4
-        sharedTot = sharedMemoryPerBlockForRNG + sharedMemoryParameters
+        shared_memory_per_block_for_rng = threads / self._warp_size * self._state_words * 4
+        shared_tot = shared_memory_per_block_for_rng + shared_memory_parameters
 
         if self._putIntoShared:
-            parametersInput = np.zeros(self._parameterNumber * totalThreads / self._beta, dtype=np.float32)
-        speciesInput = np.zeros(self._speciesNumber * totalThreads, dtype=np.float32)
-        result = np.zeros(self._speciesNumber * totalThreads * self._resultNumber, dtype=np.float32)
+            parameters_input = np.zeros(self._parameterNumber * total_threads / self._beta, dtype=np.float32)
+        species_input = np.zeros(self._speciesNumber * total_threads, dtype=np.float32)
+        result = np.zeros(self._speciesNumber * total_threads * self._resultNumber, dtype=np.float32)
 
         # non coalesced
         try:
-            for i in range(len(initValues)):
+            for i in range(len(init_values)):
                 for j in range(self._speciesNumber):
-                    speciesInput[i * self._speciesNumber + j] = initValues[i][j]
+                    species_input[i * self._speciesNumber + j] = init_values[i][j]
         except IndexError:
             pass
         if self._putIntoShared:
             try:
                 for i in range(experiments):
                     for j in range(self._parameterNumber):
-                        parametersInput[i * self._parameterNumber + j] = parameters[i][j]
+                        parameters_input[i * self._parameterNumber + j] = parameters[i][j]
             except IndexError:
                 pass
 
         # set seeds using python rng
-        seeds = np.zeros(totalThreads / self._warp_size * self._state_words, dtype=np.uint32)
+        seeds = np.zeros(total_threads / self._warp_size * self._state_words, dtype=np.uint32)
         for i in range(len(seeds)):
             seeds[i] = np.uint32(4294967296 * np.random.uniform(0, 1))
             # seeds[i] =  np.random.random_integers(0,4294967295)
 
-        species_gpu = driver.mem_alloc(speciesInput.nbytes)
+        species_gpu = driver.mem_alloc(species_input.nbytes)
         if self._putIntoShared:
-            parameters_gpu = driver.mem_alloc(parametersInput.nbytes)
+            parameters_gpu = driver.mem_alloc(parameters_input.nbytes)
         seeds_gpu = driver.mem_alloc(seeds.nbytes)
         result_gpu = driver.mem_alloc(result.nbytes)
 
-        driver.memcpy_htod(species_gpu, speciesInput)
+        driver.memcpy_htod(species_gpu, species_input)
         if self._putIntoShared:
-            driver.memcpy_htod(parameters_gpu, parametersInput)
+            driver.memcpy_htod(parameters_gpu, parameters_input)
         driver.memcpy_htod(seeds_gpu, seeds)
         driver.memcpy_htod(result_gpu, result)
 
         # run code
         if self._putIntoShared:
             self._compiledRunMethod(species_gpu, parameters_gpu, seeds_gpu, result_gpu, block=(threads, 1, 1),
-                                    grid=(blocks, 1), shared=sharedTot)
+                                    grid=(blocks, 1), shared=shared_tot)
         else:
             self._compiledRunMethod(species_gpu, seeds_gpu, result_gpu, block=(threads, 1, 1), grid=(blocks, 1),
-                                    shared=sharedTot)
+                                    shared=shared_tot)
 
         # fetch from GPU memory
         driver.memcpy_dtoh(result, result_gpu)
@@ -269,19 +269,19 @@ class EulerMaruyama(sim.Simulator_mg):
         return result
 
     # comments out the part of the step code that is not used (either parameters in texture or shared memory)
-    def _modifyStepCode(self, stepCode, putIntoShared):
-        lines = str(stepCode).split("\n")
+    def _modify_step_code(self, step_code, put_into_shared):
+        lines = str(step_code).split("\n")
 
         comment = False
 
         for i in range(len(lines)):
             if lines[i].find("//Code for shared memory") != -1:
-                if putIntoShared:
+                if put_into_shared:
                     comment = False
                 else:
                     comment = True
             elif lines[i].find("//Code for texture memory") != -1:
-                if putIntoShared:
+                if put_into_shared:
                     comment = True
                 else:
                     comment = False

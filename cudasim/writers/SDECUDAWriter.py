@@ -40,6 +40,25 @@ class SdeCUDAWriter(Writer):
 
         rename_math_functions(self.parser.parsedModel, 't')
 
+    def replace_names(self, string, replacement_formula):
+
+        # replace species names
+        for q in range(len(self.parser.parsedModel.speciesId)):
+            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
+
+        # replace param names
+        for q in range(len(self.parser.parsedModel.parameterId)):
+            parameter_id = self.parser.parsedModel.parameterId[q]
+            if not (parameter_id in self.parser.parsedModel.ruleVariable):
+                is_event_variable = False
+                for r in range(len(self.parser.parsedModel.eventVariable)):
+                    if parameter_id in self.parser.parsedModel.eventVariable[r]:
+                        is_event_variable = True
+                if not is_event_variable:
+                    string = self.rep(string, parameter_id, replacement_formula % q)
+
+        return string
+
     def write(self):
         """
         Write the cuda file with ODE functions using the information taken by the parser
@@ -95,21 +114,9 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write("    y[%s] = " % self.parser.parsedModel.speciesId.index(rule_variable))
 
                 string = self.parser.parsedModel.ruleFormula[i]
-                for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
-                for q in range(len(self.parser.parsedModel.parameterId)):
-                    parameter_id = self.parser.parsedModel.parameterId[q]
-                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                        flag = False
-                        for r in range(len(self.parser.parsedModel.eventVariable)):
-                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                flag = True
-                        if not flag:
-                            string = self.rep(string, parameter_id, 'tex2D(param_tex,%s,tid)' % q)
-    
-                self.out_file.write(string)
-                self.out_file.write(";\n")
-    
+                string = self.replace_names(string, 'tex2D(param_tex,%s,tid)')
+                self.out_file.write("%s;\n" % string)
+
         for i in range(len(self.parser.parsedModel.listOfEvents)):
             self.out_file.write("    if( ")
             self.out_file.write(mathml_condition_parser(self.parser.parsedModel.EventCondition[i]))
@@ -124,20 +131,8 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write("        y[%s] = " % self.parser.parsedModel.speciesId.index(event_variable))
 
                 string = self.parser.parsedModel.EventFormula[i][j]
-                for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
-                for q in range(len(self.parser.parsedModel.parameterId)):
-                    parameter_id = self.parser.parsedModel.parameterId[q]
-                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                        flag = False
-                        for r in range(len(self.parser.parsedModel.eventVariable)):
-                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                flag = True
-                        if not flag:
-                            string = self.rep(string, parameter_id, 'tex2D(param_tex,%s,tid)' % q)
-    
-                self.out_file.write(string)
-                self.out_file.write(";\n")
+                string = self.replace_names(string, 'tex2D(param_tex,%s,tid)')
+                self.out_file.write("%s;\n" % string)
             self.out_file.write("}\n")
     
         self.out_file.write("\n")
@@ -151,21 +146,9 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write("    y[%s] = " % self.parser.parsedModel.speciesId.index(rule_variable))
 
                 string = mathml_condition_parser(self.parser.parsedModel.ruleFormula[i])
-                for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
-                for q in range(len(self.parser.parsedModel.parameterId)):
-                    parameter_id = self.parser.parsedModel.parameterId[q]
-                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                        flag = False
-                        for r in range(len(self.parser.parsedModel.eventVariable)):
-                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                flag = True
-                        if not flag:
-                            string = self.rep(string, parameter_id, 'tex2D(param_tex,%s,tid)' % q)
-                self.out_file.write(string)
-                self.out_file.write(";\n")
-        self.out_file.write("")
-    
+                string = self.replace_names(string, 'tex2D(param_tex,%s,tid)')
+                self.out_file.write("%s;\n" % string)
+
         # Write the derivatives
         for i in range(num_species):
             species_id = self.parser.parsedModel.species[i]
@@ -185,17 +168,7 @@ class SdeCUDAWriter(Writer):
                         self.out_file.write("*(")
     
                         string = self.parser.parsedModel.kineticLaw[k]
-                        for q in range(len(self.parser.parsedModel.speciesId)):
-                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
-                        for q in range(len(self.parser.parsedModel.parameterId)):
-                            parameter_id = self.parser.parsedModel.parameterId[q]
-                            if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                                flag = False
-                                for r in range(len(self.parser.parsedModel.eventVariable)):
-                                    if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                        flag = True
-                                if not flag:
-                                    string = self.rep(string, parameter_id, 'tex2D(param_tex,%s,tid)' % q)
+                        string = self.replace_names(string, 'tex2D(param_tex,%s,tid)')
     
                         string = p.sub('', string)
     
@@ -259,19 +232,7 @@ class SdeCUDAWriter(Writer):
                         self.out_file.write("*sqrt(")
     
                         string = self.parser.parsedModel.kineticLaw[k]
-                        for q in range(len(self.parser.parsedModel.speciesId)):
-                            # pq = re.compile(self.parser.parsedModel.speciesId[q])
-                            # string=pq.sub('y['+repr(q)+']' ,string)
-                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
-                        for q in range(len(self.parser.parsedModel.parameterId)):
-                            parameter_id = self.parser.parsedModel.parameterId[q]
-                            if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                                flag = False
-                                for r in range(len(self.parser.parsedModel.eventVariable)):
-                                    if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                        flag = True
-                                if not flag:
-                                    string = self.rep(string, parameter_id, 'tex2D(param_tex,%s,tid)' % q)
+                        string = self.replace_names(string, 'tex2D(param_tex,%s,tid)')
     
                         string = p.sub('', string)
                         self.out_file.write(string)
@@ -306,7 +267,7 @@ class SdeCUDAWriter(Writer):
         for i in range(num_species):
             species = self.parser.parsedModel.species[i]
             if species.getConstant() == False and species.getBoundaryCondition() == False:
-                self.out_file.write("    y[" + repr(i) + "] += d_y" + repr(i) + ";\n")
+                self.out_file.write("    y[%s] += d_y%s;\n" % (i,i))
     
         self.out_file.write("}\n")
     
@@ -352,21 +313,8 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write("    y[%s] = " % repr(self.parser.parsedModel.speciesId.index(rule_variable)))
 
                 string = self.parser.parsedModel.ruleFormula[i]
-                for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
-                for q in range(len(self.parser.parsedModel.parameterId)):
-                    parameter_id = self.parser.parsedModel.parameterId[q]
-                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                        flag = False
-                        for r in range(len(self.parser.parsedModel.eventVariable)):
-                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                flag = True
-                        if not flag:
-                            pq = re.compile(parameter_id)
-                            string = pq.sub('parameter[%s]' % q, string)
-    
-                self.out_file.write(string)
-                self.out_file.write(";\n")
+                string = self.replace_names(string, 'parameter[%s]')
+                self.out_file.write("%s;\n" % string)
     
         for i in range(len(self.parser.parsedModel.listOfEvents)):
             self.out_file.write("    if( ")
@@ -374,7 +322,6 @@ class SdeCUDAWriter(Writer):
             self.out_file.write("){\n")
             list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
             for j in range(len(list_of_assignment_rules)):
-                self.out_file.write("        ")
                 event_variable = self.parser.parsedModel.eventVariable[i][j]
                 if not (event_variable in self.parser.parsedModel.speciesId):
                     self.out_file.write("         %s =" % event_variable)
@@ -382,21 +329,8 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write("        y[%s] =" % self.parser.parsedModel.speciesId.index(event_variable))
 
                 string = self.parser.parsedModel.EventFormula[i][j]
-                for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
-                for q in range(len(self.parser.parsedModel.parameterId)):
-                    parameter_id = self.parser.parsedModel.parameterId[q]
-                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                        flag = False
-                        for r in range(len(self.parser.parsedModel.eventVariable)):
-                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                flag = True
-                        if not flag:
-                            pq = re.compile(parameter_id)
-                            string = pq.sub('parameter[%s]' % q, string)
-    
-                self.out_file.write(string)
-                self.out_file.write(";\n")
+                string = self.replace_names(string, 'parameter[%s]')
+                self.out_file.write("%s;\n" % string)
             self.out_file.write("}\n")
     
         self.out_file.write("\n")
@@ -410,21 +344,8 @@ class SdeCUDAWriter(Writer):
                     self.out_file.write("    y[%s] = " % self.parser.parsedModel.speciesId.index(rule_variable))
 
                 string = mathml_condition_parser(self.parser.parsedModel.ruleFormula[i])
-                for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
-                for q in range(len(self.parser.parsedModel.parameterId)):
-                    parameter_id = self.parser.parsedModel.parameterId[q]
-                    if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                        flag = False
-                        for r in range(len(self.parser.parsedModel.eventVariable)):
-                            if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                flag = True
-                        if not flag:
-                            pq = re.compile(parameter_id)
-                            x = "parameter[%s]" % q
-                            string = pq.sub(x, string)
-                self.out_file.write(string)
-                self.out_file.write(";\n")
+                string = self.replace_names(string, 'parameter[%s]')
+                self.out_file.write("%s;\n" % string)
     
         # Write the derivatives
         for i in range(num_species):
@@ -445,18 +366,7 @@ class SdeCUDAWriter(Writer):
                         self.out_file.write("*(")
     
                         string = self.parser.parsedModel.kineticLaw[k]
-                        for q in range(len(self.parser.parsedModel.speciesId)):
-                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
-                        for q in range(len(self.parser.parsedModel.parameterId)):
-                            parameter_id = self.parser.parsedModel.parameterId[q]
-                            if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                                flag = False
-                                for r in range(len(self.parser.parsedModel.eventVariable)):
-                                    if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                        flag = True
-                                if not flag:
-                                    pq = re.compile(parameter_id)
-                                    string = pq.sub('parameter[%s]' % q, string)
+                        string = self.replace_names(string, 'tex2D(param_tex,%s,tid)')
     
                         string = p.sub('', string)
     
@@ -520,20 +430,7 @@ class SdeCUDAWriter(Writer):
                         self.out_file.write("*sqrt(")
     
                         string = self.parser.parsedModel.kineticLaw[k]
-                        for q in range(len(self.parser.parsedModel.speciesId)):
-                            # pq = re.compile(self.parser.parsedModel.speciesId[q])
-                            # string=pq.sub('y['+repr(q)+']' ,string)
-                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
-                        for q in range(len(self.parser.parsedModel.parameterId)):
-                            parameter_id = self.parser.parsedModel.parameterId[q]
-                            if not (parameter_id in self.parser.parsedModel.ruleVariable):
-                                flag = False
-                                for r in range(len(self.parser.parsedModel.eventVariable)):
-                                    if parameter_id in self.parser.parsedModel.eventVariable[r]:
-                                        flag = True
-                                if not flag:
-                                    pq = re.compile(parameter_id)
-                                    string = pq.sub('parameter[%s]' % q, string)
+                        string = self.replace_names(string, 'parameter[%s]')
     
                         string = p.sub('', string)
                         self.out_file.write(string)

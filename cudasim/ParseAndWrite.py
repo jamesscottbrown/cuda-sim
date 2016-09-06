@@ -14,7 +14,7 @@ from cudasim.writers.ODECUDAWriter import OdeCUDAWriter
 from cudasim.writers.SDEPythonWriter import SDEPythonWriter
 
 
-def parse_and_write(source, integration_type, model_name=None, input_path="", output_path=""):
+def parse_and_write(source, integration_type, model_name=None, input_path="", output_path="", method=1):
     """
     ***** args *****
     source:
@@ -85,7 +85,7 @@ def parse_and_write(source, integration_type, model_name=None, input_path="", ou
 
         elif py.search(integration_type[model]):
             if sde.search(integration_type[model]):
-                writer = SDEPythonWriter(parsed_model, output_path)
+                writer = SDEPythonWriter(parsed_model, output_path, method=method)
             elif gil.search(integration_type[model]):
                 writer = GillespiePythonWriter(parsed_model, output_path)
             else:

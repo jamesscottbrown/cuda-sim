@@ -72,16 +72,13 @@ class SdeCUDAWriter(Writer):
             self.out_file.write("#define or_(a,b) a||b\n")
     
         for i in range(len(self.parser.parsedModel.listOfFunctions)):
-            self.out_file.write("__device__ float " + self.parser.parsedModel.listOfFunctions[i].getId() + "(")
-            for j in range(self.parser.parsedModel.listOfFunctions[i].getNumArguments()):
-                self.out_file.write("float " + self.parser.parsedModel.functionArgument[i][j])
-                if j < (self.parser.parsedModel.listOfFunctions[i].getNumArguments() - 1):
-                    self.out_file.write(",")
-            self.out_file.write("){\n    return ")
-            self.out_file.write(self.parser.parsedModel.functionBody[i])
-            self.out_file.write(";\n}\n")
-            self.out_file.write("\n")
-    
+            arg_string = ",".join(map(lambda s: "float " + s, self.parser.parsedModel.functionArgument[i]))
+
+            self.out_file.write("__device__ float %s (%s){\n" %
+                                (self.parser.parsedModel.listOfFunctions[i].getId(), arg_string))
+            self.out_file.write("    return %s;\n" % self.parser.parsedModel.functionBody[i])
+            self.out_file.write("}\n\n")
+
         self.out_file.write("\n")
     
         self.out_file.write("__device__ void step(float *y, float t, unsigned *rngRegs, int tid){\n")
@@ -91,18 +88,15 @@ class SdeCUDAWriter(Writer):
         # write rules and events
         for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isRate():
-                self.out_file.write("    ")
                 rule_variable = self.parser.parsedModel.ruleVariable[i]
                 if not (rule_variable in self.parser.parsedModel.speciesId):
-                    self.out_file.write(rule_variable)
+                    self.out_file.write("    %s = " % rule_variable)
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(rule_variable)) + "]"
-                    self.out_file.write(string)
-                self.out_file.write("=")
-    
+                    self.out_file.write("    y[%s] = " % self.parser.parsedModel.speciesId.index(rule_variable))
+
                 string = self.parser.parsedModel.ruleFormula[i]
                 for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
                 for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
@@ -111,7 +105,7 @@ class SdeCUDAWriter(Writer):
                             if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
-                            string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
+                            string = self.rep(string, parameter_id, 'tex2D(param_tex,%s,tid)' % q)
     
                 self.out_file.write(string)
                 self.out_file.write(";\n")
@@ -122,19 +116,16 @@ class SdeCUDAWriter(Writer):
             self.out_file.write("){\n")
             list_of_assignment_rules = self.parser.parsedModel.listOfEvents[i].getListOfEventAssignments()
             for j in range(len(list_of_assignment_rules)):
-                self.out_file.write("        ")
 
                 event_variable = self.parser.parsedModel.eventVariable[i][j]
                 if not (event_variable in self.parser.parsedModel.speciesId):
-                    self.out_file.write(event_variable)
+                    self.out_file.write("        %s = " % event_variable)
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(event_variable)) + "]"
-                    self.out_file.write(string)
-                self.out_file.write("=")
-    
+                    self.out_file.write("        y[%s] = " % self.parser.parsedModel.speciesId.index(event_variable))
+
                 string = self.parser.parsedModel.EventFormula[i][j]
                 for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
                 for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
@@ -143,7 +134,7 @@ class SdeCUDAWriter(Writer):
                             if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
-                            string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
+                            string = self.rep(string, parameter_id, 'tex2D(param_tex,%s,tid)' % q)
     
                 self.out_file.write(string)
                 self.out_file.write(";\n")
@@ -153,19 +144,15 @@ class SdeCUDAWriter(Writer):
     
         for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isAssignment():
-                self.out_file.write("    ")
                 rule_variable = self.parser.parsedModel.ruleVariable[i]
                 if not (rule_variable in self.parser.parsedModel.speciesId):
-                    self.out_file.write("float ")
-                    self.out_file.write(rule_variable)
+                    self.out_file.write("    float %s = " % rule_variable)
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(rule_variable)) + "]"
-                    self.out_file.write(string)
-                self.out_file.write("=")
-    
+                    self.out_file.write("    y[%s] = " % self.parser.parsedModel.speciesId.index(rule_variable))
+
                 string = mathml_condition_parser(self.parser.parsedModel.ruleFormula[i])
                 for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
                 for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
@@ -174,7 +161,7 @@ class SdeCUDAWriter(Writer):
                             if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                 flag = True
                         if not flag:
-                            string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
+                            string = self.rep(string, parameter_id, 'tex2D(param_tex,%s,tid)' % q)
                 self.out_file.write(string)
                 self.out_file.write(";\n")
         self.out_file.write("")
@@ -183,7 +170,7 @@ class SdeCUDAWriter(Writer):
         for i in range(num_species):
             species_id = self.parser.parsedModel.species[i]
             if species_id.getConstant() == False and species_id.getBoundaryCondition() == False:
-                self.out_file.write("    float d_y" + repr(i) + "= DT * (")
+                self.out_file.write("    float d_y%s = DT * (" % i)
                 if species_id.isSetCompartment():
                     self.out_file.write("(")
     
@@ -199,7 +186,7 @@ class SdeCUDAWriter(Writer):
     
                         string = self.parser.parsedModel.kineticLaw[k]
                         for q in range(len(self.parser.parsedModel.speciesId)):
-                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
                         for q in range(len(self.parser.parsedModel.parameterId)):
                             parameter_id = self.parser.parsedModel.parameterId[q]
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
@@ -208,7 +195,7 @@ class SdeCUDAWriter(Writer):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
-                                    string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
+                                    string = self.rep(string, parameter_id, 'tex2D(param_tex,%s,tid)' % q)
     
                         string = p.sub('', string)
     
@@ -227,10 +214,10 @@ class SdeCUDAWriter(Writer):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
-                                    self.out_file.write("tex2D(param_tex," + repr(j) + ",tid)" + ");")
+                                    self.out_file.write("tex2D(param_tex,%s,tid));" % j)
                                     break
                                 else:
-                                    self.out_file.write(parameter_id + ");")
+                                    self.out_file.write("%s);" % parameter_id)
                                     break
                 else:
                     self.out_file.write(");")
@@ -248,8 +235,8 @@ class SdeCUDAWriter(Writer):
     
             # define specific randomVariable
             if num_entries > 1:
-                self.out_file.write("    float rand" + repr(k) + " = randNormal(rngRegs,sqrt(DT));\n")
-                random_variables[k] = "*rand" + repr(k)
+                self.out_file.write("    float rand%s = randNormal(rngRegs,sqrt(DT));\n" % k)
+                random_variables[k] = "*rand%s" % k
     
         self.out_file.write("\n")
     
@@ -257,7 +244,7 @@ class SdeCUDAWriter(Writer):
         for i in range(num_species):
             species = self.parser.parsedModel.species[i]
             if not (species.getConstant() or species.getBoundaryCondition()):
-                self.out_file.write("    d_y" + repr(i) + " += (")
+                self.out_file.write("    d_y%s += (" % i)
                 if species.isSetCompartment():
                     self.out_file.write("(")
     
@@ -275,7 +262,7 @@ class SdeCUDAWriter(Writer):
                         for q in range(len(self.parser.parsedModel.speciesId)):
                             # pq = re.compile(self.parser.parsedModel.speciesId[q])
                             # string=pq.sub('y['+repr(q)+']' ,string)
-                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
                         for q in range(len(self.parser.parsedModel.parameterId)):
                             parameter_id = self.parser.parsedModel.parameterId[q]
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
@@ -284,7 +271,7 @@ class SdeCUDAWriter(Writer):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
-                                    string = self.rep(string, parameter_id, 'tex2D(param_tex,' + repr(q) + ',tid)')
+                                    string = self.rep(string, parameter_id, 'tex2D(param_tex,%s,tid)' % q)
     
                         string = p.sub('', string)
                         self.out_file.write(string)
@@ -305,7 +292,7 @@ class SdeCUDAWriter(Writer):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
-                                    self.out_file.write("tex2D(param_tex," + repr(j) + ",tid)" + ")")
+                                    self.out_file.write("tex2D(param_tex,%s,tid))" % j)
                                     break
                                 else:
                                     self.out_file.write(parameter_id + ")")
@@ -344,16 +331,12 @@ class SdeCUDAWriter(Writer):
     
         for i in range(len(self.parser.parsedModel.listOfFunctions)):
             function = self.parser.parsedModel.listOfFunctions[i]
-            self.out_file.write("__device__ float " + function.getId() + "(")
-            for j in range(function.getNumArguments()):
-                self.out_file.write("float " + self.parser.parsedModel.functionArgument[i][j])
-                if j < (function.getNumArguments() - 1):
-                    self.out_file.write(",")
-            self.out_file.write("){\n    return ")
-            self.out_file.write(self.parser.parsedModel.functionBody[i])
-            self.out_file.write(";\n}\n")
-            self.out_file.write("\n")
-    
+            arg_string = ",".join(map(lambda s: "float " + s, self.parser.parsedModel.functionArgument[i]))
+
+            self.out_file.write("__device__ float %s (%s){\n" % (function.getId(), arg_string))
+            self.out_file.write("    return %s;\n" % self.parser.parsedModel.functionBody[i])
+            self.out_file.write("}\n\n")
+
         self.out_file.write("\n")
         self.out_file.write("__device__ void step(float *parameter, float *y, float t, unsigned *rngRegs){\n")
     
@@ -362,18 +345,15 @@ class SdeCUDAWriter(Writer):
         # write rules and events
         for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isRate():
-                self.out_file.write("    ")
                 rule_variable = self.parser.parsedModel.ruleVariable[i]
                 if not (rule_variable in self.parser.parsedModel.speciesId):
-                    self.out_file.write(self.parser.parsedModel.ruleVariable[i])
+                    self.out_file.write("    %s = " % self.parser.parsedModel.ruleVariable[i])
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(rule_variable)) + "]"
-                    self.out_file.write(string)
-                self.out_file.write("=")
-    
+                    self.out_file.write("    y[%s] = " % repr(self.parser.parsedModel.speciesId.index(rule_variable)))
+
                 string = self.parser.parsedModel.ruleFormula[i]
                 for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
                 for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
@@ -383,7 +363,7 @@ class SdeCUDAWriter(Writer):
                                 flag = True
                         if not flag:
                             pq = re.compile(parameter_id)
-                            string = pq.sub('parameter[' + repr(q) + ']', string)
+                            string = pq.sub('parameter[%s]' % q, string)
     
                 self.out_file.write(string)
                 self.out_file.write(";\n")
@@ -397,15 +377,13 @@ class SdeCUDAWriter(Writer):
                 self.out_file.write("        ")
                 event_variable = self.parser.parsedModel.eventVariable[i][j]
                 if not (event_variable in self.parser.parsedModel.speciesId):
-                    self.out_file.write(event_variable)
+                    self.out_file.write("         %s =" % event_variable)
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(event_variable)) + "]"
-                    self.out_file.write(string)
-                self.out_file.write("=")
-    
+                    self.out_file.write("        y[%s] =" % self.parser.parsedModel.speciesId.index(event_variable))
+
                 string = self.parser.parsedModel.EventFormula[i][j]
                 for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
                 for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
@@ -415,7 +393,7 @@ class SdeCUDAWriter(Writer):
                                 flag = True
                         if not flag:
                             pq = re.compile(parameter_id)
-                            string = pq.sub('parameter[' + repr(q) + ']', string)
+                            string = pq.sub('parameter[%s]' % q, string)
     
                 self.out_file.write(string)
                 self.out_file.write(";\n")
@@ -425,19 +403,15 @@ class SdeCUDAWriter(Writer):
     
         for i in range(len(self.parser.parsedModel.listOfRules)):
             if self.parser.parsedModel.listOfRules[i].isAssignment():
-                self.out_file.write("    ")
                 rule_variable = self.parser.parsedModel.ruleVariable[i]
                 if not (rule_variable in self.parser.parsedModel.speciesId):
-                    self.out_file.write("float ")
-                    self.out_file.write(rule_variable)
+                    self.out_file.write("    float %s = " % rule_variable)
                 else:
-                    string = "y[" + repr(self.parser.parsedModel.speciesId.index(rule_variable)) + "]"
-                    self.out_file.write(string)
-                self.out_file.write("=")
-    
+                    self.out_file.write("    y[%s] = " % self.parser.parsedModel.speciesId.index(rule_variable))
+
                 string = mathml_condition_parser(self.parser.parsedModel.ruleFormula[i])
                 for q in range(len(self.parser.parsedModel.speciesId)):
-                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                    string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
                 for q in range(len(self.parser.parsedModel.parameterId)):
                     parameter_id = self.parser.parsedModel.parameterId[q]
                     if not (parameter_id in self.parser.parsedModel.ruleVariable):
@@ -447,7 +421,7 @@ class SdeCUDAWriter(Writer):
                                 flag = True
                         if not flag:
                             pq = re.compile(parameter_id)
-                            x = "parameter[" + repr(q) + "]"
+                            x = "parameter[%s]" % q
                             string = pq.sub(x, string)
                 self.out_file.write(string)
                 self.out_file.write(";\n")
@@ -456,7 +430,7 @@ class SdeCUDAWriter(Writer):
         for i in range(num_species):
             species = self.parser.parsedModel.species[i]
             if species.getConstant() == False and species.getBoundaryCondition() == False:
-                self.out_file.write("    float d_y" + repr(i) + "= DT * (")
+                self.out_file.write("    float d_y%s = DT * (" % i)
                 if species.isSetCompartment():
                     self.out_file.write("(")
     
@@ -472,7 +446,7 @@ class SdeCUDAWriter(Writer):
     
                         string = self.parser.parsedModel.kineticLaw[k]
                         for q in range(len(self.parser.parsedModel.speciesId)):
-                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
                         for q in range(len(self.parser.parsedModel.parameterId)):
                             parameter_id = self.parser.parsedModel.parameterId[q]
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
@@ -482,7 +456,7 @@ class SdeCUDAWriter(Writer):
                                         flag = True
                                 if not flag:
                                     pq = re.compile(parameter_id)
-                                    string = pq.sub('parameter[' + repr(q) + ']', string)
+                                    string = pq.sub('parameter[%s]' % q, string)
     
                         string = p.sub('', string)
     
@@ -501,10 +475,10 @@ class SdeCUDAWriter(Writer):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
-                                    self.out_file.write("parameter[" + repr(j) + "]" + ");")
+                                    self.out_file.write("parameter[%s]);" % j)
                                     break
                                 else:
-                                    self.out_file.write(parameter_id + ");")
+                                    self.out_file.write("%s);" % parameter_id)
                                     break
                 else:
                     self.out_file.write(");")
@@ -522,8 +496,8 @@ class SdeCUDAWriter(Writer):
     
             # define specific randomVariable
             if num_entries > 1:
-                self.out_file.write("    float rand" + repr(k) + " = randNormal(rngRegs,sqrt(DT));\n")
-                random_variables[k] = "*rand" + repr(k)
+                self.out_file.write("    float rand%s = randNormal(rngRegs,sqrt(DT));\n" % k)
+                random_variables[k] = "*rand%s" % k
     
         self.out_file.write("\n")
     
@@ -531,7 +505,7 @@ class SdeCUDAWriter(Writer):
         for i in range(num_species):
             species = self.parser.parsedModel.species[i]
             if species.getConstant() == False and species.getBoundaryCondition() == False:
-                self.out_file.write("    d_y" + repr(i) + "+= (")
+                self.out_file.write("    d_y%s+= (" % i)
                 if species.isSetCompartment():
                     self.out_file.write("(")
     
@@ -549,7 +523,7 @@ class SdeCUDAWriter(Writer):
                         for q in range(len(self.parser.parsedModel.speciesId)):
                             # pq = re.compile(self.parser.parsedModel.speciesId[q])
                             # string=pq.sub('y['+repr(q)+']' ,string)
-                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[' + repr(q) + ']')
+                            string = self.rep(string, self.parser.parsedModel.speciesId[q], 'y[%s]' % q)
                         for q in range(len(self.parser.parsedModel.parameterId)):
                             parameter_id = self.parser.parsedModel.parameterId[q]
                             if not (parameter_id in self.parser.parsedModel.ruleVariable):
@@ -559,7 +533,7 @@ class SdeCUDAWriter(Writer):
                                         flag = True
                                 if not flag:
                                     pq = re.compile(parameter_id)
-                                    string = pq.sub('parameter[' + repr(q) + ']', string)
+                                    string = pq.sub('parameter[%s]' % q, string)
     
                         string = p.sub('', string)
                         self.out_file.write(string)
@@ -580,10 +554,10 @@ class SdeCUDAWriter(Writer):
                                     if parameter_id in self.parser.parsedModel.eventVariable[r]:
                                         flag = True
                                 if not flag:
-                                    self.out_file.write("parameter[" + repr(j) + "]" + ")")
+                                    self.out_file.write("parameter[%s])" % j)
                                     break
                                 else:
-                                    self.out_file.write(parameter_id + ")")
+                                    self.out_file.write("%s)" % parameter_id)
                                     break
                 else:
                     self.out_file.write(")")
@@ -595,6 +569,6 @@ class SdeCUDAWriter(Writer):
         for i in range(num_species):
             species = self.parser.parsedModel.species[i]
             if species.getConstant() == False and species.getBoundaryCondition() == False:
-                self.out_file.write("    y[" + repr(i) + "] += d_y" + repr(i) + ";\n")
+                self.out_file.write("    y[%s] += d_y%s;\n" % (i,i))
     
         self.out_file.write("}\n")

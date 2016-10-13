@@ -165,7 +165,7 @@ class SDEPythonWriter(Writer):
     def write_functions(self):
         model = self.parser.parsedModel
         for i in range(len(model.listOfFunctions)):
-            self.out_file.write("def %s(%s)\n\n:" %
+            self.out_file.write("def %s(%s):\n\n" %
                                 (model.listOfFunctions[i].getId(), ",".join(model.functionArgument[i])))
             self.out_file.write("\toutput = %s\n\n" % model.functionBody[i])
             self.out_file.write("\treturn output\n\n")

@@ -5,10 +5,11 @@ from Writer import Writer
 
 
 class SDEPythonWriter(Writer):
-    def __init__(self, parser, output_path=""):
+    def __init__(self, parser, output_path="", method=1):
         Writer.__init__(self)
         self.parser = parser
         self.out_file = open(os.path.join(output_path, self.parser.parsedModel.name + ".py"), "w")
+        self.method = method
         self.rename()
 
     def rename(self):
@@ -38,7 +39,7 @@ class SDEPythonWriter(Writer):
                 self.parser.parsedModel.speciesId[i] = new_name
                 self.parser.rename_everywhere(old_name, new_name)
 
-    def write(self, method=1):
+    def write(self):
 
         self.out_file.write("from math import sqrt\nfrom numpy import random\nfrom cudasim.relations import *\n\n")
         self.out_file.write("def trunc_sqrt(x):\n\tif x < 0: return 0\n\telse: return sqrt(x)\n\n")
@@ -49,7 +50,7 @@ class SDEPythonWriter(Writer):
         # write the 'methodfunction' function
         self.write_methodfunction_signature()
         self.write_parameter_assignments()
-        self.write_reaction_rates(method)
+        self.write_reaction_rates()
         self.write_methodfunction_return_statement()
 
         # Write the 'rules' function
@@ -71,7 +72,7 @@ class SDEPythonWriter(Writer):
         self.out_file.write("def modelfunction((%s)=(%s),dt=0,parameter=(%s),time=0):\n\n" %
                             (",".join(species_list), ",".join(species_values), ",".join(constant_values)))
 
-    def write_reaction_rates(self, method):
+    def write_reaction_rates(self):
         model = self.parser.parsedModel
         p = re.compile('\s')
 
@@ -114,7 +115,7 @@ class SDEPythonWriter(Writer):
                 self.out_file.write("\trand" + repr(k) + " = random.normal(0.0,sqrt(dt))\n")
                 random_variables[k] = "*rand" + repr(k)
 
-        if method == 1:
+        if self.method == 1:
 
             for i in range(model.numSpecies):
                 self.out_file.write("\tnoise_" + model.speciesId[i] + "=")
@@ -130,7 +131,7 @@ class SDEPythonWriter(Writer):
                     self.out_file.write("\tnoise_%s = trunc_sqrt(%s)%s\n" %
                                         (model.ruleVariable[i], model.ruleFormula[i], random_variables[k]))
 
-        if method == 2:
+        if self.method == 2:
 
             for i in range(model.numSpecies):
                 self.out_file.write("\tnoise_%s = random.normal(0.0,sqrt(dt))\n" % model.speciesId[i])
@@ -139,7 +140,7 @@ class SDEPythonWriter(Writer):
                 if model.listOfRules[i].isRate():
                     self.out_file.write("\tnoise_%s = random.normal(0.0,sqrt(dt))\n" % model.ruleVariable[i])
 
-        if method == 3:
+        if self.method == 3:
 
             for i in range(model.numSpecies):
                 self.out_file.write("\tnoise_%s =" % (model.speciesId[i]))

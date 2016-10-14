@@ -54,7 +54,6 @@ class Parser:
         self.parsedModel.stoichiometricMatrix = np.empty(
             [self.parsedModel.numSpecies, self.parsedModel.numReactions])
         self.get_compartment_volume()
-        self.get_delays()
 
         # TODO: check ordering of these is ok
         self.get_global_parameters()
@@ -66,6 +65,7 @@ class Parser:
         self.analyse_events()
         # self.renameMathFunctions()
         self.rename_everything()
+        self.get_delays()
         # self.writer.parsedModel.numGlobalParameters += 1 # in CUDA parer only, WTF?
 
     def get_basic_model_properties(self):

@@ -1,8 +1,8 @@
 import os
 
 import numpy as np
-import pycuda
 import pycuda.driver as driver
+import pycuda.compiler as compiler
 
 import cudasim.solvers.cuda.Simulator as sim
 import cudasim
@@ -67,7 +67,7 @@ class Lsoda(sim.Simulator):
             print >> of, _code_
 
         # dummy compile to determine optimal blockSize and gridSize
-        compiled = pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
+        compiled = compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
 
         blocks, threads = self._get_optimal_gpu_param(parameters, compiled.get_function("cuLsoda"))
         blocks = self._MAXBLOCKSPERDEVICE
@@ -80,7 +80,7 @@ class Lsoda(sim.Simulator):
             of = open("full_ode_code.cu", "w")
             print >> of, _code_
 
-        compiled = pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
+        compiled = compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
 
         self._param_tex = compiled.get_texref("param_tex")
 

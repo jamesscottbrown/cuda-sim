@@ -5,7 +5,7 @@ import numpy as np
 import pycuda
 import pycuda.driver as cuda
 
-import cudasim.solvers.cuda.Simulator as Sim
+import cudasim.solvers.cuda.Simulator as sim
 
 
 # total device global memory usage
@@ -38,7 +38,7 @@ class Gillespie(sim.Simulator):
 
     def __init__(self, timepoints, step_code, species_compartment=None, beta=1, dt=0.01, dump=False):
         self._speciesCompartment = species_compartment
-        Sim.Simulator.__init__(self, timepoints, step_code, beta=beta, dt=dt, dump=dump)
+        sim.Simulator.__init__(self, timepoints, step_code, beta=beta, dt=dt, dump=dump)
 
     def _compile(self, application_code):
 
@@ -192,8 +192,8 @@ class Gillespie(sim.Simulator):
             pass
 
         # parameter texture
-        ary = Sim.create_2d_array(param)
-        Sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
+        ary = sim.create_2d_array(param)
+        sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
         self._param_tex.set_array(ary)
 
         # 2D species arrays
@@ -213,7 +213,7 @@ class Gillespie(sim.Simulator):
                         species_input[i][j] = init_values[i][j]
         except IndexError:
             pass
-        Sim.copy_2d_host_to_device(d_x, species_input, self._speciesNumber * 4, p_x, self._speciesNumber * 4,
+        sim.copy_2d_host_to_device(d_x, species_input, self._speciesNumber * 4, p_x, self._speciesNumber * 4,
                                    total_threads)
 
         # output array

@@ -4,7 +4,7 @@ import numpy as np
 import pycuda
 import pycuda.driver as driver
 
-import cudasim.solvers.cuda.Simulator as Sim
+import cudasim.solvers.cuda.Simulator as sim
 
 
 class Lsoda(sim.Simulator):
@@ -193,8 +193,8 @@ class Lsoda(sim.Simulator):
             pass
 
         # parameter texture
-        ary = Sim.create_2d_array(param)
-        Sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads)
+        ary = sim.create_2d_array(param)
+        sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads)
         self._param_tex.set_array(ary)
 
         if self._dt <= 0:

@@ -52,6 +52,7 @@ def parse_and_write(source, integration_type, model_name=None, input_path="", ou
     cuda = re.compile('CUDA', re.I)
 
     sde = re.compile('SDE', re.I)
+    dde = re.compile('DDE', re.I)
     gil = re.compile('Gillespie', re.I)
 
     # check that you have appropriate lengths of integration types and sources
@@ -81,6 +82,8 @@ def parse_and_write(source, integration_type, model_name=None, input_path="", ou
                 writer = SdeCUDAWriter(parsed_model, output_path)
             elif gil.search(integration_type[model]):
                 writer = GillespieCUDAWriter(parsed_model, output_path, use_molecule_counts=use_molecule_counts)
+            elif dde.search(integration_type[model]):
+                writer = DDECUDAWriter(parsed_model, output_path)
             else:
                 writer = OdeCUDAWriter(parsed_model, output_path)
 

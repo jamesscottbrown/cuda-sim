@@ -6,7 +6,7 @@ def rename_math_functions(model, time_symbol):
     math_python = ['log10', 'acos', 'asin', 'atan', 'exp', 'sqrt', 'pow', 'log', 'sin', 'cos', 'ceil', 'floor', 'tan',
                    'time']
 
-    math_cuda = ['log10', 'acos', 'asin', 'atan', 'exp', 'sqrt', 'mpow', 'log', 'sin', 'cos', 'ceil', 'floor', 'tan',
+    math_cuda = ['log10', 'acos', 'asin', 'atan', 'exp', 'sqrt', 'pow', 'log', 'sin', 'cos', 'ceil', 'floor', 'tan',
                  time_symbol]
 
     for nam in range(len(math_python)):

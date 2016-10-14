@@ -5,7 +5,7 @@ import pycuda
 import pycuda.driver as driver
 
 import cudasim.solvers.cuda.Simulator_mg as sim
-
+import cudasim
 
 class Lsoda(sim.SimulatorMG):
     _param_tex = None
@@ -52,7 +52,7 @@ class Lsoda(sim.SimulatorMG):
         # set beta to 1: repeats are pointless as simulation is deterministic
         self._beta = 1
 
-        fc = open(os.path.join(os.path.split(os.path.realpath(__file__))[0], 'cuLsoda_all.cu'), 'r')
+        fc = open(os.path.join(os.path.split(os.path.realpath(cudasim.__file__))[0], 'cuLsoda_all.cu'), 'r')
         _sourceFromFile_ = fc.read()
 
         _isize_ = "#define ISIZE " + repr(20 + self._speciesNumber) + "\n"

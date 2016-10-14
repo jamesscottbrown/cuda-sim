@@ -5,7 +5,7 @@ import numpy as np
 import pycuda
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
-
+import cudasim
 import cudasim.solvers.cuda.Simulator as sim
 
 
@@ -169,7 +169,7 @@ class EulerMaruyama(sim.Simulator):
         }"""
 
         # external rng
-        cuda = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'WarpStandard.cu')
+        cuda = os.path.join(os.path.split(os.path.realpath(cudasim.__file__))[0], 'WarpStandard.cu')
         f = open(cuda, 'r')
         rng_ext = f.read()
         f.close()

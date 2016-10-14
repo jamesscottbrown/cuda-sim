@@ -2,9 +2,9 @@ import os
 
 import numpy as np
 
-import cudasim.EulerMaruyama as EulerMaruyama
-import cudasim.Gillespie as Gillespie
-import cudasim.Lsoda as Lsoda
+import cudasim.solvers.cuda.EulerMaruyama as EulerMaruyama
+import cudasim.solvers.cuda.Gillespie as Gillespie
+import cudasim.solvers.cuda.Lsoda as Lsoda
 import cudasim.SBMLParser as Parser
 
 ##### parameters #####
@@ -59,7 +59,7 @@ for integrationType in ["ODE", "SDE", "MJP"]:
     name = "immdeath" + "_" + integrationType
 
     # create CUDA code from SBML model
-    Parser.importSBMLCUDA([xmlModel], [integrationType], ModelName=[name], method=None, outpath=temp)
+    parser = Parser.importSBMLCUDA([xmlModel], [integrationType], ModelName=[name], method=None, outpath=temp)
 
     # determining the timepoints for the output
     timepoints = np.array(range(datapoints + 1), dtype=np.float32) * simulationLength / datapoints

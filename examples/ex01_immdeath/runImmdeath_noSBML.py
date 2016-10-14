@@ -46,7 +46,10 @@ except:
 timepoints = np.array(range(datapoints + 1), dtype=np.float32) * simulationLength / datapoints
 
 # reading in the CUDA code
-cudaCode = "immdeath_" + integrationType + ".cu"
+temp = os.path.join(os.path.split(os.path.realpath(__file__))[0], "temp")
+name = "immdeath_" + integrationType
+cudaCode = os.path.join(temp, name + ".cu")
+
 # reading in parameters
 parameters = []
 inFile = open(parameterFile, 'r').read()

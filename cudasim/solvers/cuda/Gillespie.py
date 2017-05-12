@@ -42,7 +42,7 @@ class Gillespie(sim.Simulator):
 
     def _compile(self, application_code):
 
-        mt_cu = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'MersenneTwister.cu')
+        mt_cu = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'solvers/cuda/MersenneTwister.cu')
 
         _gillespieHeader = """
         const int NRESULTS = """ + str(self._resultNumber) + """;
@@ -178,7 +178,7 @@ class Gillespie(sim.Simulator):
         total_threads = blocks * threads
         experiments = len(parameters)
 
-        mt_data = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'MersenneTwister.dat')
+        mt_data = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'solvers/cuda/MersenneTwister.dat')
 
         # initialize Mersenne Twister
         self._initialise_twisters(mt_data, self._completeCode, threads, blocks)

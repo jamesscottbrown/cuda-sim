@@ -29,7 +29,7 @@ def setup(modelFileName, integrationType):
 
     name = "hasty" + "_" + integrationType
 
-    (delays, speciesCompartmentList) = Parser.importSBMLCUDA([modelFileName],[integrationType],ModelName=[name],method=None,outpath=temp)
+    parser = Parser.importSBMLCUDA([modelFileName],[integrationType],ModelName=[name],method=None,outpath=temp)
     cudaCode = os.path.join(temp, name + ".cu")
     return delays, cudaCode
 

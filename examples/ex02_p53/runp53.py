@@ -59,7 +59,7 @@ for integrationType in ["ODE", "SDE", "MJP"]:
     name = "p53" + "_" + integrationType
 
     # create CUDA code from SBML model
-    (delays, speciesCompartmentList) = Parser.importSBMLCUDA([xmlModel], [integrationType], ModelName=[name], method=None, outpath=temp)
+    parser = Parser.importSBMLCUDA([xmlModel], [integrationType], ModelName=[name], method=None, outpath=temp)
 
     # determining the timepoints for the output
     timepoints = np.array(range(datapoints + 1), dtype=np.float32) * simulationLength / datapoints
@@ -96,7 +96,7 @@ for integrationType in ["ODE", "SDE", "MJP"]:
     if integrationType == "SDE":
         modeInstance = EulerMaruyama.EulerMaruyama(timepoints, cudaCode, beta=beta, dt=dt)
     elif integrationType == "MJP":
-        modeInstance = Gillespie.Gillespie(timepoints, cudaCode, species_compartment=speciesCompartmentList, beta=beta, dt=dt)
+        modeInstance = Gillespie.Gillespie(timepoints, cudaCode, beta=beta, dt=dt)
     else:
         modeInstance = Lsoda.Lsoda(timepoints, cudaCode, dt=dt)
 

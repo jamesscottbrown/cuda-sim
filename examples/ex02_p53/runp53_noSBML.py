@@ -1,10 +1,10 @@
 import os
 
+import cudasim.solvers.cuda.EulerMaruyama as EulerMaruyama
+import cudasim.solvers.cuda.Lsoda as Lsoda
 import numpy as np
 
-import cudasim.EulerMaruyama as EulerMaruyama
-import cudasim.Gillespie as Gillespie
-import cudasim.Lsoda as Lsoda
+import cudasim.solvers.cuda.Gillespie as Gillespie
 
 ##### parameters #####
 

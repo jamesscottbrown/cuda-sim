@@ -1,9 +1,9 @@
-import numpy as np
 import os
 
-import cudasim.DelaySimulator as DelaySimulator
-import cudasim.SBMLParser as Parser
+import numpy as np
 
+import cudasim.SBMLParser as Parser
+import cudasim.solvers.cuda.DelaySimulator as DelaySimulator
 
 ##### parameters #####
 
@@ -58,10 +58,10 @@ integrationType = "DDE"
 name = "sir" + "_"+integrationType
 
 # create CUDA code from SBML model
-delays = Parser.importSBMLCUDA([xmlModel],[integrationType],ModelName=[name],method=None,outpath=temp)
+(delays, compartments) = Parser.importSBMLCUDA([xmlModel],[integrationType],ModelName=[name],method=None,outpath=temp)
 
 #determining the timepoints for the output
-timepoints = np.array(np.arange(0, 30, 0.125), dtype=np.float32)
+timepoints = np.array(np.arange(30, 0.125), dtype=np.float32)
 #timepoints = np.array(range(datapoints+1),dtype=np.float32) * simulationLength/datapoints
 
 # reading in the CUDA code

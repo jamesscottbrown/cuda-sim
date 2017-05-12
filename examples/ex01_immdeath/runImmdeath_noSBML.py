@@ -1,10 +1,10 @@
 import os
 
+import cudasim.solvers.cuda.EulerMaruyama as EulerMaruyama
+import cudasim.solvers.cuda.Lsoda as Lsoda
 import numpy as np
 
-import cudasim.EulerMaruyama as EulerMaruyama
-import cudasim.Gillespie as Gillespie
-import cudasim.Lsoda as Lsoda
+import cudasim.solvers.cuda.Gillespie as Gillespie
 
 ##### parameters #####
 
@@ -46,10 +46,7 @@ except:
 timepoints = np.array(range(datapoints + 1), dtype=np.float32) * simulationLength / datapoints
 
 # reading in the CUDA code
-temp = os.path.join(os.path.split(os.path.realpath(__file__))[0], "temp")
-name = "immdeath_" + integrationType
-cudaCode = os.path.join(temp, name + ".cu")
-
+cudaCode = "immdeath_" + integrationType + ".cu"
 # reading in parameters
 parameters = []
 inFile = open(parameterFile, 'r').read()

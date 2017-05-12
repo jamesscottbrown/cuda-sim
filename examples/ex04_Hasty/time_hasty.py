@@ -1,4 +1,5 @@
 import os
+import time
 
 import numpy as np
 
@@ -86,28 +87,35 @@ for i in range(len(lines)):
 
 
 # create model
-print "Create model.."
 modeInstance = DelaySimulator.DelaySimulator(timepoints, cudaCode, delays, beta=1, dt=dt)
+print "Model created"
 
-print "..calculating.."
-result = modeInstance.run(parameters, species)
-print "..finished."
+numRepeats = 5
+numSimulations = [1, 10, 20, 30, 40, 60, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000]
+times = np.zeros([len(numSimulations), numRepeats])
 
-# write output
-print "Writing output."
-out = open(os.path.join(resultFolder,name+"_result.txt"),'w')
-print >>out, "- - -",
-for i in range(len(timepoints)):
-    print >>out, timepoints[i],
-print >>out, ""
-for i in range(len(result)):
-    for j in range(len(result[i])):
-        for l in range(len(result[i][0][0])):
-            print >>out, 'e:' + str(i), 'b:'+str(j),'s:'+str(l),
-            for k in range(len(timepoints)):
-                print >>out, result[i][j][k][l],
-            print >>out, ""
+for ind, simulations in enumerate(numSimulations):
+    # extend species and parameters
+    species2 = np.tile(species, (simulations, 1))
+    parameters2 = np.tile(parameters, (simulations, 1))
+
+    for repeat in range(numRepeats):
+        start = time.clock()
+        result = modeInstance.run(parameters2, species2)
+        end = time.clock()
+
+        times[ind, repeat] = (end-start)
+        print "Num simulations: %s, repeat %s" % (simulations, repeat)
+
+print times
+np.savetxt('times', times)
 
 
-out.close()
+# In MATLAB:
+# >> times = dlmread('Desktop/times')
+# >> n = [1, 10, 20, 30, 40, 60, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000];
+# >> figure
+# >> plot( n, times, 'o-')
+# >> xlabel('Number of Simulations')
+# >> ylabel('Time/s')
 

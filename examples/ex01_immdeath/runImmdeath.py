@@ -1,11 +1,11 @@
 import os
 
+import cudasim.solvers.cuda.EulerMaruyama as EulerMaruyama
+import cudasim.solvers.cuda.Lsoda as Lsoda
 import numpy as np
 
-import cudasim.solvers.cuda.EulerMaruyama as EulerMaruyama
-import cudasim.solvers.cuda.Gillespie as Gillespie
-import cudasim.solvers.cuda.Lsoda as Lsoda
 import cudasim.SBMLParser as Parser
+import cudasim.solvers.cuda.Gillespie as Gillespie
 
 ##### parameters #####
 
@@ -59,7 +59,7 @@ for integrationType in ["ODE", "SDE", "MJP"]:
     name = "immdeath" + "_" + integrationType
 
     # create CUDA code from SBML model
-    parser = Parser.importSBMLCUDA([xmlModel], [integrationType], ModelName=[name], method=None, outpath=temp)
+    (delays, speciesCompartmentList) = Parser.importSBMLCUDA([xmlModel], [integrationType], ModelName=[name], method=None, outpath=temp)
 
     # determining the timepoints for the output
     timepoints = np.array(range(datapoints + 1), dtype=np.float32) * simulationLength / datapoints
@@ -95,7 +95,7 @@ for integrationType in ["ODE", "SDE", "MJP"]:
     if integrationType == "SDE":
         modeInstance = EulerMaruyama.EulerMaruyama(timepoints, cudaCode, beta=beta, dt=dt)
     elif integrationType == "MJP":
-        modeInstance = Gillespie.Gillespie(timepoints, cudaCode, beta=beta, dt=dt)
+        modeInstance = Gillespie.Gillespie(timepoints, cudaCode, species_compartment=speciesCompartmentList, beta=beta, dt=dt, dump=True)
     else:
         modeInstance = Lsoda.Lsoda(timepoints, cudaCode, dt=dt)
 

@@ -52,7 +52,7 @@ class Lsoda(sim.Simulator):
         # set beta to 1: repeats are pointless as simulation is deterministic
         self._beta = 1
 
-        fc = open(os.path.join(os.path.split(os.path.realpath(__file__))[0], 'solvers/cuda/cuLsoda_all.cu'), 'r')
+        fc = open(os.path.join(os.path.split(os.path.realpath(__file__))[0], 'cuLsoda_all.cu'), 'r')
 
         _sourceFromFile_ = fc.read()
 

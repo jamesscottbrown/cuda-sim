@@ -167,7 +167,7 @@ class EulerMaruyama(sim.SimulatorMG):
         }"""
 
         # external rng
-        cuda = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'solvers/cuda/WarpStandard.cu')
+        cuda = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'WarpStandard.cu')
         f = open(cuda, 'r')
         rng_ext = f.read()
         f.close()

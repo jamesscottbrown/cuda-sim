@@ -71,7 +71,7 @@ class DDECUDAWriter(Writer):
         self.out_file.write("#define NSPECIES " + str(num_species) + "\n")
         self.out_file.write("#define NPARAM " + str(len(model.parameterId)) + "\n")
         self.out_file.write("#define NREACT " + str(model.numReactions) + "\n")
-        self.out_file.write("#define NCOMPARTMENTS " + str(model.numCompartments) + "\n")
+        self.out_file.write("#define NCOMPARTMENTS " + str(self.parser.comp) + "\n")
         self.out_file.write("\n")
 
     def write_functions(self):

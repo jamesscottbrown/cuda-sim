@@ -1,4 +1,4 @@
-import os, sys
+import os
 from distutils.core import setup
 from distutils.command.install import install as _install
 
@@ -28,7 +28,8 @@ setup(name='cuda-sim',
 
       scripts=[],
 
-      package_data={'cudasim': ['MersenneTwister.dat', 'MersenneTwister.cu', 'cuLsoda_all.cu', 'WarpStandard.cu', 'src/*']},
+      package_data={'cudasim': ['solvers/cuda/MersenneTwister.dat', 'solvers/cuda/MersenneTwister.cu', 'solvers/cuda/cuLsoda_all.cu', 'solvers/cuda/WarpStandard.cu',
+                                'src/*']},
 
       cmdclass={"install": Install},
 

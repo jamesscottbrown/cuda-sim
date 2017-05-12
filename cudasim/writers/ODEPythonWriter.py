@@ -65,38 +65,18 @@ class ODEPythonWriter(Writer):
             self.out_file.write("\toutput = %s\n\n" % model.functionBody[i])
             self.out_file.write("\treturn output\n\n")
 
-    def categorise_variables(self):
-        # form a list of the species, and parameters which are set by rate rules
-        model = self.parser.parsedModel
-        species_list = copy.copy(model.speciesId)
-
-        rule_params = []
-        constant_params = []
-        for i in range(len(model.listOfParameter)):
-            is_constant = True
-            if not model.listOfParameter[i].getConstant():
-                for k in range(len(model.listOfRules)):
-                    if model.listOfRules[k].isRate() and model.ruleVariable[k] == model.parameterId[i]:
-                        rule_params.append(model.parameterId[i])
-                        is_constant = False
-            if is_constant:
-                constant_params.append(model.parameterId[i])
-
-        species_list.extend(rule_params)
-        return species_list, constant_params
-
     def write_modelfunction_signature(self):
         # Write the signature for a modelfunction, e.g.:
         # def modelfunction((species1,),time,parameter=(1.0,1.0,0.1,)):
 
-        (species_list, constant_params) = self.categorise_variables()
+        (species_list, constant_params, species_values, constant_values) = self.categorise_variables()
         self.out_file.write("def modelfunction((%s), time, parameter=(%s)):\n\n" %
-                            (",".join(species_list), ",".join(constant_params)))
+                            (",".join(species_list), ",".join(constant_values)))
 
     def write_parameter_assignments(self):
         # Write paramter assignment statements, e.g.
         # compartment1=parameter[0]
-        (species_list, constant_params) = self.categorise_variables()
+        (species_list, constant_params, _, _) = self.categorise_variables()
         for i, param in enumerate(constant_params):
             self.out_file.write("\t%s = parameter[%s]\n" % (param, i))
 
@@ -128,20 +108,19 @@ class ODEPythonWriter(Writer):
                 self.out_file.write("\td_%s = %s\n" % (model.ruleVariable[i], model.ruleFormula[i]))
 
         # print return statement
-        (species_list, _) = self.categorise_variables()
+        (species_list, _, _, _) = self.categorise_variables()
         species_string = ",".join(map(lambda x: "d_%s" % x, species_list))
         self.out_file.write("\n\treturn(%s)\n" % species_string)
 
     def write_rules_function_signature(self):
-        (species_list, constant_params) = self.categorise_variables()
+        (species_list, constant_params, _, _) = self.categorise_variables()
         self.out_file.write("\ndef rules((%s), (%s), time):\n\n" % (",".join(species_list), ",".join(constant_params)))
 
     def write_events(self):
         model = self.parser.parsedModel
         for i in range(len(model.listOfEvents)):
             self.out_file.write("\tif %s:\n" % mathml_condition_parser(model.eventCondition[i]))
-            list_of_assignment_rules = model.listOfEvents[i].getListOfEventAssignments()
-            for j in range(len(list_of_assignment_rules)):
+            for j in range(len(model.listOfEvents[i].getListOfEventAssignments())):
                 self.out_file.write("\t\t%s = %s\n" % (model.eventVariable[i][j], model.eventFormula[i][j]))
             self.out_file.write("\n")
         self.out_file.write("\n")
@@ -153,5 +132,5 @@ class ODEPythonWriter(Writer):
                 self.out_file.write("\t%s = %s\n" %
                                     (model.ruleVariable[i], mathml_condition_parser(model.ruleFormula[i])))
 
-        (species_list, constant_params) = self.categorise_variables()
+        (species_list, constant_params, _ ,_) = self.categorise_variables()
         self.out_file.write("\n\treturn((%s),(%s))\n\n" % (",".join(species_list), ",".join(constant_params)))

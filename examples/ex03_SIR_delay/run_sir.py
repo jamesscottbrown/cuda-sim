@@ -58,7 +58,7 @@ integrationType = "DDE"
 name = "sir" + "_"+integrationType
 
 # create CUDA code from SBML model
-(delays, compartments) = Parser.importSBMLCUDA([xmlModel],[integrationType],ModelName=[name],method=None,outpath=temp)
+parser = Parser.importSBMLCUDA([xmlModel],[integrationType],ModelName=[name],method=None,outpath=temp)
 
 #determining the timepoints for the output
 timepoints = np.array(np.arange(30, 0.125), dtype=np.float32)
@@ -93,7 +93,7 @@ for i in range(len(lines)):
 
 # create model
 #print "Create model.."
-modeInstance = DelaySimulator.DelaySimulator(timepoints, cudaCode, delays, beta=beta, dt=dt)
+modeInstance = DelaySimulator.DelaySimulator(timepoints, cudaCode, parser[0].parsedModel.delays, beta=beta, dt=dt)
 
 #print "..calculating.."
 result = modeInstance.run(parameters, species)

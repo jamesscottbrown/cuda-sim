@@ -2,6 +2,9 @@
 This is a fork of [``cuda-sim``](https://sourceforge.net/projects/cuda-sim/), which is described in Zhou Y, Liepe J,
 Sheng X, Stumpf MP, Barnes C. [GPU accelerated biochemical network simulation.](http://dx.doi.org/10.1093/bioinformatics/btr015), Bioinformatics. 2011 Mar 15;27(6):874-6. **It is still somewhat experimental, and there may be bugs that were introduced in the refactoring and not yet been found. In particular, compartments with volumes != 1 may be incorrectly simulated by some simulators.**
 
+**It is still somewhat experimental, and there may be bugs that were introduced in the refactoring and not yet been found**.
+
+
 ``cuda-sim`` enables the use of [CUDA-compatible Nvidia GPUs](https://en.wikipedia.org/wiki/CUDA#Supported_GPUs) to perform
 many simulations in parallel, allowing rapid sweeps over different parameter values and/or initial conditions.
 

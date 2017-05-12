@@ -2,7 +2,7 @@ import numpy as np
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
 
-import cudasim.solvers.cuda.Simulator as Sim
+import cudasim.solvers.cuda.Simulator as sim
 
 
 class DelaySimulator(sim.Simulator):
@@ -15,7 +15,7 @@ class DelaySimulator(sim.Simulator):
         self._maxDelay = 10
         self._histTimeSteps = int(1 + self._maxDelay / (dt / 2))  # TODO: calculate this correctly
 
-        Sim.Simulator.__init__(self, timepoints, step_code, beta=beta, dt=dt, dump=dump)
+        sim.Simulator.__init__(self, timepoints, step_code, beta=beta, dt=dt, dump=dump)
 
     def _compile(self, step_code):
         # TODO: determine if shared memory is enough to fit parameters ???
@@ -204,8 +204,8 @@ class DelaySimulator(sim.Simulator):
 
         if not self._putIntoShared:
             # parameter texture
-            ary = Sim.create_2d_array(param)
-            Sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
+            ary = sim.create_2d_array(param)
+            sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
             self._param_tex.set_array(ary)
             shared_memory_parameters = 0
         else:

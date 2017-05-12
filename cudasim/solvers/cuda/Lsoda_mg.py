@@ -4,8 +4,8 @@ import numpy as np
 import pycuda
 import pycuda.driver as driver
 
-import cudasim.solvers.cuda.Simulator_mg as Sim
-
+import cudasim.solvers.cuda.Simulator_mg as sim
+import cudasim
 
 class Lsoda(sim.SimulatorMG):
     _param_tex = None
@@ -53,6 +53,7 @@ class Lsoda(sim.SimulatorMG):
         self._beta = 1
 
         fc = open(os.path.join(os.path.split(os.path.realpath(__file__))[0], 'solvers/cuda/cuLsoda_all.cu'), 'r')
+
         _sourceFromFile_ = fc.read()
 
         _isize_ = "#define ISIZE " + repr(20 + self._speciesNumber) + "\n"
@@ -193,8 +194,8 @@ class Lsoda(sim.SimulatorMG):
             pass
 
         # parameter texture
-        ary = Sim.create_2D_array(param)
-        Sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads)
+        ary = sim.create_2D_array(param)
+        sim.copy2D_host_to_array(ary, param, self._parameterNumber * 4, total_threads)
         self._param_tex.set_array(ary)
 
         if self._dt <= 0:

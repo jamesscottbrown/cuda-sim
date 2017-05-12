@@ -2,7 +2,7 @@ import numpy
 import os
 import re
 from ctypes import *
-
+import cudasim
 
 # compilation step to create share object for a correct solver and model
 def compile_c(name, integration):
@@ -17,9 +17,9 @@ def compile_c(name, integration):
     if abc_gsl_inc is None:
         abc_gsl_inc = "/usr/local/include"
 
-    abc_nm_lib = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'src/newmat11/')
-    abc_nm_inc = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'src/newmat11/')
-    abc_src_dir = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'src/')
+    abc_nm_lib = os.path.join(os.path.split(os.path.realpath(cudasim.__file__))[0], 'src/newmat11/')
+    abc_nm_inc = os.path.join(os.path.split(os.path.realpath(cudasim.__file__))[0], 'src/newmat11/')
+    abc_src_dir = os.path.join(os.path.split(os.path.realpath(cudasim.__file__))[0], 'src/')
 
     command = "make -f " + abc_src_dir + "makefile --quiet "
     command = command + " MODEL=" + name + " SOLVER=" + integ + " LIBNAME=" + libname + " "

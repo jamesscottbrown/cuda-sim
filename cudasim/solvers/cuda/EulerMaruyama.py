@@ -5,8 +5,8 @@ import numpy as np
 import pycuda
 import pycuda.driver as driver
 from pycuda.compiler import SourceModule
-
-import cudasim.solvers.cuda.Simulator as Sim
+import cudasim
+import cudasim.solvers.cuda.Simulator as sim
 
 
 class EulerMaruyama(sim.Simulator):
@@ -205,8 +205,8 @@ class EulerMaruyama(sim.Simulator):
 
         if not self._putIntoShared:
             # parameter texture
-            ary = Sim.create_2d_array(param)
-            Sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
+            ary = sim.create_2d_array(param)
+            sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads / self._beta + 1)
             self._param_tex.set_array(ary)
             shared_memory_parameters = 0
         else:

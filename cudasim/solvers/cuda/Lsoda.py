@@ -1,11 +1,11 @@
 import os
 
 import numpy as np
-import pycuda
 import pycuda.driver as driver
+import pycuda.compiler as compiler
 
-import cudasim.solvers.cuda.Simulator as Sim
-
+import cudasim.solvers.cuda.Simulator as sim
+import cudasim
 
 class Lsoda(sim.Simulator):
     _param_tex = None
@@ -53,6 +53,7 @@ class Lsoda(sim.Simulator):
         self._beta = 1
 
         fc = open(os.path.join(os.path.split(os.path.realpath(__file__))[0], 'solvers/cuda/cuLsoda_all.cu'), 'r')
+
         _sourceFromFile_ = fc.read()
 
         _isize_ = "#define ISIZE " + repr(20 + self._speciesNumber) + "\n"
@@ -67,7 +68,7 @@ class Lsoda(sim.Simulator):
             print >> of, _code_
 
         # dummy compile to determine optimal blockSize and gridSize
-        compiled = pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
+        compiled = compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
 
         blocks, threads = self._get_optimal_gpu_param(parameters, compiled.get_function("cuLsoda"))
         blocks = self._MAXBLOCKSPERDEVICE
@@ -80,7 +81,7 @@ class Lsoda(sim.Simulator):
             of = open("full_ode_code.cu", "w")
             print >> of, _code_
 
-        compiled = pycuda.compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
+        compiled = compiler.SourceModule(_code_, nvcc="nvcc", options=[], no_extern_c=True, keep=False)
 
         self._param_tex = compiled.get_texref("param_tex")
 
@@ -193,8 +194,8 @@ class Lsoda(sim.Simulator):
             pass
 
         # parameter texture
-        ary = Sim.create_2d_array(param)
-        Sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads)
+        ary = sim.create_2d_array(param)
+        sim.copy_2d_host_to_array(ary, param, self._parameterNumber * 4, total_threads)
         self._param_tex.set_array(ary)
 
         if self._dt <= 0:

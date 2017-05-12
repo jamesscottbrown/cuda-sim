@@ -87,7 +87,7 @@ for i in range(len(lines)):
 
 
 # create model
-modeInstance = DelaySimulator.DelaySimulator(timepoints, cudaCode, delays, beta=1, dt=dt)
+modeInstance = DelaySimulator.DelaySimulator(timepoints, cudaCode, parser[0].parsedModel.delays, beta=1, dt=dt)
 print "Model created"
 
 numRepeats = 5

@@ -23,7 +23,7 @@ simulationLength = 30
 datapoints = 100
 
 # Size of timesteps (only relevant for SDEs)
-dt = 1.0/8
+dt = 0.01
 
 
 # Number of repeated simulation for each set of parameters and species (ignored for ODE)

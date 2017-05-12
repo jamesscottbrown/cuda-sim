@@ -20,7 +20,7 @@ speciesFile = "species.dat"
 simulationLength = 50
 
 # Size of timesteps (only relevant for SDEs)
-dt = 0.1
+dt = 0.01
 
 # Location of the folder for saving the results
 resultFolder = "./results"
@@ -55,7 +55,7 @@ name = "hasty" + "_" + integrationType
 parser = Parser.importSBMLCUDA([xmlModel],[integrationType],ModelName=[name],method=None,outpath=temp)
 
 #determining the timepoints for the output
-timepoints = np.array(np.arange(simulationLength, dt), dtype=np.float32)
+timepoints = np.array(np.arange(0, simulationLength, dt), dtype=np.float32)
 
 # reading in the CUDA code
 cudaCode = os.path.join(temp, name + ".cu")

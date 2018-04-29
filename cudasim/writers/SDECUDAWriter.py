@@ -81,6 +81,7 @@ class SdeCUDAWriter(Writer):
         num_rules = len(self.parser.parsedModel.listOfRules)
         num = num_events + num_rules
         if num > 0:
+            self.out_file.write("\n")
             self.out_file.write("#define leq(a,b) a<=b\n")
             self.out_file.write("#define neq(a,b) a!=b\n")
             self.out_file.write("#define geq(a,b) a>=b\n")
@@ -281,6 +282,7 @@ class SdeCUDAWriter(Writer):
         num_rules = len(self.parser.parsedModel.listOfRules)
         num = num_events + num_rules
         if num > 0:
+            self.out_file.write("\n")
             self.out_file.write("#define leq(a,b) a<=b\n")
             self.out_file.write("#define neq(a,b) a!=b\n")
             self.out_file.write("#define geq(a,b) a>=b\n")

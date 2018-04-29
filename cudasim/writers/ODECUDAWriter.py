@@ -95,6 +95,7 @@ __device__ void operator()(int *neq, double *t, double *y, int ml, int mu, doubl
         num = num_events + num_rules
 
         if num > 0:
+            self.out_file.write("\n")
             self.out_file.write("#define leq(a,b) a<=b\n")
             self.out_file.write("#define neq(a,b) a!=b\n")
             self.out_file.write("#define geq(a,b) a>=b\n")

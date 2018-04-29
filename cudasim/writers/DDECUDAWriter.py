@@ -110,7 +110,7 @@ class DDECUDAWriter(Writer):
                 if not (rule_variable in model.speciesId):
                     self.out_file.write(rule_variable)
                 else:
-                    string = "y[" + repr(model.speciesId.index(rule_variable)) + "]"
+                    string = "ydot[" + repr(model.speciesId.index(rule_variable)) + "]"
                     self.out_file.write(string)
                 self.out_file.write("=")
 

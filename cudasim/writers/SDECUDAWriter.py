@@ -112,7 +112,7 @@ class SdeCUDAWriter(Writer):
                 if not (rule_variable in self.parser.parsedModel.speciesId):
                     self.out_file.write("    %s = " % rule_variable)
                 else:
-                    self.out_file.write("    y[%s] = " % self.parser.parsedModel.speciesId.index(rule_variable))
+                    self.out_file.write("    ydot[%s] = " % self.parser.parsedModel.speciesId.index(rule_variable))
 
                 string = self.parser.parsedModel.ruleFormula[i]
                 string = self.replace_names(string, 'tex2D(param_tex,%s,tid)')
@@ -312,7 +312,7 @@ class SdeCUDAWriter(Writer):
                 if not (rule_variable in self.parser.parsedModel.speciesId):
                     self.out_file.write("    %s = " % self.parser.parsedModel.ruleVariable[i])
                 else:
-                    self.out_file.write("    y[%s] = " % repr(self.parser.parsedModel.speciesId.index(rule_variable)))
+                    self.out_file.write("    ydot[%s] = " % repr(self.parser.parsedModel.speciesId.index(rule_variable)))
 
                 string = self.parser.parsedModel.ruleFormula[i]
                 string = self.replace_names(string, 'parameter[%s]')

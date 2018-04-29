@@ -135,7 +135,7 @@ class GillespieCUDAWriter(Writer):
 
                 string = model.ruleFormula[i]
                 for q in range(len(model.speciesId)):
-                    string = self.rep(string, model.speciesId[q], 'y[' + repr(q) + ']')
+                    string = self.rep(string, model.speciesId[q], 'ydot[' + repr(q) + ']')
                 for q in range(len(model.parameterId)):
                     parameter_id = model.parameterId[q]
                     if not (parameter_id in model.ruleVariable):
